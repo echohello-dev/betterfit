@@ -1,0 +1,74 @@
+name: BetterFit
+options:
+  bundleIdPrefix: dev.echohello
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  BetterFit:
+    path: ../..
+
+targets:
+  BetterFitApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: BetterFitApp
+    resources:
+      - path: BetterFitApp/Assets.xcassets
+    info:
+      path: BetterFitApp/Info.plist
+      properties:
+        CFBundleDisplayName: BetterFit
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: ""
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - package: BetterFit
+
+  BetterFitDev:
+    type: application
+    platform: iOS
+    sources:
+      - path: BetterFitApp
+    resources:
+      - path: BetterFitApp/Assets.xcassets
+    info:
+      path: BetterFitApp/Info.plist
+      properties:
+        CFBundleDisplayName: BetterFit Dev
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: ""
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.dev
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - package: BetterFit
+
+schemes:
+  BetterFit:
+    build:
+      targets:
+        BetterFitApp: all
+    run:
+      config: Debug
+  BetterFitDev:
+    build:
+      targets:
+        BetterFitDev: all
+    run:
+      config: Debug

@@ -1,0 +1,25 @@
+[tasks.test]
+run = "swift test"
+
+[tasks.build]
+run = "swift build"
+
+[tasks."ios:gen"]
+run = "cd Apps/iOS && xcodegen generate"
+
+[tasks."ios:open"]
+run = "cd Apps/iOS && xcodegen generate && open BetterFit.xcodeproj"
+
+[tasks."ios:build:prod"]
+run = "cd Apps/iOS && xcodegen generate && xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination 'generic/platform=iOS Simulator' build"
+
+[tasks."ios:build:dev"]
+run = "cd Apps/iOS && xcodegen generate && xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination 'generic/platform=iOS Simulator' build"
+
+[tasks."ios:sim:reset"]
+run = """
+killall -9 Simulator 2>/dev/null || true
+killall -9 CoreSimulatorService 2>/dev/null || true
+killall -9 com.apple.CoreSimulator.CoreSimulatorService 2>/dev/null || true
+xcrun simctl shutdown all || true
+"""
