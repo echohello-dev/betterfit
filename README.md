@@ -155,6 +155,14 @@ swift test
 swift test --filter ModelTests
 ```
 
+## Run the iOS host app (Simulator)
+
+BetterFit is a SwiftPM library; the iOS host app lives in `Apps/iOS` and exists just to run the package on Simulator.
+
+```bash
+mise run ios:open
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
