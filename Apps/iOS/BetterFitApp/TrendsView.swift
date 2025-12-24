@@ -28,15 +28,13 @@ struct TrendsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
+                BFChromeIconButton(
+                    systemImage: "magnifyingglass",
+                    accessibilityLabel: "Search",
+                    theme: theme
+                ) {
                     showingSearch = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background { LiquidGlassCircleBackground(theme: theme) }
                 }
-                .accessibilityLabel("Search")
             }
         }
         .sheet(isPresented: $showingSearch) {

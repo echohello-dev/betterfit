@@ -32,36 +32,62 @@ struct WorkoutHomeView: View {
         .background(theme.backgroundGradient.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    showingSearch = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background { LiquidGlassCircleBackground(theme: theme) }
-                }
-                .accessibilityLabel("Search")
+            ToolbarItem(placement: .topBarTrailing) {
+                if #available(iOS 26.0, *) {
+                    GlassEffectContainer(spacing: 16) {
+                        HStack(spacing: 10) {
+                            BFChromeIconButton(
+                                systemImage: "magnifyingglass",
+                                accessibilityLabel: "Search",
+                                theme: theme
+                            ) {
+                                showingSearch = true
+                            }
 
-                Button {
-                    showCalendar = true
-                } label: {
-                    Image(systemName: "calendar")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background { LiquidGlassCircleBackground(theme: theme) }
-                }
-                .accessibilityLabel("Calendar")
+                            BFChromeIconButton(
+                                systemImage: "calendar",
+                                accessibilityLabel: "Calendar",
+                                theme: theme
+                            ) {
+                                showCalendar = true
+                            }
 
-                Button {
-                    quickAddWorkout()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background { LiquidGlassCircleBackground(theme: theme) }
+                            BFChromeIconButton(
+                                systemImage: "plus",
+                                accessibilityLabel: "Add",
+                                theme: theme
+                            ) {
+                                quickAddWorkout()
+                            }
+                        }
+                    }
+                } else {
+                    HStack(spacing: 10) {
+                        BFChromeIconButton(
+                            systemImage: "magnifyingglass",
+                            accessibilityLabel: "Search",
+                            theme: theme
+                        ) {
+                            showingSearch = true
+                        }
+
+                        BFChromeIconButton(
+                            systemImage: "calendar",
+                            accessibilityLabel: "Calendar",
+                            theme: theme
+                        ) {
+                            showCalendar = true
+                        }
+
+                        BFChromeIconButton(
+                            systemImage: "plus",
+                            accessibilityLabel: "Add",
+                            theme: theme
+                        ) {
+                            quickAddWorkout()
+                        }
+                    }
                 }
-                .accessibilityLabel("Add")
             }
         }
         .sheet(isPresented: $showingSearch) {

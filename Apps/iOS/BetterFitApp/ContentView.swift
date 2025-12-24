@@ -61,20 +61,46 @@ struct ContentView: View {
             .background(theme.backgroundGradient.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        showingSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .accessibilityLabel("Search")
+                ToolbarItem(placement: .topBarTrailing) {
+                    if #available(iOS 26.0, *) {
+                        GlassEffectContainer(spacing: 16) {
+                            HStack(spacing: 10) {
+                                BFChromeIconButton(
+                                    systemImage: "magnifyingglass",
+                                    accessibilityLabel: "Search",
+                                    theme: theme
+                                ) {
+                                    showingSearch = true
+                                }
 
-                    Button {
-                        showingThemePicker = true
-                    } label: {
-                        Image(systemName: "paintpalette")
+                                BFChromeIconButton(
+                                    systemImage: "paintpalette",
+                                    accessibilityLabel: "Change theme",
+                                    theme: theme
+                                ) {
+                                    showingThemePicker = true
+                                }
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 10) {
+                            BFChromeIconButton(
+                                systemImage: "magnifyingglass",
+                                accessibilityLabel: "Search",
+                                theme: theme
+                            ) {
+                                showingSearch = true
+                            }
+
+                            BFChromeIconButton(
+                                systemImage: "paintpalette",
+                                accessibilityLabel: "Change theme",
+                                theme: theme
+                            ) {
+                                showingThemePicker = true
+                            }
+                        }
                     }
-                    .accessibilityLabel("Change theme")
                 }
             }
             .sheet(isPresented: $showingSearch) {
@@ -108,15 +134,13 @@ struct ContentView: View {
 
             Spacer(minLength: 0)
 
-            Button {
+            BFChromeIconButton(
+                systemImage: "arrow.clockwise",
+                accessibilityLabel: "Refresh",
+                theme: theme
+            ) {
                 refreshRecovery()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.body.weight(.semibold))
-                    .padding(10)
-                    .background { LiquidGlassCircleBackground(theme: theme) }
             }
-            .accessibilityLabel("Refresh")
         }
     }
 

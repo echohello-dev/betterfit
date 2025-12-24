@@ -109,6 +109,37 @@ struct LiquidGlassCircleBackground: View {
     }
 }
 
+struct BFChromeIconButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let theme: AppTheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: 34, height: 34)
+        }
+        .accessibilityLabel(accessibilityLabel)
+        .modifier(BFChromeIconButtonStyle(theme: theme))
+    }
+}
+
+private struct BFChromeIconButtonStyle: ViewModifier {
+    let theme: AppTheme
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            content
+                .background { LiquidGlassCircleBackground(theme: theme) }
+        }
+    }
+}
+
 struct BFCard<Content: View>: View {
     let theme: AppTheme
     @ViewBuilder let content: Content
