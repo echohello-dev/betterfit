@@ -100,6 +100,12 @@ dependencies: [
 ]
 ```
 
+## Docs
+
+- [docs/readme.md](docs/readme.md)
+- [docs/api.md](docs/api.md)
+- [docs/examples.md](docs/examples.md)
+
 ## Usage
 
 ```swift
