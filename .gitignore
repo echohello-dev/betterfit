@@ -1,0 +1,35 @@
+# Swift Package Manager
+.build/
+*.swiftpm
+.swiftpm/
+
+# Xcode
+xcuserdata/
+*.xcodeproj
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+/*.gcno
+*~.nib
+DerivedData/
+
+# Build artifacts
+*.o
+*.a
+*.dylib
+*.framework
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.swp
+*.swo
+*~
+.tmp/
+tmp/
