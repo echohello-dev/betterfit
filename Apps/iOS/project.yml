@@ -9,7 +9,7 @@ packages:
     path: ../..
 
 targets:
-  BetterFit:
+  BetterFitApp:
     type: application
     platform: iOS
     sources:
@@ -54,3 +54,17 @@ targets:
         SWIFT_VERSION: "5.0"
     dependencies:
       - package: BetterFit
+
+schemes:
+  BetterFit:
+    build:
+      targets:
+        BetterFitApp: all
+    run:
+      config: Debug
+  BetterFitDev:
+    build:
+      targets:
+        BetterFitDev: all
+    run:
+      config: Debug
