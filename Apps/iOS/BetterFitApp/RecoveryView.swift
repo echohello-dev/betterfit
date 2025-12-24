@@ -10,44 +10,33 @@ struct RecoveryView: View {
     @State private var showingSearch = false
 
     var body: some View {
-        List {
-            Section("Overall") {
-                LabeledContent("Recovery") {
-                    Text("\(Int(betterFit.bodyMapManager.getOverallRecoveryPercentage()))%")
-                        .monospacedDigit()
-                }
-                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
-            }
-            .listSectionSeparator(.hidden)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                overallCard
 
-            Section("By region") {
-                ForEach(BodyRegion.allCases.filter { $0 != .other }, id: \.self) { region in
-                    let status =
-                        map.regions[region]
-                        ?? betterFit.bodyMapManager.getRecoveryStatus(for: region)
-                    LabeledContent(regionName(region)) {
-                        Text(statusText(status))
-                            .foregroundStyle(statusColor(status))
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("By region")
+                        .bfHeading(theme: theme, size: 20, relativeTo: .headline)
+
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12),
+                        ],
+                        spacing: 12
+                    ) {
+                        ForEach(BodyRegion.allCases.filter { $0 != .other }, id: \.self) { region in
+                            regionCard(region)
+                        }
                     }
-                    .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
                 }
-            }
-            .listSectionSeparator(.hidden)
 
-            Section {
-                Button("Reset recovery map") {
-                    betterFit.bodyMapManager.reset()
-                    refresh()
-                }
-                .foregroundStyle(.red)
-                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                resetCard
             }
-            .listSectionSeparator(.hidden)
+            .padding(16)
         }
         .navigationTitle("Recovery")
-        .scrollContentBackground(.hidden)
+        .navigationBarTitleDisplayMode(.large)
         .background(theme.backgroundGradient.ignoresSafeArea())
-        .listStyle(.insetGrouped)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if #available(iOS 26.0, *) {
@@ -97,6 +86,90 @@ struct RecoveryView: View {
         }
         .onAppear {
             refresh()
+        }
+    }
+
+    private var overallCard: some View {
+        let overall = betterFit.bodyMapManager.getOverallRecoveryPercentage()
+        let progress = overall / 100.0
+
+        return BFCard(theme: theme) {
+            HStack(spacing: 16) {
+                ZStack {
+                    ProgressRing(progress: progress, lineWidth: 10, theme: theme)
+                        .frame(width: 86, height: 86)
+
+                    Text("\(Int(overall))%")
+                        .font(.title3.weight(.bold))
+                        .monospacedDigit()
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Overall")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(overallHeadline(overall))
+                        .bfHeading(theme: theme, size: 20, relativeTo: .headline)
+
+                    Text("Fresh muscle groups are good to push; sore groups need rest.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func regionCard(_ region: BodyRegion) -> some View {
+        let status = map.regions[region] ?? betterFit.bodyMapManager.getRecoveryStatus(for: region)
+
+        VStack(alignment: .leading, spacing: 10) {
+            Text(regionName(region))
+                .font(.subheadline.weight(.semibold))
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(statusColor(status))
+                    .frame(width: 10, height: 10)
+
+                Text(statusText(status))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(statusColor(status))
+
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background { LiquidGlassBackground(theme: theme, cornerRadius: 18) }
+    }
+
+    private var resetCard: some View {
+        BFCard(theme: theme) {
+            Button(role: .destructive) {
+                betterFit.bodyMapManager.reset()
+                refresh()
+            } label: {
+                Label("Reset recovery map", systemImage: "arrow.counterclockwise")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func overallHeadline(_ overall: Double) -> String {
+        switch overall {
+        case 0..<35:
+            return "Low recovery"
+        case 35..<70:
+            return "Moderate recovery"
+        default:
+            return "High recovery"
         }
     }
 
