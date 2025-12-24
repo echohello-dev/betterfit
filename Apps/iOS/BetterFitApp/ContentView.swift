@@ -9,9 +9,12 @@ struct ContentView: View {
     @State private var lastEvent: String = ""
     @State private var recoveryPercent: Double = 0
 
-    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.classic.rawValue
+    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
+        .rawValue
 
     @State private var showingThemePicker = false
+
+    @State private var showingSearch = false
 
     var body: some View {
         NavigationStack {
@@ -45,7 +48,7 @@ struct ContentView: View {
                     BFCard(theme: theme) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Suggestions")
-                                .font(.headline)
+                                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
                             Text(
                                 "Next, we can add per-muscle recovery, a weekly load trend, and a real workout log. This dashboard is designed to scale as features land."
                             )
@@ -58,7 +61,14 @@ struct ContentView: View {
             .background(theme.backgroundGradient.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        showingSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("Search")
+
                     Button {
                         showingThemePicker = true
                     } label: {
@@ -66,6 +76,10 @@ struct ContentView: View {
                     }
                     .accessibilityLabel("Change theme")
                 }
+            }
+            .sheet(isPresented: $showingSearch) {
+                AppSearchView(theme: theme, betterFit: betterFit)
+                    .presentationDetents([.large])
             }
             .sheet(isPresented: $showingThemePicker) {
                 ThemePickerView(
@@ -86,7 +100,7 @@ struct ContentView: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("BetterFit")
-                    .font(.largeTitle.weight(.bold))
+                    .bfHeading(theme: theme, size: 36, relativeTo: .largeTitle)
                 Text("Recovery dashboard")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -100,11 +114,7 @@ struct ContentView: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.body.weight(.semibold))
                     .padding(10)
-                    .background(theme.cardBackground)
-                    .clipShape(Circle())
-                    .overlay {
-                        Circle().stroke(theme.cardStroke, lineWidth: 1)
-                    }
+                    .background { LiquidGlassCircleBackground(theme: theme) }
             }
             .accessibilityLabel("Refresh")
         }
@@ -128,7 +138,7 @@ struct ContentView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Overall recovery")
-                        .font(.headline)
+                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
                     Text(recoveryDescription)
                         .foregroundStyle(.secondary)
                 }
@@ -160,7 +170,7 @@ struct ContentView: View {
         BFCard(theme: theme) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Quick actions")
-                    .font(.headline)
+                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
                 Button {
                     simulateWorkout()

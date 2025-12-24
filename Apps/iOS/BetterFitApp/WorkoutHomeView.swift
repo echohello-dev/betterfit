@@ -11,6 +11,8 @@ struct WorkoutHomeView: View {
     @State private var showCalendar = false
     @State private var selectedDate = Date.now
 
+    @State private var showingSearch = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -32,14 +34,22 @@ struct WorkoutHomeView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
+                    showingSearch = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background { LiquidGlassCircleBackground(theme: theme) }
+                }
+                .accessibilityLabel("Search")
+
+                Button {
                     showCalendar = true
                 } label: {
                     Image(systemName: "calendar")
                         .font(.body.weight(.semibold))
                         .frame(width: 34, height: 34)
-                        .background(theme.cardBackground)
-                        .clipShape(Circle())
-                        .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+                        .background { LiquidGlassCircleBackground(theme: theme) }
                 }
                 .accessibilityLabel("Calendar")
 
@@ -49,12 +59,14 @@ struct WorkoutHomeView: View {
                     Image(systemName: "plus")
                         .font(.body.weight(.semibold))
                         .frame(width: 34, height: 34)
-                        .background(theme.cardBackground)
-                        .clipShape(Circle())
-                        .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+                        .background { LiquidGlassCircleBackground(theme: theme) }
                 }
                 .accessibilityLabel("Add")
             }
+        }
+        .sheet(isPresented: $showingSearch) {
+            AppSearchView(theme: theme, betterFit: betterFit)
+                .presentationDetents([.large])
         }
         .sheet(isPresented: $showCalendar) {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
@@ -68,7 +80,7 @@ struct WorkoutHomeView: View {
     private var titleRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Workout")
-                .font(.largeTitle.weight(.bold))
+                .bfHeading(theme: theme, size: 36, relativeTo: .largeTitle)
 
             Text(selectedDate.formatted(date: .complete, time: .omitted))
                 .font(.subheadline)
@@ -100,14 +112,14 @@ struct WorkoutHomeView: View {
 
                 VStack(spacing: 6) {
                     Text(regionDisplayName(region))
-                        .font(.title2.weight(.semibold))
+                        .bfHeading(theme: theme, size: 24, relativeTo: .title2)
 
                     Text("\(percent)%")
                         .font(.system(size: 60, weight: .bold, design: .rounded))
                         .monospacedDigit()
 
                     Text(statusLabel(status))
-                        .font(.headline)
+                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
                         .foregroundStyle(theme.accent)
 
                     Text(statusSubtitle(status))
@@ -125,7 +137,7 @@ struct WorkoutHomeView: View {
                 startEmptyWorkout()
             } label: {
                 Text("Empty Workout")
-                    .font(.headline)
+                    .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
@@ -135,7 +147,7 @@ struct WorkoutHomeView: View {
                 generateWorkout()
             } label: {
                 Label("Generate", systemImage: "sparkles")
-                    .font(.headline)
+                    .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
@@ -148,7 +160,7 @@ struct WorkoutHomeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("My Week")
-                        .font(.headline)
+                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
                     Spacer(minLength: 0)
 

@@ -7,6 +7,8 @@ struct RecoveryView: View {
 
     @State private var map: BodyMapRecovery = .init()
 
+    @State private var showingSearch = false
+
     var body: some View {
         List {
             Section("Overall") {
@@ -14,7 +16,9 @@ struct RecoveryView: View {
                     Text("\(Int(betterFit.bodyMapManager.getOverallRecoveryPercentage()))%")
                         .monospacedDigit()
                 }
+                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
             }
+            .listSectionSeparator(.hidden)
 
             Section("By region") {
                 ForEach(BodyRegion.allCases.filter { $0 != .other }, id: \.self) { region in
@@ -25,8 +29,10 @@ struct RecoveryView: View {
                         Text(statusText(status))
                             .foregroundStyle(statusColor(status))
                     }
+                    .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
                 }
             }
+            .listSectionSeparator(.hidden)
 
             Section {
                 Button("Reset recovery map") {
@@ -34,18 +40,42 @@ struct RecoveryView: View {
                     refresh()
                 }
                 .foregroundStyle(.red)
+                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
             }
+            .listSectionSeparator(.hidden)
         }
         .navigationTitle("Recovery")
+        .scrollContentBackground(.hidden)
+        .background(theme.backgroundGradient.ignoresSafeArea())
+        .listStyle(.insetGrouped)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     refresh()
                 } label: {
                     Image(systemName: "arrow.clockwise")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background { LiquidGlassCircleBackground(theme: theme) }
                 }
                 .accessibilityLabel("Refresh")
             }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingSearch = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background { LiquidGlassCircleBackground(theme: theme) }
+                }
+                .accessibilityLabel("Search")
+            }
+        }
+        .sheet(isPresented: $showingSearch) {
+            AppSearchView(theme: theme, betterFit: betterFit)
+                .presentationDetents([.large])
         }
         .onAppear {
             refresh()
