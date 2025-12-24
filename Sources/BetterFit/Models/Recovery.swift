@@ -1,7 +1,7 @@
 import Foundation
 
 /// Body map for tracking recovery
-public struct BodyMapRecovery: Codable, Equatable {
+public struct BodyMapRecovery: Codab  le, Equatable {
     public var regions: [BodyRegion: RecoveryStatus]
     public var lastUpdated: Date
     
