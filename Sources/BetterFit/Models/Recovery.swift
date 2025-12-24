@@ -1,10 +1,10 @@
 import Foundation
 
 /// Body map for tracking recovery
-public struct BodyMapRecovery: Codab  le, Equatable {
+public struct BodyMapRecovery: Codable, Equatable {
     public var regions: [BodyRegion: RecoveryStatus]
     public var lastUpdated: Date
-    
+
     public init(
         regions: [BodyRegion: RecoveryStatus] = [:],
         lastUpdated: Date = Date()
@@ -12,31 +12,31 @@ public struct BodyMapRecovery: Codab  le, Equatable {
         self.regions = regions
         self.lastUpdated = lastUpdated
     }
-    
+
     /// Update recovery status after a workout
     public mutating func recordWorkout(_ workout: Workout) {
         let muscleGroups = workout.exercises.flatMap { $0.exercise.muscleGroups }
-        
+
         for group in muscleGroups {
             let region = BodyRegion(rawValue: group.bodyMapRegion) ?? .other
             let currentStatus = regions[region] ?? .recovered
-            
+
             // Mark as worked
             regions[region] = currentStatus.afterWorkout()
         }
-        
+
         lastUpdated = Date()
     }
-    
+
     /// Update recovery status based on time elapsed
     public mutating func updateRecovery() {
         let now = Date()
-        
+
         for (region, status) in regions {
             let hoursSince = now.timeIntervalSince(lastUpdated) / 3600
             regions[region] = status.afterRecovery(hours: hoursSince)
         }
-        
+
         lastUpdated = now
     }
 }
@@ -58,7 +58,7 @@ public enum RecoveryStatus: String, Codable, Equatable {
     case slightlyFatigued
     case fatigued
     case sore
-    
+
     /// Get status after a workout
     public func afterWorkout() -> RecoveryStatus {
         switch self {
@@ -70,7 +70,7 @@ public enum RecoveryStatus: String, Codable, Equatable {
             return .sore
         }
     }
-    
+
     /// Get status after recovery time
     public func afterRecovery(hours: Double) -> RecoveryStatus {
         switch self {
@@ -84,7 +84,7 @@ public enum RecoveryStatus: String, Codable, Equatable {
             return hours >= 72 ? .recovered : (hours >= 48 ? .fatigued : .sore)
         }
     }
-    
+
     /// Recommended rest before training again
     public var recommendedRestHours: Double {
         switch self {
