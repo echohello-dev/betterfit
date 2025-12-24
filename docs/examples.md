@@ -1,5 +1,7 @@
 # BetterFit Usage Examples
 
+Looking to run the iOS app on Simulator? Start here: [README.md](README.md).
+
 This document provides practical examples of using BetterFit in your iOS/watchOS app.
 
 ## Quick Start
@@ -114,6 +116,10 @@ func processMotionUpdate(_ motion: CMDeviceMotion) {
 ## Handling Equipment Swaps
 
 ```swift
+guard var workout = betterFit.templateManager.createWorkout(from: pushTemplate.id) else {
+    return
+}
+
 // Set available equipment (e.g., at a home gym)
 betterFit.equipmentSwapManager.setAvailableEquipment([
     .dumbbell,
@@ -133,9 +139,8 @@ for (original, alternatives) in swaps {
 
 // Apply a swap
 if let firstAlternative = swaps.first?.alternatives.first {
-    var updatedWorkout = workout
     betterFit.equipmentSwapManager.applySwap(
-        workout: &updatedWorkout,
+        workout: &workout,
         originalExerciseId: swaps.first!.original.id,
         newExercise: firstAlternative
     )
@@ -253,6 +258,8 @@ betterFit.socialManager.createChallenge(challenge)
 betterFit.socialManager.joinChallenge(challenge.id)
 
 // Update progress
+let userProfile = betterFit.socialManager.getUserProfile()
+
 betterFit.socialManager.updateChallengeProgress(
     challengeId: challenge.id,
     userId: userProfile.id,

@@ -4,7 +4,7 @@ BetterFit is a Swift Package (library) for building a strength training coach ex
 
 ## Docs
 
-- [docs/readme.md](docs/readme.md)
+- [docs/README.md](docs/README.md)
 - [docs/api.md](docs/api.md)
 - [docs/examples.md](docs/examples.md)
 
@@ -27,15 +27,8 @@ let betterFit = BetterFit()
 
 ## Development
 
-```bash
-mise run build
-mise run test
-```
+Dev setup and contributor workflow live in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Run on Simulator
 
-The runnable iOS host app lives in `Apps/iOS` (generated via XcodeGen).
-
-```bash
-mise run ios:open
-```
+See [docs/README.md](docs/README.md) (or [CONTRIBUTING.md](CONTRIBUTING.md)) for the iOS Simulator instructions.

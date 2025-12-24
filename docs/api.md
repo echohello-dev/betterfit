@@ -1,5 +1,7 @@
 # BetterFit API Reference
 
+Looking to run the iOS app on Simulator? Start here: [README.md](README.md).
+
 ## Core Class
 
 ### `BetterFit`
@@ -53,6 +55,12 @@ Gets a recommended workout based on current plan and recovery status.
 public func processMotionData(_ data: MotionData) -> TrackingEvent?
 ```
 Processes Apple Watch motion data for auto-tracking.
+
+##### `getTrackingStatus() -> TrackingStatus`
+```swift
+public func getTrackingStatus() -> TrackingStatus
+```
+Returns the current auto-tracking status.
 
 ## Models
 
@@ -407,6 +415,17 @@ public struct MotionData
 - `heartRate: Double?`
 - `timestamp: Date`
 
+#### Initializer
+
+```swift
+public init(
+	acceleration: [Double],
+	rotation: [Double],
+	heartRate: Double? = nil,
+	timestamp: Date = Date()
+)
+```
+
 #### Methods
 - `isRepetitionDetected() -> Bool`
 - `isRestPeriod() -> Bool`
@@ -423,6 +442,19 @@ public enum TrackingEvent
 - `repDetected(count: Int)`
 - `setCompleted(reps: Int)`
 - `exerciseCompleted`
+
+### `TrackingStatus`
+
+Current auto-tracking status.
+
+```swift
+public struct TrackingStatus
+```
+
+#### Properties
+- `isTracking: Bool`
+- `currentExercise: Int`
+- `detectedReps: Int`
 
 ### `AIAdaptationService`
 
