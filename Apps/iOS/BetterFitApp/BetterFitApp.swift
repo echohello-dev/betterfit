@@ -5,9 +5,14 @@ import SwiftUI
 struct BetterFitApp: App {
     let betterFit = BetterFit()
 
+    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.classic.rawValue
+
     var body: some Scene {
         WindowGroup {
-            ContentView(betterFit: betterFit)
+            let theme = AppTheme.fromStorage(storedTheme)
+            RootTabView(betterFit: betterFit, theme: theme)
+                .tint(theme.accent)
+                .preferredColorScheme(theme.preferredColorScheme)
         }
     }
 }
