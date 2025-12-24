@@ -16,7 +16,7 @@ concurrency:
 jobs:
   swiftpm:
     name: SwiftPM (build + test)
-    runs-on: macos-26
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -32,13 +32,16 @@ jobs:
 
   ios:
     name: iOS (xcodebuild)
-    runs-on: macos-26
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup mise
         uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+
+      - name: Install xcodegen
+        run: brew install xcodegen
 
       - name: Build (Dev scheme)
         run: mise run ios:build:dev

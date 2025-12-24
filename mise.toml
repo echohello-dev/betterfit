@@ -11,10 +11,10 @@ run = "cd Apps/iOS && xcodegen generate"
 run = "cd Apps/iOS && xcodegen generate && open BetterFit.xcodeproj"
 
 [tasks."ios:build:prod"]
-run = "cd Apps/iOS && xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination 'generic/platform=iOS Simulator' build"
+run = "cd Apps/iOS && xcodegen generate && xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination 'generic/platform=iOS Simulator' build"
 
 [tasks."ios:build:dev"]
-run = "cd Apps/iOS && xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination 'generic/platform=iOS Simulator' build"
+run = "cd Apps/iOS && xcodegen generate && xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination 'generic/platform=iOS Simulator' build"
 
 [tasks."ios:sim:reset"]
 run = """
