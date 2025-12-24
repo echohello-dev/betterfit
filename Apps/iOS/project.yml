@@ -14,6 +14,8 @@ targets:
     platform: iOS
     sources:
       - path: BetterFitApp
+    resources:
+      - path: BetterFitApp/Assets.xcassets
     info:
       path: BetterFitApp/Info.plist
       properties:
@@ -37,6 +39,8 @@ targets:
     platform: iOS
     sources:
       - path: BetterFitApp
+    resources:
+      - path: BetterFitApp/Assets.xcassets
     info:
       path: BetterFitApp/Info.plist
       properties:
