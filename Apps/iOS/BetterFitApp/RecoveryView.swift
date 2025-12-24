@@ -50,27 +50,45 @@ struct RecoveryView: View {
         .listStyle(.insetGrouped)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    refresh()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background { LiquidGlassCircleBackground(theme: theme) }
-                }
-                .accessibilityLabel("Refresh")
-            }
+                if #available(iOS 26.0, *) {
+                    GlassEffectContainer(spacing: 16) {
+                        HStack(spacing: 10) {
+                            BFChromeIconButton(
+                                systemImage: "magnifyingglass",
+                                accessibilityLabel: "Search",
+                                theme: theme
+                            ) {
+                                showingSearch = true
+                            }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingSearch = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background { LiquidGlassCircleBackground(theme: theme) }
+                            BFChromeIconButton(
+                                systemImage: "arrow.clockwise",
+                                accessibilityLabel: "Refresh",
+                                theme: theme
+                            ) {
+                                refresh()
+                            }
+                        }
+                    }
+                } else {
+                    HStack(spacing: 10) {
+                        BFChromeIconButton(
+                            systemImage: "magnifyingglass",
+                            accessibilityLabel: "Search",
+                            theme: theme
+                        ) {
+                            showingSearch = true
+                        }
+
+                        BFChromeIconButton(
+                            systemImage: "arrow.clockwise",
+                            accessibilityLabel: "Refresh",
+                            theme: theme
+                        ) {
+                            refresh()
+                        }
+                    }
                 }
-                .accessibilityLabel("Search")
             }
         }
         .sheet(isPresented: $showingSearch) {
