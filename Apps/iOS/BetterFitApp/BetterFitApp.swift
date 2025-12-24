@@ -5,7 +5,8 @@ import SwiftUI
 struct BetterFitApp: App {
     let betterFit = BetterFit()
 
-    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.classic.rawValue
+    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
+        .rawValue
 
     var body: some Scene {
         WindowGroup {

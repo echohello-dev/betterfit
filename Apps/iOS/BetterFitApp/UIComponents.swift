@@ -1,5 +1,114 @@
 import SwiftUI
 
+struct LiquidGlassBackground: View {
+    let theme: AppTheme
+    var cornerRadius: CGFloat = 16
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        shape
+            .fill(theme.cardBackground)
+            .overlay {
+                // Subtle tint so the glass feels “alive” across themes.
+                shape
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                theme.accent.opacity(0.10),
+                                theme.accent.opacity(0.04),
+                                Color.white.opacity(0.02),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .blendMode(.overlay)
+            }
+            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+            .overlay {
+                // Specular edge highlight.
+                shape
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.70),
+                                Color.white.opacity(0.20),
+                                Color.clear,
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                    .blendMode(.screen)
+                    .opacity(theme.preferredColorScheme == .dark ? 0.55 : 0.30)
+            }
+            .overlay {
+                // Soft inner glow.
+                shape
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.14), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .center
+                        )
+                    )
+                    .blendMode(.softLight)
+                    .clipShape(shape)
+                    .opacity(theme.preferredColorScheme == .dark ? 0.65 : 0.45)
+            }
+            .shadow(
+                color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.35 : 0.12),
+                radius: theme.preferredColorScheme == .dark ? 18 : 12,
+                x: 0,
+                y: 8
+            )
+    }
+}
+
+struct LiquidGlassCircleBackground: View {
+    let theme: AppTheme
+
+    var body: some View {
+        let shape = Circle()
+
+        shape
+            .fill(theme.cardBackground)
+            .overlay {
+                shape
+                    .fill(
+                        LinearGradient(
+                            colors: [theme.accent.opacity(0.10), Color.white.opacity(0.02)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .blendMode(.overlay)
+            }
+            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+            .overlay {
+                shape
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.70), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                    .blendMode(.screen)
+                    .opacity(theme.preferredColorScheme == .dark ? 0.50 : 0.25)
+            }
+            .shadow(
+                color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.30 : 0.10),
+                radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                x: 0,
+                y: 6
+            )
+    }
+}
+
 struct BFCard<Content: View>: View {
     let theme: AppTheme
     @ViewBuilder let content: Content
@@ -12,11 +121,8 @@ struct BFCard<Content: View>: View {
     var body: some View {
         content
             .padding(16)
-            .background(theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(theme.cardStroke, lineWidth: 1)
+            .background {
+                LiquidGlassBackground(theme: theme, cornerRadius: 16)
             }
     }
 }
@@ -75,11 +181,8 @@ struct MetricPill: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background(theme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(theme.cardStroke, lineWidth: 1)
+        .background {
+            LiquidGlassBackground(theme: theme, cornerRadius: 14)
         }
     }
 }

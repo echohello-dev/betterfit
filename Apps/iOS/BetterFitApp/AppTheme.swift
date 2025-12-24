@@ -1,6 +1,11 @@
 import SwiftUI
 
+#if canImport(UIKit)
+    import UIKit
+#endif
+
 enum AppTheme: String, CaseIterable, Identifiable {
+    case bold
     case classic
     case midnight
     case forest
@@ -10,6 +15,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
+        case .bold: return "Bold"
         case .classic: return "Classic"
         case .midnight: return "Midnight"
         case .forest: return "Forest"
@@ -19,6 +25,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var accent: Color {
         switch self {
+        case .bold: return Color(red: 1.00, green: 0.84, blue: 0.00)
         case .classic: return .blue
         case .midnight: return Color(red: 0.62, green: 0.45, blue: 1.0)
         case .forest: return Color(red: 0.20, green: 0.72, blue: 0.47)
@@ -29,6 +36,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var backgroundGradient: LinearGradient {
         let colors: [Color]
         switch self {
+        case .bold:
+            colors = [Color.black, Color(red: 0.06, green: 0.06, blue: 0.06)]
         case .classic:
             colors = [Color(.systemBackground), Color(.secondarySystemBackground)]
         case .midnight:
@@ -57,6 +66,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var preferredColorScheme: ColorScheme? {
         switch self {
+        case .bold:
+            return .dark
         case .classic:
             return nil
         case .midnight, .forest, .sunset:
@@ -66,6 +77,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var cardBackground: AnyShapeStyle {
         switch self {
+        case .bold:
+            return AnyShapeStyle(Color.black.opacity(0.55))
         case .classic:
             return AnyShapeStyle(.thinMaterial)
         case .midnight, .forest, .sunset:
@@ -75,6 +88,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var cardStroke: Color {
         switch self {
+        case .bold:
+            return accent.opacity(0.35)
         case .classic:
             return Color(.separator).opacity(0.35)
         case .midnight:
@@ -90,10 +105,39 @@ enum AppTheme: String, CaseIterable, Identifiable {
 extension AppTheme {
     static let storageKey = "betterfit.appTheme"
 
+    static let defaultTheme: AppTheme = .bold
+
     static func fromStorage(_ rawValue: String?) -> AppTheme {
         guard let rawValue, let theme = AppTheme(rawValue: rawValue) else {
-            return .classic
+            return defaultTheme
         }
         return theme
+    }
+}
+
+extension AppTheme {
+    static let headingFontCandidates: [String] = [
+        "BBH Hegarty",
+        "BBHHegarty",
+        "BBH-Hegarty",
+    ]
+
+    func headingFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
+        #if canImport(UIKit)
+            if let resolvedName = AppTheme.headingFontCandidates.first(where: {
+                UIFont(name: $0, size: size) != nil
+            }) {
+                return .custom(resolvedName, size: size, relativeTo: textStyle)
+            }
+        #endif
+        return .system(size: size, weight: .black, design: .rounded)
+    }
+}
+
+extension View {
+    func bfHeading(theme: AppTheme, size: CGFloat, relativeTo textStyle: Font.TextStyle = .headline)
+        -> some View
+    {
+        font(theme.headingFont(size: size, relativeTo: textStyle))
     }
 }

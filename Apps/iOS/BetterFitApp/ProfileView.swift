@@ -3,9 +3,12 @@ import SwiftUI
 struct ProfileView: View {
     let theme: AppTheme
 
-    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.classic.rawValue
+    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
+        .rawValue
 
     @State private var showingThemePicker = false
+
+    @State private var showingSearch = false
 
     var body: some View {
         List {
@@ -20,15 +23,39 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
             }
+            .listSectionSeparator(.hidden)
 
             Section("About") {
                 LabeledContent("Version") {
                     Text("1.0")
                 }
+                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
             }
+            .listSectionSeparator(.hidden)
         }
         .navigationTitle("You")
+        .scrollContentBackground(.hidden)
+        .background(theme.backgroundGradient.ignoresSafeArea())
+        .listStyle(.insetGrouped)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingSearch = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background { LiquidGlassCircleBackground(theme: theme) }
+                }
+                .accessibilityLabel("Search")
+            }
+        }
+        .sheet(isPresented: $showingSearch) {
+            AppSearchView(theme: theme, betterFit: nil)
+                .presentationDetents([.large])
+        }
         .sheet(isPresented: $showingThemePicker) {
             ThemePickerView(
                 selectedTheme: Binding(
