@@ -44,6 +44,34 @@ mise run ios:build:dev
 mise run ios:sim:reset
 ```
 
+## Run the app (watchOS Simulator)
+
+The watch app lives in `Apps/iOS` and is generated via XcodeGen.
+
+### Boot the watch simulator
+
+```bash
+mise run watch:sim:boot
+```
+
+### Open in Xcode (recommended)
+
+```bash
+mise run watch:open
+```
+
+In Xcode:
+
+1. Pick scheme: **BetterFitWatch**
+2. Pick a paired destination (an iPhone Simulator + an Apple Watch Simulator)
+3. Press **Run**
+
+### Build from the CLI (no UI)
+
+```bash
+mise run watch:build
+```
+
 ## Library docs
 
 - [API Reference](api.md)

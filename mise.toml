@@ -21,32 +21,12 @@ run = """
 cd Apps/iOS
 xcodegen generate
 
-UDID=$(python3 - <<'PY'
-import json, subprocess
-
-runtime = "com.apple.CoreSimulator.SimRuntime.watchOS-11-2"
-data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-devices = data.get("devices", {}).get(runtime, [])
-
-preferred = [
-	"Apple Watch Series 10 (46mm)",
-	"Apple Watch Series 10 (42mm)",
-	"Apple Watch Ultra 2 (49mm)",
-]
-
-def pick(devs):
-	for name in preferred:
-		for d in devs:
-			if d.get("name") == name:
-				return d.get("udid")
-	for d in devs:
-		if "Apple Watch" in (d.get("name") or ""):
-			return d.get("udid")
-	return (devs[0].get("udid") if devs else "")
-
-print(pick(devices))
-PY
-)
+UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.watchOS-11-2" \
+  --prefer "Apple Watch Series 10 (46mm)" \
+  --prefer "Apple Watch Series 10 (42mm)" \
+  --prefer "Apple Watch Ultra 2 (49mm)" \
+  --contains "Apple Watch")
 
 if [ -n "$UDID" ]; then
   xcodebuild -project BetterFit.xcodeproj -scheme BetterFitWatch -destination "id=$UDID" build
@@ -60,33 +40,13 @@ run = """
 cd Apps/iOS
 xcodegen generate
 
-UDID=$(python3 - <<'PY'
-import json, subprocess
-
-runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-2"
-data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-devices = data.get("devices", {}).get(runtime, [])
-
-preferred = [
-	"iPhone 16",
-	"iPhone 16 Pro",
-	"iPhone 16 Plus",
-	"iPhone 16 Pro Max",
-]
-
-def pick(devs):
-	for name in preferred:
-		for d in devs:
-			if d.get("name") == name:
-				return d.get("udid")
-	for d in devs:
-		if "iPhone" in (d.get("name") or ""):
-			return d.get("udid")
-	return (devs[0].get("udid") if devs else "")
-
-print(pick(devices))
-PY
-)
+UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --prefer "iPhone 16 Plus" \
+  --prefer "iPhone 16 Pro Max" \
+  --contains "iPhone")
 
 if [ -n "$UDID" ]; then
   xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination "id=$UDID" build
@@ -100,33 +60,13 @@ run = """
 cd Apps/iOS
 xcodegen generate
 
-UDID=$(python3 - <<'PY'
-import json, subprocess
-
-runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-2"
-data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-devices = data.get("devices", {}).get(runtime, [])
-
-preferred = [
-	"iPhone 16",
-	"iPhone 16 Pro",
-	"iPhone 16 Plus",
-	"iPhone 16 Pro Max",
-]
-
-def pick(devs):
-	for name in preferred:
-		for d in devs:
-			if d.get("name") == name:
-				return d.get("udid")
-	for d in devs:
-		if "iPhone" in (d.get("name") or ""):
-			return d.get("udid")
-	return (devs[0].get("udid") if devs else "")
-
-print(pick(devices))
-PY
-)
+UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --prefer "iPhone 16 Plus" \
+  --prefer "iPhone 16 Pro Max" \
+  --contains "iPhone")
 
 if [ -n "$UDID" ]; then
   xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination "id=$UDID" build
@@ -139,33 +79,13 @@ fi
 run = """
 set -euo pipefail
 
-UDID=$(python3 - <<'PY'
-import json, subprocess
-
-runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-2"
-data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-devices = data.get("devices", {}).get(runtime, [])
-
-preferred = [
-	"iPhone 16",
-	"iPhone 16 Pro",
-	"iPhone 16 Plus",
-	"iPhone 16 Pro Max",
-]
-
-def pick(devs):
-	for name in preferred:
-		for d in devs:
-			if d.get("name") == name:
-				return d.get("udid")
-	for d in devs:
-		if "iPhone" in (d.get("name") or ""):
-			return d.get("udid")
-	return (devs[0].get("udid") if devs else "")
-
-print(pick(devices))
-PY
-)
+UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --prefer "iPhone 16 Plus" \
+  --prefer "iPhone 16 Pro Max" \
+  --contains "iPhone")
 
 if [ -z "$UDID" ]; then
   echo "No iOS 26.2 simulator runtime/devices found. Install iOS 26.2 Simulator runtime in Xcode Settings > Platforms." >&2
@@ -183,4 +103,38 @@ killall -9 Simulator 2>/dev/null || true
 killall -9 CoreSimulatorService 2>/dev/null || true
 killall -9 com.apple.CoreSimulator.CoreSimulatorService 2>/dev/null || true
 xcrun simctl shutdown all || true
+"""
+
+[tasks."watch:sim:boot"]
+run = """
+set -euo pipefail
+
+IOS_UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --prefer "iPhone 16 Plus" \
+  --prefer "iPhone 16 Pro Max" \
+  --contains "iPhone")
+
+WATCH_UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.watchOS-26-2" \
+  --prefer "Apple Watch Series 10 (46mm)" \
+  --prefer "Apple Watch Series 10 (42mm)" \
+  --prefer "Apple Watch Ultra 2 (49mm)" \
+  --contains "Apple Watch")
+
+if [ -z "$WATCH_UDID" ]; then
+	echo "No watchOS 26.2 simulator runtime/devices found. Install watchOS Simulator runtime in Xcode Settings > Platforms." >&2
+  exit 1
+fi
+
+if [ -n "$IOS_UDID" ]; then
+  xcrun simctl boot "$IOS_UDID" 2>/dev/null || true
+  xcrun simctl bootstatus "$IOS_UDID" -b
+fi
+
+xcrun simctl boot "$WATCH_UDID" 2>/dev/null || true
+xcrun simctl bootstatus "$WATCH_UDID" -b
+open -a Simulator --args -CurrentDeviceUDID "$WATCH_UDID"
 """
