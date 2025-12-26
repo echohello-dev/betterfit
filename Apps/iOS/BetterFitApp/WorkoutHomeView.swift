@@ -13,34 +13,34 @@ struct WorkoutHomeView: View {
 
     @State private var showingSearch = false
     @State private var showSubscription = false
-    
+
     // Gamification
     @State private var currentStreak = 0
-    @State private var weeklyGoalProgress = 0.35 // 35% complete
+    @State private var weeklyGoalProgress = 0.35  // 35% complete
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Welcome Section
                 welcomeSection
-                
+
                 // Subscription Card
                 subscriptionCard
-                
+
                 // Today's Goal Card
                 todaysGoalCard
-                
+
                 // Gamification Card
                 gamificationCard
-                
+
                 // Suggested Workouts Section
                 suggestedWorkoutsSection
-                
+
                 Spacer(minLength: 8)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            .padding(.bottom, 100) // Space for floating nav bar
+            .padding(.bottom, 100)  // Space for floating nav bar
         }
         .background(theme.backgroundGradient.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
@@ -104,26 +104,28 @@ struct WorkoutHomeView: View {
     private func loadGameStats() {
         currentStreak = betterFit.socialManager.getCurrentStreak()
     }
-    
+
     private var suggestedWorkout: Workout {
         betterFit.getRecommendedWorkout() ?? defaultWorkout
     }
-    
+
     private var suggestedWorkouts: [Workout] {
         // Get multiple workout suggestions
         var workouts: [Workout] = []
-        
+
         if let recommended = betterFit.getRecommendedWorkout() {
             workouts.append(recommended)
         }
-        
+
         // Add some variety workouts
         workouts.append(contentsOf: [
             Workout(
                 name: "Morning Yoga Flow",
                 exercises: [
                     WorkoutExercise(
-                        exercise: Exercise(name: "Sun Salutations", equipmentRequired: .none, muscleGroups: [.core, .legs]),
+                        exercise: Exercise(
+                            name: "Sun Salutations", equipmentRequired: .bodyweight,
+                            muscleGroups: [.abs, .quads]),
                         sets: [ExerciseSet(reps: 10, weight: 0)]
                     )
                 ]
@@ -132,7 +134,9 @@ struct WorkoutHomeView: View {
                 name: "HIIT Blast",
                 exercises: [
                     WorkoutExercise(
-                        exercise: Exercise(name: "Burpees", equipmentRequired: .none, muscleGroups: [.legs, .core, .chest]),
+                        exercise: Exercise(
+                            name: "Burpees", equipmentRequired: .bodyweight,
+                            muscleGroups: [.quads, .abs, .chest]),
                         sets: [ExerciseSet(reps: 15, weight: 0)]
                     )
                 ]
@@ -141,34 +145,38 @@ struct WorkoutHomeView: View {
                 name: "Upper Body Strength",
                 exercises: [
                     WorkoutExercise(
-                        exercise: Exercise(name: "Push-ups", equipmentRequired: .none, muscleGroups: [.chest, .triceps]),
+                        exercise: Exercise(
+                            name: "Push-ups", equipmentRequired: .bodyweight,
+                            muscleGroups: [.chest, .triceps]),
                         sets: [ExerciseSet(reps: 12, weight: 0)]
                     )
                 ]
-            )
+            ),
         ])
-        
+
         return workouts
     }
-    
+
     private var defaultWorkout: Workout {
         Workout(
             name: "Steady Running",
             exercises: [
                 WorkoutExercise(
-                    exercise: Exercise(name: "Running", equipmentRequired: .none, muscleGroups: [.legs]),
+                    exercise: Exercise(
+                        name: "Running", equipmentRequired: .bodyweight,
+                        muscleGroups: [.quads, .calves]),
                     sets: [ExerciseSet(reps: 1, weight: 0)]
                 )
             ]
         )
     }
-    
+
     private func startWorkout() {
         let workout = suggestedWorkout
         betterFit.startWorkout(workout)
         // Navigate to active workout screen
     }
-    
+
     private func selectWorkout(_ workout: Workout) {
         betterFit.startWorkout(workout)
         // Navigate to active workout screen
@@ -210,7 +218,9 @@ struct WorkoutHomeView: View {
                 HStack(spacing: 20) {
                     GoalStat(icon: "figure.run", value: "0mi", theme: theme)
                     GoalStat(icon: "clock.fill", value: "60min", theme: theme)
-                    GoalStat(icon: "flame.fill", value: "\(suggestedWorkout.exercises.count * 500)", theme: theme)
+                    GoalStat(
+                        icon: "flame.fill", value: "\(suggestedWorkout.exercises.count * 500)",
+                        theme: theme)
                 }
 
                 // Progress bar
@@ -236,7 +246,7 @@ struct WorkoutHomeView: View {
             }
         }
     }
-    
+
     // MARK: - Gamification Card
     private var gamificationCard: some View {
         Button {
@@ -246,18 +256,18 @@ struct WorkoutHomeView: View {
                 // Bright yellow background
                 RoundedRectangle(cornerRadius: 24)
                     .fill(Color(red: 0.98, green: 0.93, blue: 0.25))
-                
+
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Walk during the Golden hour")
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundStyle(.black)
                         .lineLimit(2)
-                    
+
                     Text("Turn on location to know the best time for your walk.")
                         .font(.body.weight(.medium))
                         .foregroundStyle(.black.opacity(0.8))
                         .lineLimit(2)
-                    
+
                     Capsule()
                         .fill(.black)
                         .frame(width: 140, height: 50)
@@ -268,7 +278,7 @@ struct WorkoutHomeView: View {
                         }
                 }
                 .padding(24)
-                
+
                 // Decorative sunrise/sunset graphic (optional)
                 Image(systemName: "sun.max.fill")
                     .font(.system(size: 120))
@@ -279,14 +289,14 @@ struct WorkoutHomeView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     // MARK: - Suggested Workouts Section
     private var suggestedWorkoutsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Suggested Workouts")
                 .bfHeading(theme: theme, size: 24, relativeTo: .title2)
                 .foregroundStyle(.white)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(suggestedWorkouts, id: \.name) { workout in
@@ -295,12 +305,12 @@ struct WorkoutHomeView: View {
                         }
                     }
                 }
-                }
             }
         }
-    
-        private func recoveryStatusCard(for region: BodyRegion) -> some View {
-            let status = statuses[region] ?? .recovered
+    }
+
+    private func recoveryStatusCard(for region: BodyRegion) -> some View {
+        let status = statuses[region] ?? .recovered
         let percent = Int(statusPercent(status))
 
         return VStack(spacing: 12) {
@@ -353,176 +363,182 @@ struct WorkoutHomeView: View {
         }
     }
 
-// MARK: - Supporting Views
+    // MARK: - Supporting Views
 
-struct GoalStat: View {
-    let icon: String
-    let value: String
-    let theme: AppTheme
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption)
-            Text(value)
-                .font(.body.weight(.semibold))
-        }
-        .foregroundStyle(.white)
-    }
-}
+    struct GoalStat: View {
+        let icon: String
+        let value: String
+        let theme: AppTheme
 
-struct WorkoutSuggestionCard: View {
-    let workout: Workout
-    let theme: AppTheme
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Preview image placeholder
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(theme.accent.opacity(0.3))
-                        .frame(height: 140)
-                    
-                    Image(systemName: iconForWorkout)
-                        .font(.system(size: 48))
-                        .foregroundStyle(theme.accent)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(workout.name)
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                    
-                    HStack(spacing: 12) {
-                        Label("\(workout.exercises.count) exercises", systemImage: "list.bullet")
-                        Label("30min", systemImage: "clock")
-                    }
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
-                }
-                
-                Spacer()
+                Text(value)
+                    .font(.body.weight(.semibold))
             }
-            .frame(width: 200)
-            .padding(12)
-            .background {
-                if #available(iOS 26.0, *) {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.ultraThinMaterial)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
-                } else {
-                    LiquidGlassBackground(theme: theme, cornerRadius: 20)
-                }
-            }
+            .foregroundStyle(.white)
         }
-        .buttonStyle(.plain)
     }
-    
-    private var iconForWorkout: String {
-        let name = workout.name.lowercased()
-        if name.contains("run") { return "figure.run" }
-        if name.contains("yoga") { return "figure.yoga" }
-        if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
-        if name.contains("hiit") { return "flame.fill" }
-        return "figure.mixed.cardio"
-    }
-}
 
-struct SubscriptionView: View {
-    let theme: AppTheme
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // GO Club branding
+    struct WorkoutSuggestionCard: View {
+        let workout: Workout
+        let theme: AppTheme
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Preview image placeholder
                     ZStack {
-                        Circle()
-                            .fill(theme.accent)
-                            .frame(width: 120, height: 120)
-                        
-                        Text("GO")
-                            .font(.system(size: 48, weight: .black, design: .rounded))
-                            .foregroundStyle(.white)
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(theme.accent.opacity(0.3))
+                            .frame(height: 140)
+
+                        Image(systemName: iconForWorkout)
+                            .font(.system(size: 48))
+                            .foregroundStyle(theme.accent)
                     }
-                    .padding(.top, 40)
-                    
-                    Text("Start your fitness journey")
-                        .bfHeading(theme: theme, size: 32, relativeTo: .largeTitle)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("First week free, then just $19.99/year\nLess than your monthly coffee habit!")
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(workout.name)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+
+                        HStack(spacing: 12) {
+                            Label(
+                                "\(workout.exercises.count) exercises", systemImage: "list.bullet")
+                            Label("30min", systemImage: "clock")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                    }
+
+                    Spacer()
+                }
+                .frame(width: 200)
+                .padding(12)
+                .background {
+                    if #available(iOS 26.0, *) {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.ultraThinMaterial)
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+                    } else {
+                        LiquidGlassBackground(theme: theme, cornerRadius: 20)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+
+        private var iconForWorkout: String {
+            let name = workout.name.lowercased()
+            if name.contains("run") { return "figure.run" }
+            if name.contains("yoga") { return "figure.yoga" }
+            if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
+            if name.contains("hiit") { return "flame.fill" }
+            return "figure.mixed.cardio"
+        }
+    }
+
+    struct SubscriptionView: View {
+        let theme: AppTheme
+        @Environment(\.dismiss) private var dismiss
+
+        var body: some View {
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // GO Club branding
+                        ZStack {
+                            Circle()
+                                .fill(theme.accent)
+                                .frame(width: 120, height: 120)
+
+                            Text("GO")
+                                .font(.system(size: 48, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.top, 40)
+
+                        Text("Start your fitness journey")
+                            .bfHeading(theme: theme, size: 32, relativeTo: .largeTitle)
+                            .multilineTextAlignment(.center)
+
+                        Text(
+                            "First week free, then just $19.99/year\nLess than your monthly coffee habit!"
+                        )
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
-                    
-                    VStack(spacing: 16) {
-                        FeatureRow(icon: "sparkles", title: "AI-Powered Workouts", theme: theme)
-                        FeatureRow(icon: "heart.fill", title: "Recovery Tracking", theme: theme)
-                        FeatureRow(icon: "chart.line.uptrend.xyaxis", title: "Progress Analytics", theme: theme)
-                        FeatureRow(icon: "trophy.fill", title: "Achievements & Streaks", theme: theme)
-                    }
-                    .padding(.vertical)
-                    
-                    Button {
-                        // Start trial
-                        dismiss()
-                    } label: {
-                        Text("Start Free Trial")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(theme.accent)
-                            .clipShape(Capsule())
-                    }
-                    .padding(.horizontal)
-                    
-                    Button("Maybe Later") {
-                        dismiss()
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-                .padding()
-            }
-            .background(theme.backgroundGradient.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
 
-struct FeatureRow: View {
-    let icon: String
-    let title: String
-    let theme: AppTheme
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(theme.accent)
-                .frame(width: 40)
-            
-            Text(title)
-                .font(.body.weight(.semibold))
-            
-            Spacer()
+                        VStack(spacing: 16) {
+                            FeatureRow(icon: "sparkles", title: "AI-Powered Workouts", theme: theme)
+                            FeatureRow(icon: "heart.fill", title: "Recovery Tracking", theme: theme)
+                            FeatureRow(
+                                icon: "chart.line.uptrend.xyaxis", title: "Progress Analytics",
+                                theme: theme)
+                            FeatureRow(
+                                icon: "trophy.fill", title: "Achievements & Streaks", theme: theme)
+                        }
+                        .padding(.vertical)
+
+                        Button {
+                            // Start trial
+                            dismiss()
+                        } label: {
+                            Text("Start Free Trial")
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(theme.accent)
+                                .clipShape(Capsule())
+                        }
+                        .padding(.horizontal)
+
+                        Button("Maybe Later") {
+                            dismiss()
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                }
+                .background(theme.backgroundGradient.ignoresSafeArea())
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Close") {
+                            dismiss()
+                        }
+                    }
+                }
+            }
         }
-        .padding(.horizontal)
     }
-}
+
+    struct FeatureRow: View {
+        let icon: String
+        let title: String
+        let theme: AppTheme
+
+        var body: some View {
+            HStack(spacing: 16) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(theme.accent)
+                    .frame(width: 40)
+
+                Text(title)
+                    .font(.body.weight(.semibold))
+
+                Spacer()
+            }
+            .padding(.horizontal)
+        }
+    }
 
     private var myWeekCard: some View {
         BFCard(theme: theme) {
