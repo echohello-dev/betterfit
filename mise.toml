@@ -10,6 +10,51 @@ run = "cd Apps/iOS && xcodegen generate"
 [tasks."ios:open"]
 run = "cd Apps/iOS && xcodegen generate && open BetterFit.xcodeproj"
 
+[tasks."watch:gen"]
+run = "cd Apps/iOS && xcodegen generate"
+
+[tasks."watch:open"]
+run = "cd Apps/iOS && xcodegen generate && open BetterFit.xcodeproj"
+
+[tasks."watch:build"]
+run = """
+cd Apps/iOS
+xcodegen generate
+
+UDID=$(python3 - <<'PY'
+import json, subprocess
+
+runtime = "com.apple.CoreSimulator.SimRuntime.watchOS-11-2"
+data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+devices = data.get("devices", {}).get(runtime, [])
+
+preferred = [
+	"Apple Watch Series 10 (46mm)",
+	"Apple Watch Series 10 (42mm)",
+	"Apple Watch Ultra 2 (49mm)",
+]
+
+def pick(devs):
+	for name in preferred:
+		for d in devs:
+			if d.get("name") == name:
+				return d.get("udid")
+	for d in devs:
+		if "Apple Watch" in (d.get("name") or ""):
+			return d.get("udid")
+	return (devs[0].get("udid") if devs else "")
+
+print(pick(devices))
+PY
+)
+
+if [ -n "$UDID" ]; then
+  xcodebuild -project BetterFit.xcodeproj -scheme BetterFitWatch -destination "id=$UDID" build
+else
+  xcodebuild -project BetterFit.xcodeproj -scheme BetterFitWatch -destination 'generic/platform=watchOS Simulator' build
+fi
+"""
+
 [tasks."ios:build:prod"]
 run = """
 cd Apps/iOS

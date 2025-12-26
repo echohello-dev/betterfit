@@ -2,6 +2,16 @@
 
 BetterFit is a Swift Package (library) for building a strength training coach experience (iOS + Apple Watch).
 
+## Features
+
+- 📱 **iOS App**: Full-featured strength training coach with AI adaptation
+- ⌚ **Apple Watch App**: Workout tracking with easy-to-use buttons, set/rep tracking, and notification reminders
+- 🤖 **AI Adaptation**: Smart workout recommendations based on performance
+- 📊 **Recovery Tracking**: Body map visualization of muscle recovery
+- 🔔 **Smart Notifications**: Personalized workout reminders
+- 📝 **Templates & Plans**: Reusable workout templates and training plans
+- 🔄 **Equipment Swapping**: Fast alternatives when equipment unavailable
+
 ## Docs
 
 - [docs/README.md](docs/README.md)
@@ -28,6 +38,28 @@ let betterFit = BetterFit()
 ## Development
 
 Dev setup and contributor workflow live in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Run Apps
+
+### iOS App
+```bash
+# Open in Xcode
+mise run ios:open
+
+# Build for simulator
+mise run ios:build:prod
+```
+
+### Apple Watch App
+```bash
+# Open in Xcode
+mise run watch:open
+
+# Build for watch simulator
+mise run watch:build
+```
+
+See [Apps/iOS/BetterFitWatchApp/README.md](Apps/iOS/BetterFitWatchApp/README.md) for detailed watch app documentation.
 
 ## Run on Simulator
 
