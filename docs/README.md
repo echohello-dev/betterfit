@@ -76,3 +76,7 @@ mise run watch:build
 
 - [API Reference](api.md)
 - [Usage Examples](examples.md)
+
+## Architecture
+
+- [Architecture Decision Records (ADRs)](adrs/README.md)
