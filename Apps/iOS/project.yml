@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: dev.echohello
   deploymentTarget:
     iOS: "26.0"
+    watchOS: "10.0"
 
 packages:
   BetterFit:
@@ -59,6 +60,30 @@ targets:
     dependencies:
       - package: BetterFit
 
+  BetterFitWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: BetterFitWatchApp
+    resources:
+      - path: BetterFitWatchApp/Assets.xcassets
+    info:
+      path: BetterFitWatchApp/Info.plist
+      properties:
+        CFBundleDisplayName: BetterFit
+        WKApplication: true
+        WKWatchOnly: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.watchkitapp
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "4"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SKIP_INSTALL: NO
+    dependencies:
+      - package: BetterFit
+
 schemes:
   BetterFit:
     build:
@@ -70,5 +95,11 @@ schemes:
     build:
       targets:
         BetterFitDev: all
+    run:
+      config: Debug
+  BetterFitWatch:
+    build:
+      targets:
+        BetterFitWatch: all
     run:
       config: Debug
