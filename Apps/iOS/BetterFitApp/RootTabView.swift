@@ -5,8 +5,13 @@ struct RootTabView: View {
     let betterFit: BetterFit
     let theme: AppTheme
     @State private var selectedTab = 0
-    @State private var showingSearch = false
+    @State private var isSearchPresented = false
+    @State private var searchQuery: String = ""
     @State private var showingWorkoutAlreadyActiveAlert = false
+
+    private let bottomStackHorizontalPadding: CGFloat = 12
+    private let bottomStackBottomPadding: CGFloat = 8
+    private let bottomStackSpacing: CGFloat = 10
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -34,39 +39,48 @@ struct RootTabView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(!isSearchPresented)
 
-            // Floating nav bar
-            FloatingNavBar(selectedTab: $selectedTab, theme: theme) {
-                showingSearch = true
+            if isSearchPresented {
+                AppSearchView(theme: theme, betterFit: betterFit, query: $searchQuery)
+                    .transition(.opacity)
+                    .zIndex(1)
             }
 
-        }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-        .overlay(alignment: .topTrailing) {
-            if selectedTab == 0 {
-                StartWorkoutTopButton(theme: theme) {
-                    if betterFit.getActiveWorkout() != nil {
-                        showingWorkoutAlreadyActiveAlert = true
-                    } else {
-                        startRecommendedOrQuickWorkout()
+            VStack(spacing: bottomStackSpacing) {
+                if selectedTab == 0 && !isSearchPresented {
+                    StartWorkoutBottomBar(theme: theme) {
+                        if betterFit.getActiveWorkout() != nil {
+                            showingWorkoutAlreadyActiveAlert = true
+                        } else {
+                            startRecommendedOrQuickWorkout()
+                        }
                     }
                 }
-                .padding(.top, 10)
-                .padding(.trailing, 16)
+
+                FloatingNavBar(
+                    selectedTab: $selectedTab,
+                    theme: theme,
+                    isSearchPresented: $isSearchPresented,
+                    searchQuery: $searchQuery
+                )
             }
+            .padding(.horizontal, bottomStackHorizontalPadding)
+            .padding(.bottom, bottomStackBottomPadding)
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .alert("Workout already in progress", isPresented: $showingWorkoutAlreadyActiveAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("You already have an active workout running.")
         }
-        .sheet(isPresented: $showingSearch) {
-            AppSearchView(theme: theme, betterFit: betterFit)
-                .presentationDetents([.large])
-        }
     }
 
     private func startRecommendedOrQuickWorkout() {
+        guard betterFit.getActiveWorkout() == nil else {
+            return
+        }
+
         if let workout = betterFit.getRecommendedWorkout() {
             betterFit.startWorkout(workout)
             return
@@ -92,17 +106,28 @@ struct RootTabView: View {
 struct FloatingNavBar: View {
     @Binding var selectedTab: Int
     let theme: AppTheme
-    let onSearch: () -> Void
+    @Binding var isSearchPresented: Bool
+    @Binding var searchQuery: String
+
+    private let pillInnerVerticalPadding: CGFloat = 4
+    private let clusterSpacing: CGFloat = 12
+    private let navButtonHeight: CGFloat = 44
+
+    @FocusState private var isSearchFieldFocused: Bool
 
     @Namespace private var glassNamespace
 
     var body: some View {
-        HStack(spacing: 12) {
-            navPill
-            searchPill
+        Group {
+            if isSearchPresented {
+                searchPill
+            } else {
+                HStack(spacing: clusterSpacing) {
+                    navPill
+                    searchButton
+                }
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 
     private var navPill: some View {
@@ -171,21 +196,72 @@ struct FloatingNavBar: View {
     }
 
     private var searchPill: some View {
-        pill {
-            BFChromeIconButton(
-                systemImage: "magnifyingglass",
-                accessibilityLabel: "Search",
-                theme: theme
-            ) {
-                onSearch()
+        HStack(spacing: clusterSpacing) {
+            Button {
+                withAnimation(.snappy(duration: 0.22)) {
+                    isSearchPresented = false
+                }
+                searchQuery = ""
+                isSearchFieldFocused = false
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .frame(width: navButtonHeight, height: navButtonHeight)
             }
-            .frame(width: 44, height: 44)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Back")
+
+            pill {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+
+                    TextField("Search", text: $searchQuery)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .focused($isSearchFieldFocused)
+
+                    if !searchQuery.isEmpty {
+                        Button {
+                            searchQuery = ""
+                            isSearchFieldFocused = true
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear search")
+                    }
+                }
+                .padding(.horizontal, 14)
+                .frame(height: navButtonHeight)
+            }
+            .onAppear {
+                DispatchQueue.main.async {
+                    isSearchFieldFocused = true
+                }
+            }
         }
+    }
+
+    private var searchButton: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.22)) {
+                isSearchPresented = true
+            }
+        } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.body.weight(.semibold))
+                .frame(width: navButtonHeight, height: navButtonHeight)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Search")
+        .contentShape(Rectangle())
     }
 
     private func pill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
-            .padding(.vertical, 4)
+            .padding(.vertical, pillInnerVerticalPadding)
             .background {
                 if #available(iOS 26.0, *) {
                     Capsule()
@@ -207,28 +283,51 @@ struct FloatingNavBar: View {
     }
 }
 
-private struct StartWorkoutTopButton: View {
+private struct StartWorkoutBottomBar: View {
     let theme: AppTheme
     let action: () -> Void
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+
         Button(action: action) {
-            Label("Start Workout", systemImage: "play.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .frame(height: 38)
-                .background {
-                    Capsule().fill(theme.accent)
-                }
+            HStack(spacing: 10) {
+                Image(systemName: "play.fill")
+                    .foregroundStyle(theme.accent)
+
+                Text("Start Workout")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 50)
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
-        .shadow(
-            color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.24 : 0.14),
-            radius: 10,
-            x: 0,
-            y: 6
-        )
+        .background {
+            if #available(iOS 26.0, *) {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .glassEffect(.regular.interactive(), in: shape)
+            } else {
+                shape
+                    .fill(.regularMaterial)
+                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    .shadow(
+                        color: Color.black.opacity(
+                            theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                        radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                        x: 0,
+                        y: 6
+                    )
+            }
+        }
         .accessibilityLabel("Start Workout")
     }
 }

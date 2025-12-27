@@ -8,7 +8,9 @@ struct ProfileView: View {
 
     @State private var showingThemePicker = false
 
-    @State private var showingSearch = false
+    #if DEBUG
+        @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
+    #endif
 
     var body: some View {
         List {
@@ -27,6 +29,21 @@ struct ProfileView: View {
             }
             .listSectionSeparator(.hidden)
 
+            #if DEBUG
+                Section("Developer") {
+                    Toggle(isOn: $workoutHomeDemoModeEnabled) {
+                        Label("Demo Mode", systemImage: "testtube.2")
+                    }
+                    .listRowBackground(nativeRowBackground(cornerRadius: 14))
+
+                    Text("Enables seeded demo data and demo-only UI behavior in Workout.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                }
+                .listSectionSeparator(.hidden)
+            #endif
+
             Section("About") {
                 LabeledContent("Version") {
                     Text("1.0")
@@ -39,21 +56,6 @@ struct ProfileView: View {
         .scrollContentBackground(.hidden)
         .background(theme.backgroundGradient.ignoresSafeArea())
         .listStyle(.insetGrouped)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                BFChromeIconButton(
-                    systemImage: "magnifyingglass",
-                    accessibilityLabel: "Search",
-                    theme: theme
-                ) {
-                    showingSearch = true
-                }
-            }
-        }
-        .sheet(isPresented: $showingSearch) {
-            AppSearchView(theme: theme, betterFit: nil)
-                .presentationDetents([.large])
-        }
         .sheet(isPresented: $showingThemePicker) {
             ThemePickerView(
                 selectedTheme: Binding(

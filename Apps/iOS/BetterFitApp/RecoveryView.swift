@@ -7,8 +7,6 @@ struct RecoveryView: View {
 
     @State private var map: BodyMapRecovery = .init()
 
-    @State private var showingSearch = false
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -43,14 +41,6 @@ struct RecoveryView: View {
                     GlassEffectContainer(spacing: 16) {
                         HStack(spacing: 10) {
                             BFChromeIconButton(
-                                systemImage: "magnifyingglass",
-                                accessibilityLabel: "Search",
-                                theme: theme
-                            ) {
-                                showingSearch = true
-                            }
-
-                            BFChromeIconButton(
                                 systemImage: "arrow.clockwise",
                                 accessibilityLabel: "Refresh",
                                 theme: theme
@@ -62,14 +52,6 @@ struct RecoveryView: View {
                 } else {
                     HStack(spacing: 10) {
                         BFChromeIconButton(
-                            systemImage: "magnifyingglass",
-                            accessibilityLabel: "Search",
-                            theme: theme
-                        ) {
-                            showingSearch = true
-                        }
-
-                        BFChromeIconButton(
                             systemImage: "arrow.clockwise",
                             accessibilityLabel: "Refresh",
                             theme: theme
@@ -79,10 +61,6 @@ struct RecoveryView: View {
                     }
                 }
             }
-        }
-        .sheet(isPresented: $showingSearch) {
-            AppSearchView(theme: theme, betterFit: betterFit)
-                .presentationDetents([.large])
         }
         .onAppear {
             refresh()

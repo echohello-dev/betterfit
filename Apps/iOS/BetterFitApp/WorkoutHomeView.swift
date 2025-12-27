@@ -7,6 +7,17 @@ struct WorkoutHomeView: View {
     let betterFit: BetterFit
     let theme: AppTheme
 
+    let demoModeOverride: Bool?
+
+    #if DEBUG
+        @AppStorage("betterfit.workoutHome.demoMode") private var demoModeEnabled = false
+    #else
+        private var demoModeEnabled: Bool { false }
+    #endif
+
+    @State private var demoBetterFit: BetterFit = BetterFit()
+    @State private var didSeedDemoData = false
+
     @State private var selectedRegion: BodyRegion = .core
     @State private var statuses: [BodyRegion: RecoveryStatus] = [:]
 
@@ -15,14 +26,11 @@ struct WorkoutHomeView: View {
 
     @State private var showStreakSummary = false
 
-    @State private var showingSearch = false
-
     // Gamification
     @State private var currentStreak = 0
     @State private var longestStreak = 0
     @State private var lastWorkoutDate: Date?
     @State private var username: String = "User"
-    @State private var weeklyGoalProgress = 0.35  // 35% complete
 
     // Activity heatmap (GitHub-style)
     @State private var activityByDay: [Date: Int] = [:]
@@ -40,12 +48,28 @@ struct WorkoutHomeView: View {
         Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
     @State private var customRangeEnd: Date = Date.now
 
+    init(betterFit: BetterFit, theme: AppTheme, demoMode: Bool? = nil) {
+        self.betterFit = betterFit
+        self.theme = theme
+        self.demoModeOverride = demoMode
+    }
+
+    private var isDemoMode: Bool {
+        demoModeOverride ?? demoModeEnabled
+    }
+
+    private var bf: BetterFit {
+        isDemoMode ? demoBetterFit : betterFit
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Welcome Section
                 welcomeSection
+
+                // Overview (summary + gauge)
+                workoutOverviewSection
 
                 // Streak + Vitals (merged, no card background)
                 streakVitalsSection
@@ -69,6 +93,26 @@ struct WorkoutHomeView: View {
                 if #available(iOS 26.0, *) {
                     GlassEffectContainer(spacing: 16) {
                         HStack(spacing: 10) {
+                            #if DEBUG
+                                if demoModeOverride == nil {
+                                    Menu {
+                                        Toggle(isOn: $demoModeEnabled) {
+                                            Label("Demo Mode", systemImage: "testtube.2")
+                                        }
+                                    } label: {
+                                        Image(systemName: isDemoMode ? "testtube.2" : "testtube.2")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(isDemoMode ? theme.accent : .secondary)
+                                            .frame(width: 34, height: 34)
+                                            .background {
+                                                Circle().fill(theme.cardBackground)
+                                            }
+                                            .overlay {
+                                                Circle().stroke(theme.cardStroke, lineWidth: 1)
+                                            }
+                                    }
+                                }
+                            #endif
                             BFChromeIconButton(
                                 systemImage: "chart.bar.fill",
                                 accessibilityLabel: "Stats",
@@ -80,6 +124,26 @@ struct WorkoutHomeView: View {
                     }
                 } else {
                     HStack(spacing: 10) {
+                        #if DEBUG
+                            if demoModeOverride == nil {
+                                Menu {
+                                    Toggle(isOn: $demoModeEnabled) {
+                                        Label("Demo Mode", systemImage: "testtube.2")
+                                    }
+                                } label: {
+                                    Image(systemName: isDemoMode ? "testtube.2" : "testtube.2")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(isDemoMode ? theme.accent : .secondary)
+                                        .frame(width: 34, height: 34)
+                                        .background {
+                                            Circle().fill(theme.cardBackground)
+                                        }
+                                        .overlay {
+                                            Circle().stroke(theme.cardStroke, lineWidth: 1)
+                                        }
+                                }
+                            }
+                        #endif
                         BFChromeIconButton(
                             systemImage: "chart.bar.fill",
                             accessibilityLabel: "Stats",
@@ -91,17 +155,13 @@ struct WorkoutHomeView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingSearch) {
-            AppSearchView(theme: theme, betterFit: betterFit)
-                .presentationDetents([PresentationDetent.large])
-        }
         .sheet(isPresented: $showCalendar) {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
                 .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
         }
         .sheet(isPresented: $showStreakSummary) {
             StreakSummarySheetView(
-                betterFit: betterFit,
+                betterFit: bf,
                 selectedDate: $selectedDate,
                 theme: theme,
                 openCalendar: { showCalendar = true }
@@ -117,10 +177,19 @@ struct WorkoutHomeView: View {
             .presentationDetents([PresentationDetent.medium])
         }
         .onAppear {
+            ensureDemoSeededIfNeeded()
             refreshStatuses()
             loadGameStats()
             refreshVitals()
         }
+        #if DEBUG
+            .onChange(of: demoModeEnabled) {
+                ensureDemoSeededIfNeeded()
+                refreshStatuses()
+                loadGameStats()
+                refreshVitals()
+            }
+        #endif
         .onChange(of: heatmapRange) {
             refreshVitals()
         }
@@ -150,10 +219,10 @@ struct WorkoutHomeView: View {
 
     // MARK: - Helper Functions
     private func loadGameStats() {
-        currentStreak = betterFit.socialManager.getCurrentStreak()
-        longestStreak = betterFit.socialManager.getLongestStreak()
-        lastWorkoutDate = betterFit.socialManager.getLastWorkoutDate()
-        username = betterFit.socialManager.getUserProfile().username
+        currentStreak = bf.socialManager.getCurrentStreak()
+        longestStreak = bf.socialManager.getLongestStreak()
+        lastWorkoutDate = bf.socialManager.getLastWorkoutDate()
+        username = bf.socialManager.getUserProfile().username
     }
 
     private func refreshVitals() {
@@ -192,14 +261,14 @@ struct WorkoutHomeView: View {
     }
 
     private var suggestedWorkout: Workout {
-        betterFit.getRecommendedWorkout() ?? defaultWorkout
+        bf.getRecommendedWorkout() ?? defaultWorkout
     }
 
     private var suggestedWorkouts: [Workout] {
         // Get multiple workout suggestions
         var workouts: [Workout] = []
 
-        if let recommended = betterFit.getRecommendedWorkout() {
+        if let recommended = bf.getRecommendedWorkout() {
             workouts.append(recommended)
         }
 
@@ -259,12 +328,12 @@ struct WorkoutHomeView: View {
 
     private func startWorkout() {
         let workout = suggestedWorkout
-        betterFit.startWorkout(workout)
+        bf.startWorkout(workout)
         // Navigate to active workout screen
     }
 
     private func selectWorkout(_ workout: Workout) {
-        betterFit.startWorkout(workout)
+        bf.startWorkout(workout)
         // Navigate to active workout screen
     }
 
@@ -297,8 +366,95 @@ struct WorkoutHomeView: View {
         }
     }
 
+    // MARK: - Workout Overview Section
+    private var workoutOverviewSection: some View {
+        let overallRecovery = bf.bodyMapManager.getOverallRecoveryPercentage()
+        let recoveryValue = Int(overallRecovery)
+        let weekCount = workoutsThisWeek(date: selectedDate)
+        let weeklyGoalTarget = 5
+        let weeklyProgress = weeklyGoalTarget > 0
+            ? Double(min(weekCount, weeklyGoalTarget)) / Double(weeklyGoalTarget)
+            : 0
+
+        let range = heatmapDateRange()
+        let rangeStats = workoutRangeStats(start: range.start, end: range.end)
+        let split = workoutCategorySplit(start: range.start, end: range.end)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                SemiCircularGauge(value: weeklyProgress, theme: theme)
+                    .frame(width: 120, height: 78)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(Int(weeklyProgress * 100))%")
+                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .monospacedDigit()
+
+                        Text("weekly goal")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Spacer(minLength: 0)
+
+                        Text("Weekly \(weekCount)/\(weeklyGoalTarget)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background { Capsule().fill(theme.cardBackground.opacity(0.35)) }
+                            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                    }
+
+                    Text(overviewSummaryText(weeklyWorkouts: weekCount, recovery: recoveryValue))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+
+                    HStack(spacing: 14) {
+                        OverviewStat(
+                            title: "This week",
+                            value: "\(weekCount)",
+                            systemImage: "calendar",
+                            theme: theme
+                        )
+                        OverviewStat(
+                            title: "Recovery",
+                            value: "\(recoveryValue)%",
+                            systemImage: "heart.fill",
+                            theme: theme
+                        )
+                        OverviewStat(
+                            title: "Active",
+                            value: "\(rangeStats.activeDays)",
+                            systemImage: "sparkles",
+                            theme: theme
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            HStack(spacing: 12) {
+                CategoryLegendDot(label: "Cardio", percent: split.cardioPercent, color: theme.accent, theme: theme)
+                CategoryLegendDot(label: "Strength", percent: split.strengthPercent, color: theme.accent.opacity(0.65), theme: theme)
+                CategoryLegendDot(label: "Lifting", percent: split.liftingPercent, color: theme.accent.opacity(0.40), theme: theme)
+
+                Spacer(minLength: 0)
+
+                Text("\(heatmapRangeLabel()) • \(rangeStats.totalWorkouts)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            Divider().opacity(0.35)
+        }
+    }
+
     private var streakVitalsSection: some View {
-        let overallRecovery = betterFit.bodyMapManager.getOverallRecoveryPercentage()
+        let overallRecovery = bf.bodyMapManager.getOverallRecoveryPercentage()
         let recoveryValue = "\(Int(overallRecovery))%"
         let range = heatmapDateRange()
 
@@ -347,7 +503,10 @@ struct WorkoutHomeView: View {
                     .monospacedDigit()
             }
 
-            Divider().opacity(0.6)
+            Divider()
+                .opacity(0.6)
+                .padding(.top, 2)
+                .padding(.bottom, 6)
 
             HStack {
                 Text("Vitals")
@@ -406,10 +565,213 @@ struct WorkoutHomeView: View {
 
                 MetricPill(
                     title: "Work",
-                    value: "\(betterFit.socialManager.getUserProfile().totalWorkouts)",
+                    value: "\(bf.socialManager.getUserProfile().totalWorkouts)",
                     systemImage: "figure.strengthtraining.traditional", theme: theme)
             }
         }
+    }
+
+    // MARK: - Workout Overview Supporting Types
+    private struct SemiCircularGauge: View {
+        let value: Double
+        let theme: AppTheme
+
+        var body: some View {
+            let clamped = min(max(value, 0), 1)
+
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: 0.5)
+                    .stroke(
+                        theme.cardStroke.opacity(0.5),
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+
+                Circle()
+                    .trim(from: 0, to: 0.5 * clamped)
+                    .stroke(
+                        theme.accent,
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+
+                Rectangle()
+                    .fill(theme.accent.opacity(0.9))
+                    .frame(width: 44, height: 2)
+                    .offset(x: 22)
+                    .rotationEffect(.degrees(180 * clamped))
+
+                Circle()
+                    .fill(theme.cardBackground)
+                    .frame(width: 10, height: 10)
+                    .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+            }
+            .padding(.top, 2)
+            .padding(.horizontal, 2)
+        }
+    }
+
+    private struct OverviewStat: View {
+        let title: String
+        let value: String
+        let systemImage: String
+        let theme: AppTheme
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(value)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .monospacedDigit()
+                    Text(title)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private struct CategoryLegendDot: View {
+        let label: String
+        let percent: Int
+        let color: Color
+        let theme: AppTheme
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 7, height: 7)
+                Text("\(label) \(percent)%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    private enum WorkoutCategory {
+        case cardio
+        case strength
+        case lifting
+    }
+
+    private struct WorkoutRangeStats {
+        let totalWorkouts: Int
+        let activeDays: Int
+    }
+
+    private struct WorkoutCategorySplit {
+        let cardioPercent: Int
+        let strengthPercent: Int
+        let liftingPercent: Int
+    }
+
+    private func overviewSummaryText(weeklyWorkouts: Int, recovery: Int) -> String {
+        if weeklyWorkouts == 0 {
+            return "Start with something light today — your body will thank you."
+        }
+
+        if recovery < 35 {
+            return "You’re training consistently — consider keeping intensity moderate."
+        }
+
+        if weeklyWorkouts >= 4 {
+            return "Strong week so far. Keep the momentum going."
+        }
+
+        return "Nice progress. A quick session today keeps the streak alive."
+    }
+
+    private func workoutsThisWeek(date: Date) -> Int {
+        let calendar = Calendar.current
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else {
+            return 0
+        }
+
+        let history = bf.getWorkoutHistory()
+        let completed = history.filter { $0.date >= interval.start && $0.date < interval.end }.count
+
+        if let active = bf.getActiveWorkout(), active.date >= interval.start && active.date < interval.end {
+            return completed + 1
+        }
+
+        return completed
+    }
+
+    private func workoutRangeStats(start: Date, end: Date) -> WorkoutRangeStats {
+        let calendar = Calendar.current
+        let startDay = calendar.startOfDay(for: start)
+        let endDay = calendar.startOfDay(for: end)
+        guard startDay <= endDay else { return WorkoutRangeStats(totalWorkouts: 0, activeDays: 0) }
+
+        let counts = makeDailyWorkoutCounts(startDate: startDay, endDate: endDay)
+        let total = counts.values.reduce(0, +)
+        let activeDays = counts.values.filter { $0 > 0 }.count
+        return WorkoutRangeStats(totalWorkouts: total, activeDays: activeDays)
+    }
+
+    private func workoutCategorySplit(start: Date, end: Date) -> WorkoutCategorySplit {
+        let calendar = Calendar.current
+        let startDay = calendar.startOfDay(for: start)
+        let endDay = calendar.startOfDay(for: end)
+        guard startDay <= endDay else {
+            return WorkoutCategorySplit(cardioPercent: 0, strengthPercent: 0, liftingPercent: 0)
+        }
+
+        let history = bf.getWorkoutHistory().filter { $0.date >= startDay && $0.date <= endDay }
+        let workouts: [Workout] = {
+            if let active = bf.getActiveWorkout(), active.date >= startDay && active.date <= endDay {
+                return history + [active]
+            }
+            return history
+        }()
+
+        guard !workouts.isEmpty else {
+            return WorkoutCategorySplit(cardioPercent: 0, strengthPercent: 0, liftingPercent: 0)
+        }
+
+        var counts: [WorkoutCategory: Int] = [.cardio: 0, .strength: 0, .lifting: 0]
+        for workout in workouts {
+            counts[workoutCategory(for: workout), default: 0] += 1
+        }
+
+        let total = max(1, workouts.count)
+        func pct(_ n: Int) -> Int { Int(round((Double(n) / Double(total)) * 100)) }
+
+        let cardio = pct(counts[.cardio, default: 0])
+        let strength = pct(counts[.strength, default: 0])
+        let lifting = max(0, 100 - cardio - strength)
+        return WorkoutCategorySplit(cardioPercent: cardio, strengthPercent: strength, liftingPercent: lifting)
+    }
+
+    private func workoutCategory(for workout: Workout) -> WorkoutCategory {
+        var score: [WorkoutCategory: Int] = [.cardio: 0, .strength: 0, .lifting: 0]
+
+        for we in workout.exercises {
+            let name = we.exercise.name.lowercased()
+            if name.contains("run") || name.contains("treadmill") || name.contains("bike") || name.contains("cycle") {
+                score[.cardio, default: 0] += 2
+            }
+            if name.contains("row") || name.contains("erg") || name.contains("jump") {
+                score[.cardio, default: 0] += 1
+            }
+
+            switch we.exercise.equipmentRequired {
+            case .barbell, .dumbbell, .kettlebell, .machine, .cable:
+                score[.lifting, default: 0] += 2
+            case .bands, .bodyweight:
+                score[.strength, default: 0] += 2
+            case .other:
+                break
+            }
+        }
+
+        return score.max { $0.value < $1.value }?.key ?? .strength
     }
 
     private var streakDays: [Date] {
@@ -425,7 +787,8 @@ struct WorkoutHomeView: View {
 
     private var streakWeekDays: [Date] {
         let calendar = sundayFirstCalendar
-        let start = calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start
+        let start =
+            calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start
             ?? calendar.startOfDay(for: selectedDate)
         return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
     }
@@ -439,8 +802,8 @@ struct WorkoutHomeView: View {
     }
 
     private var workoutRecapCard: some View {
-        let active = betterFit.getActiveWorkout()
-        let history = betterFit.getWorkoutHistory().sorted(by: { $0.date > $1.date })
+        let active = bf.getActiveWorkout()
+        let history = bf.getWorkoutHistory().sorted(by: { $0.date > $1.date })
         let last = history.first
 
         let workout = active ?? last ?? suggestedWorkout
@@ -672,13 +1035,13 @@ struct WorkoutHomeView: View {
 
         var counts: [Date: Int] = [:]
 
-        for workout in betterFit.getWorkoutHistory() {
+        for workout in bf.getWorkoutHistory() {
             let day = calendar.startOfDay(for: workout.date)
             guard day >= start, day <= end else { continue }
             counts[day, default: 0] += 1
         }
 
-        if betterFit.getActiveWorkout() != nil {
+        if bf.getActiveWorkout() != nil {
             // Best-effort: count today's in-progress session if it's inside the selected range.
             let today = calendar.startOfDay(for: Date.now)
             if today >= start, today <= end {
@@ -1001,7 +1364,9 @@ struct WorkoutHomeView: View {
                     .monospacedDigit()
             }
             .frame(width: 60, height: 64)
-            .foregroundStyle(isSelected ? selectedText : (isInStreak ? Color.primary : Color.secondary))
+            .foregroundStyle(
+                isSelected ? selectedText : (isInStreak ? Color.primary : Color.secondary)
+            )
             .background {
                 let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
                 if isSelected {
@@ -1350,7 +1715,7 @@ struct WorkoutHomeView: View {
     private func refreshStatuses() {
         var next: [BodyRegion: RecoveryStatus] = [:]
         for region in displayRegions {
-            next[region] = betterFit.bodyMapManager.getRecoveryStatus(for: region)
+            next[region] = bf.bodyMapManager.getRecoveryStatus(for: region)
         }
         statuses = next
 
@@ -1410,9 +1775,9 @@ struct WorkoutHomeView: View {
 
     private func generateWorkout() {
         // Keep a tiny demo flow: use BetterFit's API path where possible.
-        if let workout = betterFit.getRecommendedWorkout() {
-            betterFit.startWorkout(workout)
-            betterFit.completeWorkout(workout)
+        if let workout = bf.getRecommendedWorkout() {
+            bf.startWorkout(workout)
+            bf.completeWorkout(workout)
         } else {
             // Fall back to a minimal sample.
             let benchPress = Exercise(
@@ -1428,11 +1793,228 @@ struct WorkoutHomeView: View {
                 ]
             )
 
-            betterFit.startWorkout(workout)
-            betterFit.completeWorkout(workout)
+            bf.startWorkout(workout)
+            bf.completeWorkout(workout)
         }
 
         refreshStatuses()
+    }
+
+    private func ensureDemoSeededIfNeeded() {
+        guard isDemoMode else { return }
+        guard !didSeedDemoData else { return }
+
+        let seeded = BetterFit()
+        seedDemoData(into: seeded)
+        demoBetterFit = seeded
+        didSeedDemoData = true
+    }
+
+    private func seedDemoData(into bf: BetterFit) {
+        // Profile
+        var profile = bf.socialManager.getUserProfile()
+        profile.username = "Demo"
+        bf.socialManager.updateUserProfile(profile)
+
+        // Templates + plan so the built-in recommendation path returns something.
+        let bench = Exercise(
+            name: "Bench Press",
+            equipmentRequired: .barbell,
+            muscleGroups: [.chest, .triceps]
+        )
+        let row = Exercise(
+            name: "Cable Row",
+            equipmentRequired: .cable,
+            muscleGroups: [.back, .lats]
+        )
+        let squat = Exercise(
+            name: "Back Squat",
+            equipmentRequired: .barbell,
+            muscleGroups: [.quads, .glutes]
+        )
+        let press = Exercise(
+            name: "Overhead Press",
+            equipmentRequired: .dumbbell,
+            muscleGroups: [.shoulders, .triceps]
+        )
+        let curl = Exercise(
+            name: "Dumbbell Curl",
+            equipmentRequired: .dumbbell,
+            muscleGroups: [.biceps]
+        )
+        let hinge = Exercise(
+            name: "Romanian Deadlift",
+            equipmentRequired: .barbell,
+            muscleGroups: [.hamstrings, .glutes]
+        )
+        let core = Exercise(
+            name: "Plank",
+            equipmentRequired: .bodyweight,
+            muscleGroups: [.abs]
+        )
+
+        let pushDay = WorkoutTemplate(
+            name: "Push Day",
+            description: "Chest + shoulders + triceps",
+            exercises: [
+                TemplateExercise(
+                    exercise: bench,
+                    targetSets: [
+                        TargetSet(reps: 8, weight: 60),
+                        TargetSet(reps: 8, weight: 60),
+                        TargetSet(reps: 6, weight: 65),
+                    ]
+                ),
+                TemplateExercise(
+                    exercise: press,
+                    targetSets: [TargetSet(reps: 10, weight: 18), TargetSet(reps: 10, weight: 18)]
+                ),
+            ],
+            tags: ["strength", "upper"]
+        )
+
+        let pullDay = WorkoutTemplate(
+            name: "Pull Day",
+            description: "Back + biceps",
+            exercises: [
+                TemplateExercise(
+                    exercise: row,
+                    targetSets: [TargetSet(reps: 12, weight: 45), TargetSet(reps: 10, weight: 50)]
+                ),
+                TemplateExercise(
+                    exercise: curl,
+                    targetSets: [TargetSet(reps: 12, weight: 12), TargetSet(reps: 10, weight: 12)]
+                ),
+            ],
+            tags: ["strength", "upper"]
+        )
+
+        let legsDay = WorkoutTemplate(
+            name: "Leg Day",
+            description: "Quads + hamstrings + glutes",
+            exercises: [
+                TemplateExercise(
+                    exercise: squat,
+                    targetSets: [TargetSet(reps: 5, weight: 90), TargetSet(reps: 5, weight: 90)]
+                ),
+                TemplateExercise(
+                    exercise: hinge,
+                    targetSets: [TargetSet(reps: 8, weight: 80), TargetSet(reps: 8, weight: 80)]
+                ),
+                TemplateExercise(exercise: core, targetSets: [TargetSet(reps: 60, weight: nil)]),
+            ],
+            tags: ["strength", "lower"]
+        )
+
+        [pushDay, pullDay, legsDay].forEach { bf.templateManager.addTemplate($0) }
+
+        let plan = TrainingPlan(
+            name: "Demo Plan",
+            description: "A simple 3-day split with realistic history.",
+            weeks: [
+                TrainingWeek(weekNumber: 1, workouts: [pushDay.id, pullDay.id, legsDay.id])
+            ],
+            goal: .hypertrophy
+        )
+        bf.planManager.addPlan(plan)
+        bf.planManager.setActivePlan(plan.id)
+
+        // Workout history (3x/week for ~12 weeks, with occasional doubles).
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+        let start = calendar.date(byAdding: .day, value: -84, to: today) ?? today
+
+        func demoMix(_ x: UInt64) -> UInt64 {
+            var z = x &+ 0x9E37_79B9_7F4A_7C15
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            return z ^ (z >> 31)
+        }
+
+        func demoUnit(_ a: Int, _ b: Int = 0) -> Double {
+            let mixed = demoMix(UInt64(bitPattern: Int64(a * 1_000_003 + b * 97)))
+            return Double(mixed % 10_000) / 10_000.0
+        }
+
+        let run = Exercise(
+            name: "Easy Run",
+            equipmentRequired: .bodyweight,
+            muscleGroups: [.quads, .calves]
+        )
+
+        var workoutEvents: [Workout] = []
+        for dayOffset in 0...84 {
+            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: start) else {
+                continue
+            }
+
+            let r = demoUnit(dayOffset)
+            let isStrengthDay = r < 0.42
+            let isCardioDay = !isStrengthDay && r < 0.57
+            guard isStrengthDay || isCardioDay else { continue }
+
+            let hour = 6 + Int(demoUnit(dayOffset, 1) * 11)  // 6...16
+            let minute = Int(demoUnit(dayOffset, 2) * 60)
+            let dateWithTime =
+                calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
+                ?? day
+
+            if isCardioDay {
+                let minutes = 22 + Int(demoUnit(dayOffset, 3) * 35)  // 22...56
+                let workout = Workout(
+                    name: demoUnit(dayOffset, 4) < 0.5 ? "Easy Run" : "Bike Ride",
+                    exercises: [WorkoutExercise(exercise: run, sets: [ExerciseSet(reps: 1, weight: nil)])],
+                    date: dateWithTime,
+                    duration: TimeInterval(minutes * 60),
+                    isCompleted: true
+                )
+                workoutEvents.append(workout)
+            } else {
+                let templatePick = Int(demoUnit(dayOffset, 5) * 3) % 3
+                let template = [pushDay, pullDay, legsDay][templatePick]
+
+                var workout = template.createWorkout()
+                workout.date = dateWithTime
+                workout.duration = TimeInterval((32 + Int(demoUnit(dayOffset, 6) * 28)) * 60)  // 32...60m
+                workout.isCompleted = true
+                workoutEvents.append(workout)
+
+                // Occasionally add a second shorter session on the same day.
+                if demoUnit(dayOffset, 7) < 0.12 {
+                    let extraMinute = Int(demoUnit(dayOffset, 8) * 50)
+                    let extraDate = calendar.date(byAdding: .minute, value: 90 + extraMinute, to: dateWithTime)
+                        ?? dateWithTime
+
+                    let bonus = Workout(
+                        name: demoUnit(dayOffset, 9) < 0.5 ? "Core Finisher" : "Mobility",
+                        exercises: [
+                            WorkoutExercise(exercise: core, sets: [ExerciseSet(reps: 60)]),
+                            WorkoutExercise(
+                                exercise: Exercise(
+                                    name: "Hollow Hold",
+                                    equipmentRequired: .bodyweight,
+                                    muscleGroups: [.abs]
+                                ),
+                                sets: [ExerciseSet(reps: 45)]
+                            ),
+                        ],
+                        date: extraDate,
+                        duration: TimeInterval((10 + Int(demoUnit(dayOffset, 10) * 12)) * 60),
+                        isCompleted: true
+                    )
+                    workoutEvents.append(bonus)
+                }
+            }
+        }
+
+        workoutEvents
+            .sorted(by: { $0.date < $1.date })
+            .forEach { bf.completeWorkout($0) }
+
+        // Leave an in-progress workout today so the recap card can show an ongoing session.
+        var active = pullDay.createWorkout()
+        active.date = calendar.date(byAdding: .minute, value: -23, to: Date.now) ?? Date.now
+        bf.startWorkout(active)
     }
 }
 
@@ -1441,7 +2023,7 @@ struct WorkoutHomeView: View {
 #Preview {
     let theme: AppTheme = .defaultTheme
     NavigationStack {
-        WorkoutHomeView(betterFit: BetterFit(), theme: theme)
+        WorkoutHomeView(betterFit: BetterFit(), theme: theme, demoMode: true)
     }
     .tint(theme.accent)
     .preferredColorScheme(theme.preferredColorScheme)

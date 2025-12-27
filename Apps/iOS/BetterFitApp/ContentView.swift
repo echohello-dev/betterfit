@@ -16,6 +16,8 @@ struct ContentView: View {
 
     @State private var showingSearch = false
 
+    @State private var searchQuery: String = ""
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -104,7 +106,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingSearch) {
-                AppSearchView(theme: theme, betterFit: betterFit)
+                AppSearchView(theme: theme, betterFit: betterFit, query: $searchQuery)
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showingThemePicker) {

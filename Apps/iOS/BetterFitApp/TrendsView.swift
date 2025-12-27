@@ -3,8 +3,6 @@ import SwiftUI
 struct TrendsView: View {
     let theme: AppTheme
 
-    @State private var showingSearch = false
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -26,21 +24,6 @@ struct TrendsView: View {
         }
         .background(theme.backgroundGradient.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                BFChromeIconButton(
-                    systemImage: "magnifyingglass",
-                    accessibilityLabel: "Search",
-                    theme: theme
-                ) {
-                    showingSearch = true
-                }
-            }
-        }
-        .sheet(isPresented: $showingSearch) {
-            AppSearchView(theme: theme, betterFit: nil)
-                .presentationDetents([.large])
-        }
     }
 }
 
