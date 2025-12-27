@@ -4,6 +4,11 @@ run = "swift test"
 [tasks.build]
 run = "swift build"
 
+[tasks.lint]
+run = """
+swiftlint lint --strict
+"""
+
 [tasks."ios:gen"]
 run = "cd Apps/iOS && xcodegen generate"
 
@@ -138,3 +143,6 @@ xcrun simctl boot "$WATCH_UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$WATCH_UDID" -b
 open -a Simulator --args -CurrentDeviceUDID "$WATCH_UDID"
 """
+
+[tools]
+swiftlint = "latest"
