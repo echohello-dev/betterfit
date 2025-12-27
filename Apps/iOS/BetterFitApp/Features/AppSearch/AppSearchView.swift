@@ -43,8 +43,8 @@ struct AppSearchView: View {
                     resultsSection
                 }
             }
-            .scrollContentBackground(.hidden)
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
             .background(theme.backgroundGradient.ignoresSafeArea())
             .searchable(text: $query, prompt: "Search")
             .toolbar {
@@ -76,43 +76,38 @@ struct AppSearchView: View {
     // MARK: - Sections
 
     private var categoriesSection: some View {
-        Section("Categories") {
+        Section {
             ForEach(categories) { category in
                 NavigationLink {
                     CategoryDetailView(category: category, theme: theme)
                 } label: {
-                    HStack(spacing: 12) {
+                    Label {
+                        Text(category.title)
+                    } icon: {
                         Image(systemName: category.systemImage)
                             .foregroundStyle(category.tint)
-                            .frame(width: 22)
-
-                        Text(category.title)
-                            .bfHeading(theme: theme, size: 17, relativeTo: .headline)
-
-                        Spacer(minLength: 0)
                     }
                 }
-                .listRowBackground(nativeRowBackground(cornerRadius: 14))
             }
+        } header: {
+            Text("Categories")
         }
-        .listSectionSeparator(.hidden)
     }
 
     private var resultsSection: some View {
-        Section("Results") {
+        Section {
             let results = searchResults
             if results.isEmpty {
-                Text("No matches")
-                    .foregroundStyle(.secondary)
-                    .listRowBackground(nativeRowBackground(cornerRadius: 14))
+                ContentUnavailableView.search(text: query)
+                    .listRowBackground(Color.clear)
             } else {
                 ForEach(results) { result in
                     resultRow(result)
-                        .listRowBackground(nativeRowBackground(cornerRadius: 14))
                 }
             }
+        } header: {
+            Text("Results")
         }
-        .listSectionSeparator(.hidden)
     }
 
     @ViewBuilder
@@ -122,38 +117,36 @@ struct AppSearchView: View {
             Button {
                 showingThemePicker = true
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "paintpalette")
-                        .foregroundStyle(theme.accent)
-                        .frame(width: 22)
+                Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Theme")
-                            .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                         Text(AppTheme.fromStorage(storedTheme).displayName)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 0)
+                } icon: {
+                    Image(systemName: "paintpalette")
+                        .foregroundStyle(theme.accent)
                 }
             }
-            .buttonStyle(.plain)
+            .tint(.primary)
 
         #if DEBUG
             case .demoMode:
                 Toggle(isOn: $workoutHomeDemoModeEnabled) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "testtube.2")
-                            .foregroundStyle(theme.accent)
-                            .frame(width: 22)
+                    Label {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Demo Mode")
-                                .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                             Text("Seed demo data and demo-only UI")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    } icon: {
+                        Image(systemName: "testtube.2")
+                            .foregroundStyle(theme.accent)
                     }
                 }
+                .tint(theme.accent)
         #else
             case .demoMode:
                 EmptyView()
@@ -163,18 +156,16 @@ struct AppSearchView: View {
             NavigationLink {
                 ExerciseDetailView(exercise: result.title, subtitle: result.subtitle, theme: theme)
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "dumbbell")
-                        .foregroundStyle(theme.accent)
-                        .frame(width: 22)
+                Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(result.title)
-                            .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                         Text(result.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 0)
+                } icon: {
+                    Image(systemName: "dumbbell")
+                        .foregroundStyle(theme.accent)
                 }
             }
 
@@ -182,30 +173,19 @@ struct AppSearchView: View {
             NavigationLink {
                 CategoryDetailView(category: result.category, theme: theme)
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: result.category.systemImage)
-                        .foregroundStyle(result.category.tint)
-                        .frame(width: 22)
+                Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(result.category.title)
-                            .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                         Text("Category")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 0)
+                } icon: {
+                    Image(systemName: result.category.systemImage)
+                        .foregroundStyle(result.category.tint)
                 }
             }
         }
-    }
-
-    private func nativeRowBackground(cornerRadius: CGFloat) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
-        return
-            shape
-            .fill(.regularMaterial)
-            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
     }
 
     // MARK: - Supporting Types
@@ -413,6 +393,7 @@ struct AppSearchView: View {
         let theme: AppTheme
 
         @State private var showingThemePicker = false
+        @State private var searchText = ""
         @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
             .rawValue
 
@@ -421,16 +402,57 @@ struct AppSearchView: View {
                 false
         #endif
 
+        private var filteredItems: [CategoryItem] {
+            guard !searchText.isEmpty else { return category.items }
+            return category.items.filter {
+                $0.title.localizedCaseInsensitiveContains(searchText)
+                    || $0.subtitle.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+
         var body: some View {
             List {
-                ForEach(category.items) { item in
-                    row(for: item)
-                        .listRowBackground(nativeRowBackground(cornerRadius: 14))
+                // Category header
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: category.systemImage)
+                            .font(.system(size: 44))
+                            .foregroundStyle(category.tint)
+
+                        Text(categoryDescription)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Text("\(category.items.count) items")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .listRowBackground(Color.clear)
+                }
+
+                // Items
+                Section {
+                    if filteredItems.isEmpty {
+                        ContentUnavailableView.search(text: searchText)
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(filteredItems) { item in
+                            row(for: item)
+                        }
+                    }
+                } header: {
+                    if category.items.count > 5 {
+                        Text("All \(category.title)")
+                    }
                 }
             }
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(theme.backgroundGradient.ignoresSafeArea())
-            .listStyle(.insetGrouped)
+            .searchable(text: $searchText, prompt: "Filter \(category.title.lowercased())")
             .toolbar(.visible, for: .navigationBar)
             .navigationTitle(category.title)
             .sheet(isPresented: $showingThemePicker) {
@@ -444,6 +466,21 @@ struct AppSearchView: View {
             }
         }
 
+        private var categoryDescription: String {
+            switch category.id {
+            case "appearance":
+                return "Customize how BetterFit looks and feels"
+            case "developer":
+                return "Tools and options for testing and development"
+            case "exercises":
+                return "Browse all available exercises with instructions"
+            case "recommended":
+                return "Workouts suggested based on your goals and recovery"
+            default:
+                return "Explore \(category.title.lowercased())"
+            }
+        }
+
         @ViewBuilder
         private func row(for item: CategoryItem) -> some View {
             switch item.id {
@@ -451,36 +488,36 @@ struct AppSearchView: View {
                 Button {
                     showingThemePicker = true
                 } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: item.systemImage)
-                            .foregroundStyle(theme.accent)
+                    Label {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.title)
-                                .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                             Text(AppTheme.fromStorage(storedTheme).displayName)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Spacer(minLength: 0)
+                    } icon: {
+                        Image(systemName: item.systemImage)
+                            .foregroundStyle(theme.accent)
                     }
                 }
-                .buttonStyle(.plain)
+                .tint(.primary)
 
             case "demoMode":
                 #if DEBUG
                     Toggle(isOn: $workoutHomeDemoModeEnabled) {
-                        HStack(spacing: 12) {
-                            Image(systemName: item.systemImage)
-                                .foregroundStyle(theme.accent)
+                        Label {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title)
-                                    .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                                 Text(item.subtitle)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                        } icon: {
+                            Image(systemName: item.systemImage)
+                                .foregroundStyle(theme.accent)
                         }
                     }
+                    .tint(theme.accent)
                 #else
                     EmptyView()
                 #endif
@@ -489,29 +526,19 @@ struct AppSearchView: View {
                 NavigationLink {
                     ExerciseDetailView(exercise: item.title, subtitle: item.subtitle, theme: theme)
                 } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: item.systemImage)
-                            .foregroundStyle(theme.accent)
+                    Label {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.title)
-                                .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                             Text(item.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Spacer(minLength: 0)
+                    } icon: {
+                        Image(systemName: item.systemImage)
+                            .foregroundStyle(theme.accent)
                     }
                 }
             }
-        }
-
-        private func nativeRowBackground(cornerRadius: CGFloat) -> some View {
-            let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
-            return
-                shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
         }
     }
 
@@ -520,22 +547,216 @@ struct AppSearchView: View {
         let subtitle: String
         let theme: AppTheme
 
+        private var muscleGroups: [String] {
+            subtitle.components(separatedBy: " • ")
+        }
+
+        private var exerciseInfo: ExerciseInfo {
+            ExerciseInfo.data[exercise] ?? ExerciseInfo.placeholder
+        }
+
         var body: some View {
-            VStack(alignment: .leading, spacing: 14) {
-                Text(exercise)
-                    .bfHeading(theme: theme, size: 26, relativeTo: .title)
+            List {
+                // Hero section
+                Section {
+                    VStack(spacing: 16) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 56))
+                            .foregroundStyle(theme.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
 
-                Text(subtitle)
-                    .foregroundStyle(.secondary)
+                        Text(exercise)
+                            .font(.title2.bold())
+                            .multilineTextAlignment(.center)
 
-                Spacer(minLength: 0)
+                        // Muscle group pills
+                        HStack(spacing: 8) {
+                            ForEach(muscleGroups, id: \.self) { muscle in
+                                Text(muscle)
+                                    .font(.caption.weight(.medium))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(theme.accent.opacity(0.15), in: Capsule())
+                                    .foregroundStyle(theme.accent)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                }
+
+                // Quick stats
+                Section {
+                    LabeledContent("Equipment", value: exerciseInfo.equipment)
+                    LabeledContent("Difficulty", value: exerciseInfo.difficulty)
+                    LabeledContent("Type", value: exerciseInfo.type)
+                } header: {
+                    Text("Overview")
+                }
+
+                // Instructions
+                Section {
+                    ForEach(Array(exerciseInfo.instructions.enumerated()), id: \.offset) {
+                        index,
+                        instruction in
+                        Label {
+                            Text(instruction)
+                        } icon: {
+                            Text("\(index + 1)")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 22, height: 22)
+                                .background(theme.accent, in: Circle())
+                        }
+                    }
+                } header: {
+                    Text("How to Perform")
+                }
+
+                // Tips
+                Section {
+                    ForEach(exerciseInfo.tips, id: \.self) { tip in
+                        Label {
+                            Text(tip)
+                        } icon: {
+                            Image(systemName: "lightbulb")
+                                .foregroundStyle(.yellow)
+                        }
+                    }
+                } header: {
+                    Text("Tips")
+                }
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
             .background(theme.backgroundGradient.ignoresSafeArea())
             .toolbar(.visible, for: .navigationBar)
-            .navigationTitle("Exercise")
+            .navigationTitle(exercise)
             .navigationBarTitleDisplayMode(.inline)
+        }
+
+        private struct ExerciseInfo {
+            let equipment: String
+            let difficulty: String
+            let type: String
+            let instructions: [String]
+            let tips: [String]
+
+            static let placeholder = ExerciseInfo(
+                equipment: "Varies",
+                difficulty: "Intermediate",
+                type: "Strength",
+                instructions: [
+                    "Set up with proper form",
+                    "Perform the movement with control",
+                    "Return to starting position",
+                ],
+                tips: [
+                    "Focus on mind-muscle connection",
+                    "Control the eccentric phase",
+                ]
+            )
+
+            static let data: [String: ExerciseInfo] = [
+                "Bench Press": ExerciseInfo(
+                    equipment: "Barbell, Bench",
+                    difficulty: "Intermediate",
+                    type: "Compound",
+                    instructions: [
+                        "Lie flat on the bench with feet firmly on the ground",
+                        "Grip the bar slightly wider than shoulder width",
+                        "Unrack the bar and lower it to your mid-chest",
+                        "Press the bar back up to the starting position",
+                    ],
+                    tips: [
+                        "Keep your shoulder blades retracted",
+                        "Maintain a slight arch in your lower back",
+                        "Don't bounce the bar off your chest",
+                    ]
+                ),
+                "Squat": ExerciseInfo(
+                    equipment: "Barbell, Squat Rack",
+                    difficulty: "Intermediate",
+                    type: "Compound",
+                    instructions: [
+                        "Position the bar on your upper back",
+                        "Stand with feet shoulder-width apart",
+                        "Descend by breaking at hips and knees",
+                        "Go down until thighs are parallel to floor",
+                        "Drive through your heels to stand back up",
+                    ],
+                    tips: [
+                        "Keep your chest up throughout the movement",
+                        "Track your knees over your toes",
+                        "Brace your core before each rep",
+                    ]
+                ),
+                "Deadlift": ExerciseInfo(
+                    equipment: "Barbell",
+                    difficulty: "Advanced",
+                    type: "Compound",
+                    instructions: [
+                        "Stand with feet hip-width apart, bar over mid-foot",
+                        "Hinge at hips and grip the bar",
+                        "Flatten your back and brace your core",
+                        "Drive through your legs and pull the bar up",
+                        "Lock out at the top with hips fully extended",
+                    ],
+                    tips: [
+                        "Keep the bar close to your body",
+                        "Don't round your lower back",
+                        "Think of pushing the floor away",
+                    ]
+                ),
+                "Pull Up": ExerciseInfo(
+                    equipment: "Pull-up Bar",
+                    difficulty: "Intermediate",
+                    type: "Compound",
+                    instructions: [
+                        "Hang from the bar with arms fully extended",
+                        "Pull yourself up until chin clears the bar",
+                        "Lower yourself with control",
+                    ],
+                    tips: [
+                        "Initiate the pull with your lats, not arms",
+                        "Avoid swinging or kipping",
+                        "Use a band for assistance if needed",
+                    ]
+                ),
+                "Overhead Press": ExerciseInfo(
+                    equipment: "Barbell or Dumbbells",
+                    difficulty: "Intermediate",
+                    type: "Compound",
+                    instructions: [
+                        "Start with the bar at shoulder height",
+                        "Brace your core and squeeze your glutes",
+                        "Press the bar straight overhead",
+                        "Lower the bar back to shoulders with control",
+                    ],
+                    tips: [
+                        "Keep your elbows slightly in front of the bar",
+                        "Don't lean back excessively",
+                        "Move your head back slightly as the bar passes",
+                    ]
+                ),
+                "Bicep Curl": ExerciseInfo(
+                    equipment: "Dumbbells or Barbell",
+                    difficulty: "Beginner",
+                    type: "Isolation",
+                    instructions: [
+                        "Stand with weights at your sides, palms forward",
+                        "Curl the weights up toward your shoulders",
+                        "Squeeze at the top of the movement",
+                        "Lower with control to the starting position",
+                    ],
+                    tips: [
+                        "Keep your elbows pinned to your sides",
+                        "Don't swing the weights",
+                        "Focus on the squeeze at the top",
+                    ]
+                ),
+            ]
         }
     }
 
