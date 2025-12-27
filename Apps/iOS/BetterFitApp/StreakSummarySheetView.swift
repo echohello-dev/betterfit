@@ -106,7 +106,8 @@ struct StreakSummarySheetView: View {
 
     private var weekRange: DateInterval {
         let calendar = sundayFirstCalendar
-        let start = calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start
+        let start =
+            calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start
             ?? calendar.startOfDay(for: selectedDate)
         let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start
         return DateInterval(start: start, end: end)
@@ -115,7 +116,8 @@ struct StreakSummarySheetView: View {
     private var weekTitle: String {
         let start = weekRange.start
         let end = Calendar.current.date(byAdding: .day, value: 6, to: start) ?? start
-        return "\(start.formatted(date: .abbreviated, time: .omitted)) – \(end.formatted(date: .abbreviated, time: .omitted))"
+        return
+            "\(start.formatted(date: .abbreviated, time: .omitted)) – \(end.formatted(date: .abbreviated, time: .omitted))"
     }
 
     private var betterFitWorkouts: [Workout] {
@@ -221,8 +223,10 @@ struct StreakSummarySheetView: View {
 
         case .denied:
             VStack(alignment: .leading, spacing: 8) {
-                Text("Apple Health access is denied. Enable it in Settings → Privacy & Security → Health.")
-                    .foregroundStyle(.secondary)
+                Text(
+                    "Apple Health access is denied. Enable it in Settings → Privacy & Security → Health."
+                )
+                .foregroundStyle(.secondary)
 
                 if let msg = viewModel.lastErrorMessage {
                     Text(msg)
@@ -391,7 +395,8 @@ final class HealthKitStreakSummaryViewModel: ObservableObject {
 
     private func fetchWorkouts(range: DateInterval) {
         let sampleType = HKObjectType.workoutType()
-        let predicate = HKQuery.predicateForSamples(withStart: range.start, end: range.end, options: .strictStartDate)
+        let predicate = HKQuery.predicateForSamples(
+            withStart: range.start, end: range.end, options: .strictStartDate)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
 
         let query = HKSampleQuery(
@@ -425,9 +430,13 @@ final class HealthKitStreakSummaryViewModel: ObservableObject {
         healthStore.execute(query)
     }
 
-    private func requestAuthorization(toShare shareTypes: Set<HKSampleType>, read readTypes: Set<HKObjectType>) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-            healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, error in
+    private func requestAuthorization(
+        toShare shareTypes: Set<HKSampleType>, read readTypes: Set<HKObjectType>
+    ) async throws {
+        try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<Void, any Error>) in
+            healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) {
+                success, error in
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -436,15 +445,19 @@ final class HealthKitStreakSummaryViewModel: ObservableObject {
                 if success {
                     continuation.resume(returning: ())
                 } else {
-                    continuation.resume(throwing: NSError(domain: "HealthKit", code: 1, userInfo: [NSLocalizedDescriptionKey: "HealthKit authorization failed"]))
+                    continuation.resume(
+                        throwing: NSError(
+                            domain: "HealthKit", code: 1,
+                            userInfo: [NSLocalizedDescriptionKey: "HealthKit authorization failed"])
+                    )
                 }
             }
         }
     }
 }
 
-private extension HKWorkoutActivityType {
-    var displayName: String {
+extension HKWorkoutActivityType {
+    fileprivate var displayName: String {
         switch self {
         case .traditionalStrengthTraining: return "Strength Training"
         case .running: return "Running"
