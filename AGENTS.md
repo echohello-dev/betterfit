@@ -10,6 +10,17 @@
 - watchOS app (XcodeGen): `mise run watch:open` (generates then opens project with watch target)
 - CLI watchOS build: `mise run watch:build`
 
+## Code organization (`// MARK:`)
+- Prefer grouping Swift files into navigable sections using `// MARK: - ...`.
+- Use `// MARK:` above declarations (computed properties, functions, nested types) rather than inside view builder closures.
+- Suggested ordering for SwiftUI views:
+  - `// MARK: - View` (e.g. `var body`)
+  - `// MARK: - Suggested Workouts Section` (recommended/suggested workouts UI + helpers)
+  - `// MARK: - Sections` (other list/cards/sections)
+  - `// MARK: - Data` (static data, computed collections)
+  - `// MARK: - Supporting Types` (nested structs/enums)
+- Keep marks short and consistent; add them when a file has multiple logical blocks.
+
 ## Big picture architecture
 - This repo is primarily a SwiftPM library in `Sources/BetterFit` (see `Package.swift` platforms iOS 17+/watchOS 10+).
 - `BetterFit` is the public “facade/orchestrator” (see `Sources/BetterFit/BetterFit.swift`): it wires feature managers + services and coordinates cross-feature flows.

@@ -6,7 +6,7 @@ run = "swift build"
 
 [tasks.lint]
 run = """
-swiftlint lint --strict
+swiftlint lint --config .swiftlint.yml
 """
 
 [tasks."ios:gen"]
