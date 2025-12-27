@@ -145,7 +145,18 @@ struct RecoveryView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background { LiquidGlassBackground(theme: theme, cornerRadius: 18) }
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+            shape
+                .fill(.regularMaterial)
+                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .shadow(
+                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                    radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                    x: 0,
+                    y: 6
+                )
+        }
     }
 
     private var resetCard: some View {
