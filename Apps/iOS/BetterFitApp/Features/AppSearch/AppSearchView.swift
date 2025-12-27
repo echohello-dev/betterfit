@@ -4,10 +4,14 @@ import SwiftUI
 struct AppSearchView: View {
     let theme: AppTheme
     let betterFit: BetterFit?
+    let previousTabIcon: String
+    let onDismiss: () -> Void
 
     @Binding var query: String
 
     @State private var showingThemePicker = false
+    @State private var isSearchFocused = false
+    @FocusState private var searchFieldFocused: Bool
 
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
         .rawValue
@@ -16,20 +20,40 @@ struct AppSearchView: View {
         @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
     #endif
 
+    init(
+        theme: AppTheme,
+        betterFit: BetterFit?,
+        query: Binding<String>,
+        previousTabIcon: String = "figure.run",
+        onDismiss: @escaping () -> Void = {}
+    ) {
+        self.theme = theme
+        self.betterFit = betterFit
+        self._query = query
+        self.previousTabIcon = previousTabIcon
+        self.onDismiss = onDismiss
+    }
+
     // MARK: - View
 
     var body: some View {
         NavigationStack {
-            List {
-                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    categoriesSection
-                } else {
-                    resultsSection
+            VStack(spacing: 0) {
+                // Search bar with back button
+                searchBarHeader
+
+                // Content
+                List {
+                    if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        categoriesSection
+                    } else {
+                        resultsSection
+                    }
                 }
+                .scrollContentBackground(.hidden)
+                .listStyle(.insetGrouped)
             }
-            .scrollContentBackground(.hidden)
             .background(theme.backgroundGradient.ignoresSafeArea())
-            .listStyle(.insetGrouped)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .bottom) {
                 Color.clear
@@ -45,6 +69,69 @@ struct AppSearchView: View {
             )
             .presentationDetents([.medium, .large])
         }
+    }
+
+    // MARK: - Search Bar Header
+
+    private var searchBarHeader: some View {
+        VStack(spacing: 0) {
+            // Search field - appears above the back button
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                TextField("Search", text: $query)
+                    .focused($searchFieldFocused)
+                    .textFieldStyle(.plain)
+                    .submitLabel(.search)
+
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                .ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(theme.cardStroke, lineWidth: 1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            // Back button row with previous tab icon
+            HStack {
+                Button {
+                    onDismiss()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: previousTabIcon)
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Back")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(theme.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+        }
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Sections
@@ -517,7 +604,13 @@ struct AppSearchView: View {
         @State private var query: String = ""
 
         var body: some View {
-            AppSearchView(theme: .midnight, betterFit: BetterFit(), query: $query)
+            AppSearchView(
+                theme: .midnight,
+                betterFit: BetterFit(),
+                query: $query,
+                previousTabIcon: "figure.run",
+                onDismiss: {}
+            )
         }
     }
 }
