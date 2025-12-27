@@ -68,7 +68,8 @@ struct ProfileView: View {
     private func nativeRowBackground(cornerRadius: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
-        return shape
+        return
+            shape
             .fill(.regularMaterial)
             .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
     }

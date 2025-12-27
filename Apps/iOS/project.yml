@@ -32,6 +32,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit
         SWIFT_VERSION: "5.0"
+        CODE_SIGN_ENTITLEMENTS: BetterFitApp/BetterFitApp.entitlements
+    capabilities:
+      healthKit: true
     dependencies:
       - package: BetterFit
 
@@ -57,6 +60,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.dev
         SWIFT_VERSION: "5.0"
+        CODE_SIGN_ENTITLEMENTS: BetterFitApp/BetterFitApp.entitlements
+    capabilities:
+      healthKit: true
     dependencies:
       - package: BetterFit
 

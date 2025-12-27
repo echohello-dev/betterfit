@@ -13,6 +13,8 @@ struct WorkoutHomeView: View {
     @State private var showCalendar = false
     @State private var selectedDate = Date.now
 
+    @State private var showStreakSummary = false
+
     @State private var showingSearch = false
 
     // Gamification
@@ -38,7 +40,6 @@ struct WorkoutHomeView: View {
         Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
     @State private var customRangeEnd: Date = Date.now
 
-    @State private var didAutoScrollStreak = false
 
     var body: some View {
         ScrollView {
@@ -92,11 +93,20 @@ struct WorkoutHomeView: View {
         }
         .sheet(isPresented: $showingSearch) {
             AppSearchView(theme: theme, betterFit: betterFit)
-                .presentationDetents([.large])
+                .presentationDetents([PresentationDetent.large])
         }
         .sheet(isPresented: $showCalendar) {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
+        }
+        .sheet(isPresented: $showStreakSummary) {
+            StreakSummarySheetView(
+                betterFit: betterFit,
+                selectedDate: $selectedDate,
+                theme: theme,
+                openCalendar: { showCalendar = true }
+            )
+            .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
         }
         .sheet(isPresented: $showCustomRangeSheet) {
             CustomHeatmapRangeSheet(
@@ -104,7 +114,7 @@ struct WorkoutHomeView: View {
                 start: $customRangeStart,
                 end: $customRangeEnd
             )
-            .presentationDetents([.medium])
+            .presentationDetents([PresentationDetent.medium])
         }
         .onAppear {
             refreshStatuses()
@@ -283,26 +293,6 @@ struct WorkoutHomeView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-
-                Spacer(minLength: 0)
-
-                HStack(spacing: 10) {
-                    BFChromeIconButton(
-                        systemImage: "magnifyingglass",
-                        accessibilityLabel: "Search",
-                        theme: theme
-                    ) {
-                        showingSearch = true
-                    }
-
-                    BFChromeIconButton(
-                        systemImage: "calendar",
-                        accessibilityLabel: "Calendar",
-                        theme: theme
-                    ) {
-                        showCalendar = true
-                    }
-                }
             }
         }
     }
@@ -329,47 +319,24 @@ struct WorkoutHomeView: View {
                 .foregroundStyle(theme.accent)
             }
 
-            ScrollViewReader { proxy in
+            HStack(spacing: 10) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(streakDays, id: \.self) { date in
+                        ForEach(streakWeekDays, id: \.self) { date in
                             streakDayPill(for: date)
-                                .id(date)
                         }
-
-                        Button {
-                            showCalendar = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text("See more")
-                                    .font(.subheadline.weight(.semibold))
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 14)
-                            .frame(height: 56)
-                            .background {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(theme.cardBackground)
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(theme.cardStroke, lineWidth: 1)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("See more dates")
-                        .id("streak-end")
                     }
                     .padding(.vertical, 2)
                 }
-                .onAppear {
-                    guard !didAutoScrollStreak else { return }
-                    didAutoScrollStreak = true
-                    DispatchQueue.main.async {
-                        proxy.scrollTo("streak-end", anchor: .trailing)
-                    }
+                .scrollClipDisabled()
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                BFChromeIconButton(
+                    systemImage: "ellipsis",
+                    accessibilityLabel: "Streak summary",
+                    theme: theme
+                ) {
+                    showStreakSummary = true
                 }
             }
 
@@ -454,6 +421,21 @@ struct WorkoutHomeView: View {
         return (0..<count).compactMap { offset in
             calendar.date(byAdding: .day, value: -(count - 1 - offset), to: end)
         }
+    }
+
+    private var streakWeekDays: [Date] {
+        let calendar = sundayFirstCalendar
+        let start = calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start
+            ?? calendar.startOfDay(for: selectedDate)
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    private var sundayFirstCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale.current
+        calendar.timeZone = TimeZone.current
+        calendar.firstWeekday = 1
+        return calendar
     }
 
     private var workoutRecapCard: some View {
@@ -995,30 +977,34 @@ struct WorkoutHomeView: View {
     }
 
     private func streakDayPill(for date: Date) -> some View {
-        let calendar = Calendar.current
+        let calendar = sundayFirstCalendar
         let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
         let isInStreak = isDateInCurrentStreak(date)
+
+        let selectedFill: Color = theme.preferredColorScheme == .dark ? .white : .black
+        let selectedText: Color = theme.preferredColorScheme == .dark ? .black : .white
 
         return Button {
             selectedDate = date
         } label: {
             VStack(spacing: 6) {
-                Text(date.formatted(.dateTime.weekday(.narrow)))
-                    .font(.caption2.weight(.semibold))
+                Text(date.formatted(.dateTime.weekday(.abbreviated)))
+                    .font(.caption.weight(.semibold))
 
                 Text(date.formatted(.dateTime.day()))
                     .font(.subheadline.weight(.bold))
                     .monospacedDigit()
             }
-            .frame(width: 44, height: 56)
-            .foregroundStyle(pillForeground(isSelected: isSelected, isInStreak: isInStreak))
+            .frame(width: 60, height: 64)
+            .foregroundStyle(isSelected ? selectedText : (isInStreak ? Color.primary : Color.secondary))
             .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(pillBackground(isSelected: isSelected, isInStreak: isInStreak))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(theme.cardStroke, lineWidth: 1)
-                    }
+                let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+                if isSelected {
+                    shape.fill(selectedFill)
+                } else {
+                    shape.fill(theme.cardBackground)
+                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if isInStreak {
@@ -1030,26 +1016,6 @@ struct WorkoutHomeView: View {
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private func pillBackground(isSelected: Bool, isInStreak: Bool) -> AnyShapeStyle {
-        if isSelected {
-            return AnyShapeStyle(theme.accent.opacity(0.28))
-        }
-        if isInStreak {
-            return AnyShapeStyle(theme.accent.opacity(0.14))
-        }
-        return AnyShapeStyle(theme.cardBackground)
-    }
-
-    private func pillForeground(isSelected: Bool, isInStreak: Bool) -> AnyShapeStyle {
-        if isSelected {
-            return AnyShapeStyle(Color.primary)
-        }
-        if isInStreak {
-            return AnyShapeStyle(Color.primary)
-        }
-        return AnyShapeStyle(Color.secondary)
     }
 
     // MARK: - Suggested Workouts Section
@@ -1192,7 +1158,8 @@ struct WorkoutHomeView: View {
                             .fill(.ultraThinMaterial)
                             .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
                             .shadow(
-                                color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                                color: Color.black.opacity(
+                                    theme.preferredColorScheme == .dark ? 0.22 : 0.08),
                                 radius: theme.preferredColorScheme == .dark ? 14 : 10,
                                 x: 0,
                                 y: 6
