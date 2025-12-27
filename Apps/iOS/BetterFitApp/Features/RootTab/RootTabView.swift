@@ -14,7 +14,7 @@ struct RootTabView: View {
     private let bottomStackSpacing: CGFloat = 10
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             // Tab content
             Group {
                 switch selectedTab {
@@ -49,7 +49,8 @@ struct RootTabView: View {
                 AppSearchView(theme: theme, betterFit: betterFit, query: $searchQuery)
                     .transition(.opacity)
             }
-
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: bottomStackSpacing) {
                 if selectedTab == 0 && !isSearchPresented {
                     StartWorkoutBottomBar(theme: theme) {
@@ -71,7 +72,7 @@ struct RootTabView: View {
             .padding(.horizontal, bottomStackHorizontalPadding)
             .padding(.bottom, bottomStackBottomPadding)
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .ignoresSafeArea(.keyboard, edges: isSearchPresented ? [] : .bottom)
         .alert("Workout already in progress", isPresented: $showingWorkoutAlreadyActiveAlert) {
             Button("OK", role: .cancel) {}
         } message: {
