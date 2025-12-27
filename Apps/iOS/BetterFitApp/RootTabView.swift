@@ -119,6 +119,7 @@ struct FloatingNavBar: View {
     @FocusState private var isSearchFieldFocused: Bool
 
     @Namespace private var glassNamespace
+    @Namespace private var searchMorphNamespace
 
     var body: some View {
         Group {
@@ -131,6 +132,31 @@ struct FloatingNavBar: View {
                 }
             }
         }
+        .animation(.snappy(duration: 0.22), value: isSearchPresented)
+    }
+
+    private var searchMorphBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: navButtonHeight / 2, style: .continuous)
+
+        return Group {
+            if #available(iOS 26.0, *) {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .glassEffect(.regular.interactive(), in: shape)
+            } else {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    .shadow(
+                        color: Color.black.opacity(
+                            theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                        radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                        x: 0,
+                        y: 6
+                    )
+            }
+        }
+        .matchedGeometryEffect(id: "search.morph.background", in: searchMorphNamespace)
     }
 
     @ViewBuilder
@@ -235,31 +261,30 @@ struct FloatingNavBar: View {
             .accessibilityLabel("Back")
             .contentShape(Rectangle())
 
-            pill {
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
 
-                    TextField("Search", text: $searchQuery)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
-                        .focused($isSearchFieldFocused)
+                TextField("Search", text: $searchQuery)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .focused($isSearchFieldFocused)
 
-                    if !searchQuery.isEmpty {
-                        Button {
-                            searchQuery = ""
-                            isSearchFieldFocused = true
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Clear search")
+                if !searchQuery.isEmpty {
+                    Button {
+                        searchQuery = ""
+                        isSearchFieldFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
-                .padding(.horizontal, 14)
-                .frame(height: navButtonHeight)
             }
+            .padding(.horizontal, 14)
+            .frame(height: navButtonHeight)
+            .background { searchMorphBackground }
             .onAppear {
                 DispatchQueue.main.async {
                     isSearchFieldFocused = true
@@ -277,7 +302,7 @@ struct FloatingNavBar: View {
             Image(systemName: "magnifyingglass")
                 .font(.body.weight(.semibold))
                 .frame(width: navButtonHeight, height: navButtonHeight)
-                .background { circleBackground() }
+                .background { searchMorphBackground }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Search")
