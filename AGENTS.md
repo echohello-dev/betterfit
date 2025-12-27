@@ -96,3 +96,4 @@ For larger screens, prefer feature folders under `Apps/iOS/BetterFitApp`:
 ## Docs entry points
 - Repo overview: `README.md`
 - Deeper docs: `docs/README.md`, `docs/api.md`, `docs/examples.md`
+- TabView patterns (iOS 26+): `docs/tabview.md`
