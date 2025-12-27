@@ -57,6 +57,11 @@ struct RootTabView: View {
                     previousTab = oldTab
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                startWorkoutButton
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 60)
+            }
         } else {
             TabView(selection: $selectedTab) {
                 ForEach(AppTab.allCases, id: \.self) { tab in
@@ -73,7 +78,60 @@ struct RootTabView: View {
                     previousTab = oldTab
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                startWorkoutButton
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 60)
+            }
         }
+    }
+
+    // MARK: - Start Workout Button
+
+    @ViewBuilder
+    private var startWorkoutButton: some View {
+        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
+
+        Button {
+            // TODO: Start workout action
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "play.fill")
+                    .foregroundStyle(.black)
+
+                Text("Start Workout")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.black)
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.black.opacity(0.6))
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 54)
+            .frame(maxWidth: .infinity)
+            .background {
+                if #available(iOS 26.0, *) {
+                    shape
+                        .fill(Color.yellow)
+                        .glassEffect(.regular.interactive(), in: shape)
+                } else {
+                    shape
+                        .fill(Color.yellow)
+                        .overlay { shape.stroke(Color.yellow.opacity(0.3), lineWidth: 1) }
+                        .shadow(
+                            color: Color.black.opacity(0.22),
+                            radius: 14,
+                            x: 0,
+                            y: 6
+                        )
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Start Workout")
     }
 
     @ViewBuilder
@@ -106,7 +164,8 @@ struct RootTabView: View {
 }
 
 #Preview {
+    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
     let theme: AppTheme = .defaultTheme
-    RootTabView(betterFit: BetterFit(), theme: theme)
+    return RootTabView(betterFit: BetterFit(), theme: theme)
         .preferredColorScheme(theme.preferredColorScheme)
 }
