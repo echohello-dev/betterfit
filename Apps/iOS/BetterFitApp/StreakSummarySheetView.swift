@@ -473,3 +473,26 @@ extension HKWorkoutActivityType {
         }
     }
 }
+
+#Preview {
+    @Previewable @State var selectedDate = Date.now
+
+    let betterFit = BetterFit()
+    let now = Date.now
+    betterFit.completeWorkout(
+        Workout(name: "Upper Body", date: now.addingTimeInterval(-2 * 24 * 60 * 60), duration: 48 * 60, isCompleted: true)
+    )
+    betterFit.completeWorkout(
+        Workout(name: "Lower Body", date: now.addingTimeInterval(-4 * 24 * 60 * 60), duration: 52 * 60, isCompleted: true)
+    )
+    betterFit.completeWorkout(
+        Workout(name: "Full Body", date: now.addingTimeInterval(-6 * 24 * 60 * 60), duration: 41 * 60, isCompleted: true)
+    )
+
+    return StreakSummarySheetView(
+        betterFit: betterFit,
+        selectedDate: $selectedDate,
+        theme: .midnight,
+        openCalendar: {}
+    )
+}
