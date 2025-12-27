@@ -17,6 +17,7 @@ targets:
       - path: BetterFitApp
     resources:
       - path: BetterFitApp/Assets.xcassets
+      - path: BetterFitApp/Fonts
     info:
       path: BetterFitApp/Info.plist
       properties:
@@ -48,6 +49,7 @@ targets:
       - path: BetterFitApp
     resources:
       - path: BetterFitApp/Assets.xcassets
+      - path: BetterFitApp/Fonts
     info:
       path: BetterFitApp/Info.plist
       properties:
