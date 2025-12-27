@@ -2,7 +2,7 @@ name: BetterFit
 options:
   bundleIdPrefix: dev.echohello
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "17.0"
     watchOS: "10.0"
 
 packages:
