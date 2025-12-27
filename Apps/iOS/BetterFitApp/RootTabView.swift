@@ -21,18 +21,22 @@ struct RootTabView: View {
                 case 0:
                     NavigationStack {
                         WorkoutHomeView(betterFit: betterFit, theme: theme)
+                            .toolbar(.hidden, for: .navigationBar)
                     }
                 case 1:
                     NavigationStack {
                         TrendsView(theme: theme)
+                            .toolbar(.hidden, for: .navigationBar)
                     }
                 case 2:
                     NavigationStack {
                         RecoveryView(betterFit: betterFit, theme: theme)
+                            .toolbar(.hidden, for: .navigationBar)
                     }
                 case 3:
                     NavigationStack {
                         ProfileView(theme: theme)
+                            .toolbar(.hidden, for: .navigationBar)
                     }
                 default:
                     EmptyView()
@@ -44,7 +48,6 @@ struct RootTabView: View {
             if isSearchPresented {
                 AppSearchView(theme: theme, betterFit: betterFit, query: $searchQuery)
                     .transition(.opacity)
-                    .zIndex(1)
             }
 
             VStack(spacing: bottomStackSpacing) {
