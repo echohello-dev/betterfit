@@ -34,6 +34,11 @@ struct RootTabView: View {
     @State private var previousTab: AppTab = .workout
     @State private var searchQuery = ""
 
+    /// Returns the tab to navigate back to when dismissing search
+    private var tabToReturnTo: AppTab {
+        selectedTab == .search ? previousTab : selectedTab
+    }
+
     var body: some View {
         if #available(iOS 26.0, *) {
             TabView(selection: $selectedTab) {
@@ -91,9 +96,9 @@ struct RootTabView: View {
                 theme: theme,
                 betterFit: betterFit,
                 query: $searchQuery,
-                previousTabIcon: previousTab.icon,
+                previousTabIcon: tabToReturnTo.icon,
                 onDismiss: {
-                    withAnimation { selectedTab = previousTab }
+                    withAnimation { selectedTab = tabToReturnTo }
                 }
             )
         }
