@@ -120,6 +120,9 @@ extension AppTheme {
         "BBH Hegarty",
         "BBHHegarty",
         "BBH-Hegarty",
+        // Common PostScript-style names
+        "BBHHegarty-Regular",
+        "BBHHegarty-Bold",
     ]
 
     func headingFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
