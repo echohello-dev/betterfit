@@ -133,6 +133,25 @@ struct FloatingNavBar: View {
         }
     }
 
+    @ViewBuilder
+    private func circleBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+                .shadow(
+                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                    radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                    x: 0,
+                    y: 6
+                )
+        }
+    }
+
     private var navPill: some View {
         pill {
             if #available(iOS 26.0, *) {
@@ -207,12 +226,14 @@ struct FloatingNavBar: View {
                 searchQuery = ""
                 isSearchFieldFocused = false
             } label: {
-                Image(systemName: "chevron.left")
+                Image(systemName: "chevron.backward")
                     .font(.body.weight(.semibold))
                     .frame(width: navButtonHeight, height: navButtonHeight)
+                    .background { circleBackground() }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Back")
+            .contentShape(Rectangle())
 
             pill {
                 HStack(spacing: 10) {
@@ -256,6 +277,7 @@ struct FloatingNavBar: View {
             Image(systemName: "magnifyingglass")
                 .font(.body.weight(.semibold))
                 .frame(width: navButtonHeight, height: navButtonHeight)
+                .background { circleBackground() }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Search")
