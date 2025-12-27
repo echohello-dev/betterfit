@@ -21,6 +21,43 @@
   - `// MARK: - Supporting Types` (nested structs/enums)
 - Keep marks short and consistent; add them when a file has multiple logical blocks.
 
+## Large Swift files (when/how to split)
+
+### When to split
+- Split SwiftUI screens when the file is no longer scan-friendly (roughly 300–500+ lines), or when it contains multiple “reasons to change” (layout, data shaping, small components, formatting helpers).
+- Split earlier if SwiftUI type-checking or preview/build times start to degrade.
+
+### What to split into
+- **Main screen**: the `struct ...: View`, `@State`, init, `body`, navigation, sheets/toolbars.
+- **Sections**: cohesive view chunks like `welcomeSection`, `overviewSection`, `recapCard`, etc.
+- **Components**: small reusable view structs (e.g. pills, stat rows, gauges).
+- **Helpers**: pure functions for formatting, date range logic, aggregation, derived data.
+- **UI-only types** (optional): simple structs/enums used only by the screen.
+
+### Process (safe refactor loop)
+1. Keep the entry point stable: don’t rename the screen type or initializer unless necessary.
+2. Extract one cohesive slice at a time (e.g., a single section) and rebuild frequently.
+3. Prefer splitting via `extension ScreenName` across files to avoid threading bindings everywhere.
+4. If a section becomes broadly reusable, promote it to its own `View` type and pass only what it needs.
+5. After each extraction: run `mise run ios:build:dev` (UI) and `mise run test` (core behaviors).
+
+### Access control guidance
+- Within one file, `private` is ideal.
+- Once split across multiple files, `private` will stop compiling; prefer:
+  - `fileprivate` for helpers/components meant to stay screen-scoped, or
+  - `internal` (default) for app-module reuse.
+- Keep the public surface area small; avoid making everything `public`/`open`.
+
+### Suggested file structure (iOS host app)
+For larger screens, prefer feature folders under `Apps/iOS/BetterFitApp`:
+
+- `Apps/iOS/BetterFitApp/Features/<FeatureName>/`
+  - `<FeatureName>View.swift` (entry point: state/init/body)
+  - `<FeatureName>View+Sections.swift` (computed section views)
+  - `<FeatureName>View+Helpers.swift` (pure helper funcs)
+  - `<FeatureName>Components.swift` (small view structs)
+  - `<FeatureName>Models.swift` (optional: UI-only types)
+
 ## Big picture architecture
 - This repo is primarily a SwiftPM library in `Sources/BetterFit` (see `Package.swift` platforms iOS 17+/watchOS 10+).
 - `BetterFit` is the public “facade/orchestrator” (see `Sources/BetterFit/BetterFit.swift`): it wires feature managers + services and coordinates cross-feature flows.
