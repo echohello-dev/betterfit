@@ -5,32 +5,47 @@ struct WorkoutListView: View {
     @EnvironmentObject var appState: WatchAppState
     @State private var workouts: [Workout] = []
 
+    // MARK: - View
+
     var body: some View {
         List {
-            Section {
-                if let recommended = appState.betterFit.getRecommendedWorkout() {
-                    WorkoutRowButton(workout: recommended, isRecommended: true) {
-                        appState.startWorkout(recommended)
-                    }
-                }
-            } header: {
-                Text("Recommended")
-                    .font(.caption)
-            }
-
-            Section {
-                ForEach(sampleWorkouts()) { workout in
-                    WorkoutRowButton(workout: workout, isRecommended: false) {
-                        appState.startWorkout(workout)
-                    }
-                }
-            } header: {
-                Text("All Workouts")
-                    .font(.caption)
-            }
+            recommendedWorkoutSection
+            allWorkoutsSection
         }
         .navigationTitle("Workouts")
     }
+
+    // MARK: - Suggested Workouts Section
+
+    private var recommendedWorkoutSection: some View {
+        Section {
+            if let recommended = appState.betterFit.getRecommendedWorkout() {
+                WorkoutRowButton(workout: recommended, isRecommended: true) {
+                    appState.startWorkout(recommended)
+                }
+            }
+        } header: {
+            Text("Recommended")
+                .font(.caption)
+        }
+    }
+
+    // MARK: - Sections
+
+    private var allWorkoutsSection: some View {
+        Section {
+            ForEach(sampleWorkouts()) { workout in
+                WorkoutRowButton(workout: workout, isRecommended: false) {
+                    appState.startWorkout(workout)
+                }
+            }
+        } header: {
+            Text("All Workouts")
+                .font(.caption)
+        }
+    }
+
+    // MARK: - Data
 
     // Sample workouts for demonstration
     private func sampleWorkouts() -> [Workout] {
@@ -113,6 +128,8 @@ struct WorkoutListView: View {
         ]
     }
 }
+
+// MARK: - Supporting Views
 
 struct WorkoutRowButton: View {
     let workout: Workout
