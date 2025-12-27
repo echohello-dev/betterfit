@@ -10,8 +10,6 @@ struct AppSearchView: View {
     @Binding var query: String
 
     @State private var showingThemePicker = false
-    @State private var isSearchFocused = false
-    @FocusState private var searchFieldFocused: Bool
 
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
         .rawValue
@@ -38,23 +36,27 @@ struct AppSearchView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Search bar with back button
-                searchBarHeader
-
-                // Content
-                List {
-                    if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        categoriesSection
-                    } else {
-                        resultsSection
-                    }
+            List {
+                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    categoriesSection
+                } else {
+                    resultsSection
                 }
-                .scrollContentBackground(.hidden)
-                .listStyle(.insetGrouped)
             }
+            .scrollContentBackground(.hidden)
+            .listStyle(.insetGrouped)
             .background(theme.backgroundGradient.ignoresSafeArea())
-            .toolbar(.hidden, for: .navigationBar)
+            .searchable(text: $query, prompt: "Search")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: previousTabIcon)
+                    }
+                    .tint(theme.accent)
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 Color.clear
                     .frame(height: 120)
@@ -69,69 +71,6 @@ struct AppSearchView: View {
             )
             .presentationDetents([.medium, .large])
         }
-    }
-
-    // MARK: - Search Bar Header
-
-    private var searchBarHeader: some View {
-        VStack(spacing: 0) {
-            // Search field - appears above the back button
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-
-                TextField("Search", text: $query)
-                    .focused($searchFieldFocused)
-                    .textFieldStyle(.plain)
-                    .submitLabel(.search)
-
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                .ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(theme.cardStroke, lineWidth: 1)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
-
-            // Back button row with previous tab icon
-            HStack {
-                Button {
-                    onDismiss()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: previousTabIcon)
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("Back")
-                            .font(.subheadline.weight(.medium))
-                    }
-                    .foregroundStyle(theme.accent)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
-        }
-        .background(.ultraThinMaterial)
     }
 
     // MARK: - Sections
