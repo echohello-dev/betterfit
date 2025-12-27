@@ -116,7 +116,15 @@ struct FloatingNavBar: View {
     private let clusterSpacing: CGFloat = 12
     private let navButtonHeight: CGFloat = 44
 
+    private let navPillCoordinateSpace = "floatingNavBar.navPill"
+
     @FocusState private var isSearchFieldFocused: Bool
+
+    @State private var tabButtonFrames: [Int: CGRect] = [:]
+    @State private var navDragLocationX: CGFloat? = nil
+    @State private var isHoldingNavPill = false
+
+    @GestureState private var isSearchPressed = false
 
     @Namespace private var glassNamespace
     @Namespace private var searchMorphNamespace
@@ -133,30 +141,6 @@ struct FloatingNavBar: View {
             }
         }
         .animation(.snappy(duration: 0.22), value: isSearchPresented)
-    }
-
-    private var searchMorphBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: navButtonHeight / 2, style: .continuous)
-
-        return Group {
-            if #available(iOS 26.0, *) {
-                shape
-                    .fill(.ultraThinMaterial)
-                    .glassEffect(.regular.interactive(), in: shape)
-            } else {
-                shape
-                    .fill(.ultraThinMaterial)
-                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-                    .shadow(
-                        color: Color.black.opacity(
-                            theme.preferredColorScheme == .dark ? 0.22 : 0.08),
-                        radius: theme.preferredColorScheme == .dark ? 14 : 10,
-                        x: 0,
-                        y: 6
-                    )
-            }
-        }
-        .matchedGeometryEffect(id: "search.morph.background", in: searchMorphNamespace)
     }
 
     @ViewBuilder
@@ -181,38 +165,7 @@ struct FloatingNavBar: View {
     private var navPill: some View {
         pill {
             if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: 12) {
-                    HStack(spacing: 12) {
-                        NavButton(
-                            icon: "figure.run",
-                            isSelected: selectedTab == 0,
-                            theme: theme
-                        ) {
-                            selectedTab = 0
-                        }
-                        .glassEffectID("tab.workout", in: glassNamespace)
-
-                        NavButton(
-                            icon: "waveform",
-                            label: "Plan",
-                            isSelected: selectedTab == 1,
-                            theme: theme
-                        ) {
-                            selectedTab = 1
-                        }
-                        .glassEffectID("tab.plan", in: glassNamespace)
-
-                        NavButton(
-                            icon: "clock",
-                            isSelected: selectedTab == 2,
-                            theme: theme
-                        ) {
-                            selectedTab = 2
-                        }
-                        .glassEffectID("tab.recovery", in: glassNamespace)
-                    }
-                }.frame(height: 50)
-                    .frame(maxWidth: .infinity)
+                navPill_iOS26
             } else {
                 HStack(spacing: 20) {
                     NavButton(
@@ -303,11 +256,18 @@ struct FloatingNavBar: View {
             Image(systemName: "magnifyingglass")
                 .font(.body.weight(.semibold))
                 .frame(width: 58, height: 58)
-                .background { searchMorphBackground }
+                .background { searchMorphBackground(isPressed: isSearchPressed) }
+                .scaleEffect(isSearchPressed ? 0.96 : 1.0)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Search")
         .contentShape(Circle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .updating($isSearchPressed) { _, pressed, _ in
+                    pressed = true
+                }
+        )
     }
 
     private func pill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -331,6 +291,193 @@ struct FloatingNavBar: View {
                         )
                 }
             }
+    }
+
+    private func searchMorphBackground(isPressed: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: navButtonHeight / 2, style: .continuous)
+
+        return Group {
+            if #available(iOS 26.0, *) {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .glassEffect(
+                        isPressed ? .clear.interactive() : .regular.interactive(), in: shape)
+            } else {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    .shadow(
+                        color: Color.black.opacity(
+                            theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                        radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                        x: 0,
+                        y: 6
+                    )
+            }
+        }
+        .matchedGeometryEffect(id: "search.morph.background", in: searchMorphNamespace)
+        .animation(.snappy(duration: 0.18), value: isPressed)
+    }
+
+    private var searchMorphBackground: some View {
+        searchMorphBackground(isPressed: false)
+    }
+
+    private func nearestTabIndex(for locationX: CGFloat) -> Int {
+        let candidates =
+            tabButtonFrames
+            .filter { (index, _) in (0...2).contains(index) }
+            .map { (index: $0.key, frame: $0.value) }
+        guard !candidates.isEmpty else {
+            return min(max(selectedTab, 0), 2)
+        }
+
+        let nearest = candidates.min { lhs, rhs in
+            abs(lhs.frame.midX - locationX) < abs(rhs.frame.midX - locationX)
+        }
+
+        return nearest?.index ?? min(max(selectedTab, 0), 2)
+    }
+
+    private func highlightFrame(for index: Int, dragLocationX: CGFloat?) -> CGRect? {
+        guard var base = tabButtonFrames[index] else { return nil }
+        guard let dragLocationX else { return base }
+
+        let minX = tabButtonFrames.values.map(\.minX).min() ?? base.minX
+        let maxX = tabButtonFrames.values.map(\.maxX).max() ?? base.maxX
+
+        let halfWidth = base.width / 2
+        let clampedCenterX = min(max(dragLocationX, minX + halfWidth), maxX - halfWidth)
+        base.origin.x = clampedCenterX - halfWidth
+        return base
+    }
+
+    @available(iOS 26.0, *)
+    private var navPill_iOS26: some View {
+        GlassEffectContainer(spacing: 12) {
+            ZStack(alignment: .topLeading) {
+                if (0...2).contains(selectedTab),
+                    let frame = highlightFrame(for: selectedTab, dragLocationX: navDragLocationX)
+                {
+                    let shape = Capsule()
+
+                    shape
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(
+                            isHoldingNavPill ? .clear.interactive() : .regular.interactive(),
+                            in: shape
+                        )
+                        .overlay {
+                            if isHoldingNavPill {
+                                shape.stroke(.white.opacity(0.18), lineWidth: 1)
+                            }
+                        }
+                        .frame(width: frame.width, height: frame.height)
+                        .offset(x: frame.minX, y: frame.minY)
+                        .scaleEffect(isHoldingNavPill ? 1.02 : 1.0)
+                        .animation(.snappy(duration: 0.18), value: isHoldingNavPill)
+                        .animation(.snappy(duration: 0.18), value: selectedTab)
+                        .allowsHitTesting(false)
+                }
+
+                HStack(spacing: 12) {
+                    NavButton(
+                        icon: "figure.run",
+                        isSelected: selectedTab == 0,
+                        theme: theme
+                    ) {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            selectedTab = 0
+                        }
+                    }
+                    .glassEffectID("tab.workout", in: glassNamespace)
+                    .anchorFramePreference(index: 0, in: navPillCoordinateSpace)
+
+                    NavButton(
+                        icon: "waveform",
+                        label: "Plan",
+                        isSelected: selectedTab == 1,
+                        theme: theme
+                    ) {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            selectedTab = 1
+                        }
+                    }
+                    .glassEffectID("tab.plan", in: glassNamespace)
+                    .anchorFramePreference(index: 1, in: navPillCoordinateSpace)
+
+                    NavButton(
+                        icon: "clock",
+                        isSelected: selectedTab == 2,
+                        theme: theme
+                    ) {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            selectedTab = 2
+                        }
+                    }
+                    .glassEffectID("tab.recovery", in: glassNamespace)
+                    .anchorFramePreference(index: 2, in: navPillCoordinateSpace)
+                }
+            }
+        }
+        .frame(height: 50)
+        .frame(maxWidth: .infinity)
+        .coordinateSpace(name: navPillCoordinateSpace)
+        .onPreferenceChange(TabButtonFramePreferenceKey.self) { tabButtonFrames = $0 }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .named(navPillCoordinateSpace))
+                .onChanged { value in
+                    navDragLocationX = value.location.x
+                    let newIndex = nearestTabIndex(for: value.location.x)
+                    if newIndex != selectedTab {
+                        withAnimation(.snappy(duration: 0.14)) {
+                            selectedTab = newIndex
+                        }
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.snappy(duration: 0.22)) {
+                        navDragLocationX = nil
+                        isHoldingNavPill = false
+                    }
+                }
+        )
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.12)
+                .onChanged { _ in
+                    withAnimation(.snappy(duration: 0.14)) {
+                        isHoldingNavPill = true
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.snappy(duration: 0.18)) {
+                        isHoldingNavPill = false
+                    }
+                }
+        )
+    }
+}
+
+private struct TabButtonFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [Int: CGRect] = [:]
+
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+extension View {
+    fileprivate func anchorFramePreference(index: Int, in coordinateSpace: String) -> some View {
+        background {
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(
+                        key: TabButtonFramePreferenceKey.self,
+                        value: [index: proxy.frame(in: .named(coordinateSpace))]
+                    )
+            }
+        }
     }
 }
 
@@ -409,8 +556,12 @@ struct NavButton: View {
             .padding(.horizontal, label != nil ? 20 : 16)
             .background {
                 if isSelected {
-                    Capsule()
-                        .fill(theme.accent.opacity(0.15))
+                    if #available(iOS 26.0, *) {
+                        EmptyView()
+                    } else {
+                        Capsule()
+                            .fill(theme.accent.opacity(0.15))
+                    }
                 }
             }
             .scaleEffect(isPressed ? 0.95 : 1.0)
