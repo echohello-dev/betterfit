@@ -205,5 +205,8 @@ private struct NavButtonGlassStyle: ViewModifier {
 }
 
 #Preview {
-    RootTabView(betterFit: BetterFit(), theme: .forest)
+    let theme: AppTheme = .forest
+    RootTabView(betterFit: BetterFit(), theme: theme)
+        .tint(theme.accent)
+        .preferredColorScheme(theme.preferredColorScheme)
 }

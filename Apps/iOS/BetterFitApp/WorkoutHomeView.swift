@@ -1,6 +1,8 @@
 import BetterFit
 import SwiftUI
 
+// swiftlint:disable file_length type_body_length identifier_name
+ 
 struct WorkoutHomeView: View {
     let betterFit: BetterFit
     let theme: AppTheme
@@ -23,20 +25,32 @@ struct WorkoutHomeView: View {
     // Activity heatmap (GitHub-style)
     @State private var activityByDay: [Date: Int] = [:]
 
+    private enum HeatmapRange: String {
+        case week
+        case month
+        case year
+        case custom
+    }
+
+    @State private var heatmapRange: HeatmapRange = .month
+    @State private var showCustomRangeSheet = false
+    @State private var customRangeStart: Date =
+        Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
+    @State private var customRangeEnd: Date = Date.now
+
+    @State private var didAutoScrollStreak = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Welcome Section
                 welcomeSection
 
-                // Vitals
-                vitalsCard
+                // Streak + Vitals (merged, no card background)
+                streakVitalsSection
 
                 // Workout recap
                 workoutRecapCard
-
-                // Gamification Card
-                gamificationCard
 
                 // Suggested Workouts Section
                 suggestedWorkoutsSection
@@ -84,10 +98,31 @@ struct WorkoutHomeView: View {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
                 .presentationDetents([.medium, .large])
         }
+        .sheet(isPresented: $showCustomRangeSheet) {
+            CustomHeatmapRangeSheet(
+                theme: theme,
+                start: $customRangeStart,
+                end: $customRangeEnd
+            )
+            .presentationDetents([.medium])
+        }
         .onAppear {
             refreshStatuses()
             loadGameStats()
             refreshVitals()
+        }
+        .onChange(of: heatmapRange) {
+            refreshVitals()
+        }
+        .onChange(of: customRangeStart) {
+            if heatmapRange == .custom {
+                refreshVitals()
+            }
+        }
+        .onChange(of: customRangeEnd) {
+            if heatmapRange == .custom {
+                refreshVitals()
+            }
         }
     }
 
@@ -112,7 +147,38 @@ struct WorkoutHomeView: View {
     }
 
     private func refreshVitals() {
-        activityByDay = makeDailyWorkoutCounts(monthsBack: 6)
+        let range = heatmapDateRange()
+        activityByDay = makeDailyWorkoutCounts(startDate: range.start, endDate: range.end)
+    }
+
+    private func heatmapDateRange() -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+
+        switch heatmapRange {
+        case .week:
+            let start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+            return (start, today)
+        case .month:
+            let start = calendar.date(byAdding: .month, value: -1, to: today) ?? today
+            return (calendar.startOfDay(for: start), today)
+        case .year:
+            let start = calendar.date(byAdding: .year, value: -1, to: today) ?? today
+            return (calendar.startOfDay(for: start), today)
+        case .custom:
+            let start = calendar.startOfDay(for: min(customRangeStart, customRangeEnd))
+            let end = calendar.startOfDay(for: min(max(customRangeStart, customRangeEnd), today))
+            return (start, end)
+        }
+    }
+
+    private func heatmapRangeLabel() -> String {
+        switch heatmapRange {
+        case .week: return "1W"
+        case .month: return "1M"
+        case .year: return "1Y"
+        case .custom: return "Custom"
+        }
     }
 
     private var suggestedWorkout: Workout {
@@ -238,91 +304,156 @@ struct WorkoutHomeView: View {
                     }
                 }
             }
-
-            streakCalendarCard
         }
     }
 
-    private var streakCalendarCard: some View {
-        BFCard(theme: theme) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Streak")
-                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-                    Spacer(minLength: 0)
-
-                    Label {
-                        Text("\(currentStreak) days")
-                            .font(.subheadline.weight(.semibold))
-                            .monospacedDigit()
-                    } icon: {
-                        Image(systemName: "flame.fill")
-                    }
-                    .foregroundStyle(theme.accent)
-                }
-
-                HStack(spacing: 10) {
-                    ForEach(weekDays, id: \.self) { date in
-                        streakDayPill(for: date)
-                    }
-                }
-
-                if longestStreak > 0 {
-                    Text("Longest: \(longestStreak) days")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
-            }
-        }
-    }
-
-    private var vitalsCard: some View {
+    private var streakVitalsSection: some View {
         let overallRecovery = betterFit.bodyMapManager.getOverallRecoveryPercentage()
         let recoveryValue = "\(Int(overallRecovery))%"
+        let range = heatmapDateRange()
 
-        return BFCard(theme: theme) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Vitals")
-                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Streak")
+                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
-                    Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-                    Text("6mo")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background {
-                            Capsule().fill(theme.cardBackground)
-                        }
-                        .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                Label {
+                    Text("\(currentStreak) days")
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+                } icon: {
+                    Image(systemName: "flame.fill")
                 }
+                .foregroundStyle(theme.accent)
+            }
 
-                ContributionHeatmap(
-                    monthsBack: 6,
-                    valuesByDay: activityByDay,
-                    theme: theme
-                )
-                .frame(height: 86)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(streakDays, id: \.self) { date in
+                            streakDayPill(for: date)
+                                .id(date)
+                        }
 
-                HStack(spacing: 12) {
-                    MetricPill(
-                        title: "Recovery", value: recoveryValue, systemImage: "heart.fill",
-                        theme: theme)
-
-                    MetricPill(
-                        title: "Streak", value: "\(currentStreak)d", systemImage: "flame.fill",
-                        theme: theme)
-
-                    MetricPill(
-                        title: "Workouts",
-                        value: "\(betterFit.socialManager.getUserProfile().totalWorkouts)",
-                        systemImage: "figure.strengthtraining.traditional", theme: theme)
+                        Button {
+                            showCalendar = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("See more")
+                                    .font(.subheadline.weight(.semibold))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 14)
+                            .frame(height: 56)
+                            .background {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(theme.cardBackground)
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(theme.cardStroke, lineWidth: 1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("See more dates")
+                        .id("streak-end")
+                    }
+                    .padding(.vertical, 2)
+                }
+                .onAppear {
+                    guard !didAutoScrollStreak else { return }
+                    didAutoScrollStreak = true
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("streak-end", anchor: .trailing)
+                    }
                 }
             }
+
+            if longestStreak > 0 {
+                Text("Longest: \(longestStreak) days")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            Divider().opacity(0.6)
+
+            HStack {
+                Text("Vitals")
+                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+                    .padding(.vertical, 4)
+
+                Spacer(minLength: 0)
+
+                Menu {
+                    Button("1 Week") {
+                        heatmapRange = .week
+                    }
+                    Button("1 Month") {
+                        heatmapRange = .month
+                    }
+                    Button("1 Year") {
+                        heatmapRange = .year
+                    }
+                    Divider()
+                    Button("Custom…") {
+                        heatmapRange = .custom
+                        showCustomRangeSheet = true
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(heatmapRangeLabel())
+                            .font(.caption.weight(.semibold))
+                        Image(systemName: "chevron.down")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background {
+                        Capsule().fill(theme.cardBackground)
+                    }
+                    .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                }
+            }
+
+            ContributionHeatmap(
+                startDate: range.start,
+                endDate: range.end,
+                valuesByDay: activityByDay,
+                theme: theme
+            )
+            .frame(height: 86)
+
+            HStack(spacing: 12) {
+                MetricPill(
+                    title: "Recovery", value: recoveryValue, systemImage: "heart.fill",
+                    theme: theme)
+
+                MetricPill(
+                    title: "Streak", value: "\(currentStreak)d", systemImage: "flame.fill",
+                    theme: theme)
+
+                MetricPill(
+                    title: "Workouts",
+                    value: "\(betterFit.socialManager.getUserProfile().totalWorkouts)",
+                    systemImage: "figure.strengthtraining.traditional", theme: theme)
+            }
+        }
+    }
+
+    private var streakDays: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+        let end = calendar.startOfDay(for: min(selectedDate, today))
+        let count = 21
+
+        return (0..<count).compactMap { offset in
+            calendar.date(byAdding: .day, value: -(count - 1 - offset), to: end)
         }
     }
 
@@ -541,84 +672,115 @@ struct WorkoutHomeView: View {
         return String(format: "%02d:%02d", mins, secs)
     }
 
-    private func makeDailyWorkoutCounts(monthsBack: Int) -> [Date: Int] {
+    private func makeDailyWorkoutCounts(startDate: Date, endDate: Date) -> [Date: Int] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date.now)
-
-        guard
-            let startOfThisMonth = calendar.date(
-                from: calendar.dateComponents([.year, .month], from: today)),
-            let startDate = calendar.date(
-                byAdding: .month, value: -(max(1, monthsBack) - 1), to: startOfThisMonth)
-        else {
-            return [:]
-        }
+        let start = calendar.startOfDay(for: startDate)
+        let end = calendar.startOfDay(for: endDate)
+        guard start <= end else { return [:] }
 
         var counts: [Date: Int] = [:]
 
         for workout in betterFit.getWorkoutHistory() {
             let day = calendar.startOfDay(for: workout.date)
-            guard day >= startDate, day <= today else { continue }
+            guard day >= start, day <= end else { continue }
             counts[day, default: 0] += 1
         }
 
         if betterFit.getActiveWorkout() != nil {
-            counts[today, default: 0] += 1
+            // Best-effort: count today's in-progress session if it's inside the selected range.
+            let today = calendar.startOfDay(for: Date.now)
+            if today >= start, today <= end {
+                counts[today, default: 0] += 1
+            }
         }
 
         return counts
     }
 
     private struct ContributionHeatmap: View {
-        let monthsBack: Int
+        let startDate: Date
+        let endDate: Date
         let valuesByDay: [Date: Int]
         let theme: AppTheme
+
+        @State private var didAutoScrollToEnd = false
 
         private let cell: CGFloat = 11
         private let gap: CGFloat = 4
 
         var body: some View {
             let calendar = Calendar.current
-            let today = calendar.startOfDay(for: Date.now)
+            let rangeStart = calendar.startOfDay(for: startDate)
+            let rangeEnd = calendar.startOfDay(for: endDate)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(monthStarts(today: today, calendar: calendar), id: \.self) {
-                        monthStart in
-                        MonthBlock(
-                            monthStart: monthStart,
-                            today: today,
-                            valuesByDay: valuesByDay,
-                            cell: cell,
-                            gap: gap,
-                            theme: theme
-                        )
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(
+                            monthStarts(rangeStart: rangeStart, rangeEnd: rangeEnd, calendar: calendar),
+                            id: \.self
+                        ) { monthStart in
+                            MonthBlock(
+                                monthStart: monthStart,
+                                rangeStart: rangeStart,
+                                rangeEnd: rangeEnd,
+                                valuesByDay: valuesByDay,
+                                cell: cell,
+                                gap: gap,
+                                theme: theme
+                            )
+                            .id(monthStart)
+                        }
+
+                        Color.clear
+                            .frame(width: 1, height: 1)
+                            .id("heatmap-end")
+                    }
+                    .padding(.vertical, 2)
+                }
+                .onAppear {
+                    guard !didAutoScrollToEnd else { return }
+                    didAutoScrollToEnd = true
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("heatmap-end", anchor: .trailing)
                     }
                 }
-                .padding(.vertical, 2)
+                .onChange(of: endDate) {
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("heatmap-end", anchor: .trailing)
+                    }
+                }
             }
-            .mask {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-            }
+            .mask { RoundedRectangle(cornerRadius: 16, style: .continuous) }
         }
 
-        private func monthStarts(today: Date, calendar: Calendar) -> [Date] {
+        private func monthStarts(rangeStart: Date, rangeEnd: Date, calendar: Calendar) -> [Date] {
+            guard rangeStart <= rangeEnd else { return [] }
             guard
-                let startOfThisMonth = calendar.date(
-                    from: calendar.dateComponents([.year, .month], from: today))
+                let startOfStartMonth = calendar.date(
+                    from: calendar.dateComponents([.year, .month], from: rangeStart)),
+                let startOfEndMonth = calendar.date(
+                    from: calendar.dateComponents([.year, .month], from: rangeEnd))
             else {
                 return []
             }
 
-            let count = max(1, monthsBack)
-            return (0..<count).compactMap { offset in
-                calendar.date(byAdding: .month, value: -(count - 1 - offset), to: startOfThisMonth)
+            var months: [Date] = []
+            var cursor = startOfStartMonth
+            while cursor <= startOfEndMonth {
+                months.append(cursor)
+                guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else {
+                    break
+                }
+                cursor = next
             }
+            return months
         }
 
         private struct MonthBlock: View {
             let monthStart: Date
-            let today: Date
+            let rangeStart: Date
+            let rangeEnd: Date
             let valuesByDay: [Date: Int]
             let cell: CGFloat
             let gap: CGFloat
@@ -627,7 +789,8 @@ struct WorkoutHomeView: View {
             var body: some View {
                 let calendar = Calendar.current
                 let monthEnd = endOfMonth(for: monthStart, calendar: calendar)
-                let clampedEnd = min(monthEnd, today)
+                let clampedEnd = min(monthEnd, rangeEnd)
+                let clampedStart = max(monthStart, rangeStart)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(monthStart.formatted(.dateTime.month(.abbreviated)))
@@ -648,8 +811,8 @@ struct WorkoutHomeView: View {
                                         ?? weekStart
                                     DayCell(
                                         date: date,
-                                        monthStart: monthStart,
-                                        monthEnd: clampedEnd,
+                                        rangeStart: clampedStart,
+                                        rangeEnd: clampedEnd,
                                         valuesByDay: valuesByDay,
                                         cell: cell,
                                         theme: theme
@@ -699,8 +862,8 @@ struct WorkoutHomeView: View {
 
         private struct DayCell: View {
             let date: Date
-            let monthStart: Date
-            let monthEnd: Date
+            let rangeStart: Date
+            let rangeEnd: Date
             let valuesByDay: [Date: Int]
             let cell: CGFloat
             let theme: AppTheme
@@ -708,12 +871,12 @@ struct WorkoutHomeView: View {
             var body: some View {
                 let calendar = Calendar.current
                 let day = calendar.startOfDay(for: date)
-                let isInMonth =
-                    day >= calendar.startOfDay(for: monthStart)
-                    && day <= calendar.startOfDay(for: monthEnd)
+                let isInRange =
+                    day >= calendar.startOfDay(for: rangeStart)
+                    && day <= calendar.startOfDay(for: rangeEnd)
 
                 Group {
-                    if isInMonth {
+                    if isInRange {
                         RoundedRectangle(cornerRadius: 3, style: .continuous)
                             .fill(color(for: valuesByDay[day, default: 0]))
                             .overlay {
@@ -757,6 +920,69 @@ struct WorkoutHomeView: View {
         }
     }
 
+    private struct CustomHeatmapRangeSheet: View {
+        let theme: AppTheme
+        @Binding var start: Date
+        @Binding var end: Date
+
+        @Environment(\.dismiss) private var dismiss
+
+        @State private var draftStart: Date = Date.now
+        @State private var draftEnd: Date = Date.now
+
+        var body: some View {
+            NavigationStack {
+                Form {
+                    Section {
+                        DatePicker("Start", selection: $draftStart, displayedComponents: [.date])
+                        DatePicker("End", selection: $draftEnd, displayedComponents: [.date])
+                    }
+
+                    Section {
+                        Button("Preset: Last 3 Years") {
+                            let calendar = Calendar.current
+                            let today = calendar.startOfDay(for: Date.now)
+                            draftEnd = today
+                            draftStart =
+                                calendar.date(byAdding: .year, value: -3, to: today) ?? today
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(theme.backgroundGradient.ignoresSafeArea())
+                .navigationTitle("Custom Range")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") {
+                            start = draftStart
+                            end = draftEnd
+                            dismiss()
+                        }
+                        .font(.headline)
+                    }
+                }
+            }
+            .onAppear {
+                draftStart = start
+                draftEnd = end
+
+                // If the stored custom range is effectively unset, default to last 3 years.
+                if abs(draftStart.timeIntervalSince(draftEnd)) < 1 {
+                    let calendar = Calendar.current
+                    let today = calendar.startOfDay(for: Date.now)
+                    draftEnd = today
+                    draftStart = calendar.date(byAdding: .year, value: -3, to: today) ?? today
+                }
+            }
+        }
+    }
+
     private func streakDayPill(for date: Date) -> some View {
         let calendar = Calendar.current
         let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
@@ -764,7 +990,6 @@ struct WorkoutHomeView: View {
 
         return Button {
             selectedDate = date
-            showCalendar = true
         } label: {
             VStack(spacing: 6) {
                 Text(date.formatted(.dateTime.weekday(.narrow)))
@@ -814,27 +1039,6 @@ struct WorkoutHomeView: View {
             return AnyShapeStyle(Color.primary)
         }
         return AnyShapeStyle(Color.secondary)
-    }
-
-    // MARK: - Gamification Card
-    private var gamificationCard: some View {
-        Button {
-            startWorkout()
-        } label: {
-            ZStack(alignment: .bottomLeading) {
-                // Bright yellow background
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(red: 0.98, green: 0.93, blue: 0.25))
-
-                // Decorative sunrise/sunset graphic (optional)
-                Image(systemName: "sun.max.fill")
-                    .font(.system(size: 120))
-                    .foregroundStyle(.orange.opacity(0.3))
-                    .offset(x: 200, y: 40)
-            }
-            .frame(height: 260)
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Suggested Workouts Section
@@ -1240,6 +1444,13 @@ struct WorkoutHomeView: View {
     }
 }
 
+// swiftlint:enable type_body_length identifier_name
+
 #Preview {
-    WorkoutHomeView(betterFit: BetterFit(), theme: .forest)
+    let theme: AppTheme = .defaultTheme
+    NavigationStack {
+        WorkoutHomeView(betterFit: BetterFit(), theme: theme)
+    }
+    .tint(theme.accent)
+    .preferredColorScheme(theme.preferredColorScheme)
 }

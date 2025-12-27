@@ -92,6 +92,7 @@ public class BetterFit {
 
     // MARK: - Smart Features
 
+    // MARK: - Suggested Workouts Section
     /// Get recommended workout based on recovery and plan
     public func getRecommendedWorkout() -> Workout? {
         // Get current plan week
