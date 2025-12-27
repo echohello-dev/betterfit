@@ -1,0 +1,13 @@
+# SwiftLint configuration for BetterFit
+
+# Limit linting to source we own.
+included:
+  - Sources
+  - Tests
+  - Apps
+  - Package.swift
+
+# Exclude build outputs and generated project artifacts.
+excluded:
+  - .build
+  - Apps/iOS/BetterFit.xcodeproj
