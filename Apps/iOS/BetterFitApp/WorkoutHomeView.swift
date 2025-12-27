@@ -12,11 +12,16 @@ struct WorkoutHomeView: View {
     @State private var selectedDate = Date.now
 
     @State private var showingSearch = false
-    @State private var showSubscription = false
 
     // Gamification
     @State private var currentStreak = 0
+    @State private var longestStreak = 0
+    @State private var lastWorkoutDate: Date?
+    @State private var username: String = "User"
     @State private var weeklyGoalProgress = 0.35  // 35% complete
+
+    // Activity heatmap (GitHub-style)
+    @State private var activityByDay: [Date: Int] = [:]
 
     var body: some View {
         ScrollView {
@@ -24,11 +29,11 @@ struct WorkoutHomeView: View {
                 // Welcome Section
                 welcomeSection
 
-                // Subscription Card
-                subscriptionCard
+                // Vitals
+                vitalsCard
 
-                // Today's Goal Card
-                todaysGoalCard
+                // Workout recap
+                workoutRecapCard
 
                 // Gamification Card
                 gamificationCard
@@ -79,12 +84,10 @@ struct WorkoutHomeView: View {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
                 .presentationDetents([.medium, .large])
         }
-        .sheet(isPresented: $showSubscription) {
-            SubscriptionView(theme: theme)
-        }
         .onAppear {
             refreshStatuses()
             loadGameStats()
+            refreshVitals()
         }
     }
 
@@ -103,6 +106,13 @@ struct WorkoutHomeView: View {
     // MARK: - Helper Functions
     private func loadGameStats() {
         currentStreak = betterFit.socialManager.getCurrentStreak()
+        longestStreak = betterFit.socialManager.getLongestStreak()
+        lastWorkoutDate = betterFit.socialManager.getLastWorkoutDate()
+        username = betterFit.socialManager.getUserProfile().username
+    }
+
+    private func refreshVitals() {
+        activityByDay = makeDailyWorkoutCounts(monthsBack: 6)
     }
 
     private var suggestedWorkout: Workout {
@@ -183,68 +193,627 @@ struct WorkoutHomeView: View {
     }
 
     private var welcomeSection: some View {
-        titleRow
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(theme.accent.opacity(0.22))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "figure.run.circle.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(theme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Hello!")
+                            .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+                        Text(username)
+                            .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+                            .foregroundStyle(theme.accent)
+                    }
+
+                    Text("Regain your healthy body")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 10) {
+                    BFChromeIconButton(
+                        systemImage: "magnifyingglass",
+                        accessibilityLabel: "Search",
+                        theme: theme
+                    ) {
+                        showingSearch = true
+                    }
+
+                    BFChromeIconButton(
+                        systemImage: "calendar",
+                        accessibilityLabel: "Calendar",
+                        theme: theme
+                    ) {
+                        showCalendar = true
+                    }
+                }
+            }
+
+            streakCalendarCard
+        }
     }
 
-    private var subscriptionCard: some View {
-        Button {
-            showSubscription = true
-        } label: {
-            BFCard(theme: theme) {
+    private var streakCalendarCard: some View {
+        BFCard(theme: theme) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Streak")
+                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+
+                    Spacer(minLength: 0)
+
+                    Label {
+                        Text("\(currentStreak) days")
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                    } icon: {
+                        Image(systemName: "flame.fill")
+                    }
+                    .foregroundStyle(theme.accent)
+                }
+
+                HStack(spacing: 10) {
+                    ForEach(weekDays, id: \.self) { date in
+                        streakDayPill(for: date)
+                    }
+                }
+
+                if longestStreak > 0 {
+                    Text("Longest: \(longestStreak) days")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private var vitalsCard: some View {
+        let overallRecovery = betterFit.bodyMapManager.getOverallRecoveryPercentage()
+        let recoveryValue = "\(Int(overallRecovery))%"
+
+        return BFCard(theme: theme) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("GO Club")
-                            .font(.headline)
-                            .foregroundStyle(theme.accent)
-                        Text("Unlock advanced analytics")
-                            .font(.subheadline)
+                    Text("Vitals")
+                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+
+                    Spacer(minLength: 0)
+
+                    Text("6mo")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background {
+                            Capsule().fill(theme.cardBackground)
+                        }
+                        .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                }
+
+                ContributionHeatmap(
+                    monthsBack: 6,
+                    valuesByDay: activityByDay,
+                    theme: theme
+                )
+                .frame(height: 86)
+
+                HStack(spacing: 12) {
+                    MetricPill(
+                        title: "Recovery", value: recoveryValue, systemImage: "heart.fill",
+                        theme: theme)
+
+                    MetricPill(
+                        title: "Streak", value: "\(currentStreak)d", systemImage: "flame.fill",
+                        theme: theme)
+
+                    MetricPill(
+                        title: "Workouts",
+                        value: "\(betterFit.socialManager.getUserProfile().totalWorkouts)",
+                        systemImage: "figure.strengthtraining.traditional", theme: theme)
+                }
+            }
+        }
+    }
+
+    private var workoutRecapCard: some View {
+        let active = betterFit.getActiveWorkout()
+        let history = betterFit.getWorkoutHistory().sorted(by: { $0.date > $1.date })
+        let last = history.first
+
+        let workout = active ?? last ?? suggestedWorkout
+        let isOngoing = active != nil
+        let headline = isOngoing ? "Ongoing Workout" : (last == nil ? "Suggested" : "Last Workout")
+        let primaryCTA = isOngoing ? "Resume" : "Start Workout"
+
+        return BFCard(theme: theme) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(headline.uppercased())
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        startWorkout()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(primaryCTA)
+                                .font(.subheadline.weight(.semibold))
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.accent)
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(recapTimeText(for: workout, isOngoing: isOngoing))
+                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .monospacedDigit()
+
+                    if isOngoing {
+                        Text("elapsed")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
+                }
+
+                Text(recapSubtitle(for: workout))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Array(workout.exercises.prefix(6)), id: \.id) { exercise in
+                            recapExerciseThumb(exercise.exercise)
+                        }
+
+                        Image(systemName: "chevron.right")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Exercises (\(workout.exercises.count))")
+                        .font(.subheadline.weight(.semibold))
+
+                    VStack(spacing: 10) {
+                        ForEach(Array(workout.exercises.prefix(3)), id: \.id) { we in
+                            recapExerciseRow(we)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func recapTimeText(for workout: Workout, isOngoing: Bool) -> String {
+        if isOngoing {
+            let seconds = max(0, Date.now.timeIntervalSince(workout.date))
+            return formatElapsed(seconds)
+        }
+
+        if let duration = workout.duration, duration > 0 {
+            return formatElapsed(duration)
+        }
+
+        // Best-effort fallback: show relative time since last workout.
+        return workout.date.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
+    }
+
+    private func recapSubtitle(for workout: Workout) -> String {
+        let groups = primaryMuscleGroups(for: workout)
+        if groups.isEmpty {
+            return workout.name
+        }
+        return groups.joined(separator: ", ")
+    }
+
+    private func primaryMuscleGroups(for workout: Workout) -> [String] {
+        let groups = workout.exercises
+            .flatMap { $0.exercise.muscleGroups }
+            .map { $0.rawValue }
+
+        var counts: [String: Int] = [:]
+        for g in groups {
+            counts[g, default: 0] += 1
+        }
+
+        return
+            counts
+            .sorted { $0.value > $1.value }
+            .map { prettifyMuscleGroup($0.key) }
+            .prefix(3)
+            .map { $0 }
+    }
+
+    private func prettifyMuscleGroup(_ raw: String) -> String {
+        switch raw {
+        case "abs": return "Core"
+        case "quads": return "Quadriceps"
+        default:
+            return raw.prefix(1).uppercased() + raw.dropFirst()
+        }
+    }
+
+    private func recapExerciseThumb(_ exercise: Exercise) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(theme.accent.opacity(0.10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(
+                        theme.cardStroke, lineWidth: 1)
+                }
+
+            Image(systemName: thumbIcon(for: exercise))
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(theme.accent)
+        }
+        .frame(width: 64, height: 52)
+        .accessibilityLabel(exercise.name)
+    }
+
+    private func recapExerciseRow(_ workoutExercise: WorkoutExercise) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(theme.accent.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: thumbIcon(for: workoutExercise.exercise))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(workoutExercise.exercise.name)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(recapExerciseDetail(workoutExercise))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background { LiquidGlassBackground(theme: theme, cornerRadius: 16) }
+    }
+
+    private func recapExerciseDetail(_ workoutExercise: WorkoutExercise) -> String {
+        let groups = workoutExercise.exercise.muscleGroups.prefix(2).map {
+            prettifyMuscleGroup($0.rawValue)
+        }
+        if !workoutExercise.sets.isEmpty {
+            let sets = workoutExercise.sets.count
+            return "\(groups.joined(separator: ", ")) • \(sets) sets"
+        }
+        return groups.joined(separator: ", ")
+    }
+
+    private func thumbIcon(for exercise: Exercise) -> String {
+        let name = exercise.name.lowercased()
+        if name.contains("run") || name.contains("treadmill") { return "figure.run" }
+        if name.contains("bench") || name.contains("press") { return "dumbbell.fill" }
+        if name.contains("row") { return "figure.strengthtraining.traditional" }
+        if name.contains("yoga") { return "figure.yoga" }
+
+        switch exercise.equipmentRequired {
+        case .barbell, .dumbbell, .kettlebell:
+            return "dumbbell.fill"
+        case .machine, .cable:
+            return "figure.strengthtraining.traditional"
+        case .bands:
+            return "circle.dotted"
+        case .bodyweight:
+            return "figure.core.training"
+        case .other:
+            return "bolt.fill"
+        }
+    }
+
+    private func formatElapsed(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        let minutes = total / 60
+        let hrs = minutes / 60
+        let mins = minutes % 60
+        let secs = total % 60
+
+        if hrs > 0 {
+            return String(format: "%d:%02d:%02d", hrs, mins, secs)
+        }
+        return String(format: "%02d:%02d", mins, secs)
+    }
+
+    private func makeDailyWorkoutCounts(monthsBack: Int) -> [Date: Int] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+
+        guard
+            let startOfThisMonth = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: today)),
+            let startDate = calendar.date(
+                byAdding: .month, value: -(max(1, monthsBack) - 1), to: startOfThisMonth)
+        else {
+            return [:]
+        }
+
+        var counts: [Date: Int] = [:]
+
+        for workout in betterFit.getWorkoutHistory() {
+            let day = calendar.startOfDay(for: workout.date)
+            guard day >= startDate, day <= today else { continue }
+            counts[day, default: 0] += 1
+        }
+
+        if betterFit.getActiveWorkout() != nil {
+            counts[today, default: 0] += 1
+        }
+
+        return counts
+    }
+
+    private struct ContributionHeatmap: View {
+        let monthsBack: Int
+        let valuesByDay: [Date: Int]
+        let theme: AppTheme
+
+        private let cell: CGFloat = 11
+        private let gap: CGFloat = 4
+
+        var body: some View {
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: Date.now)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(monthStarts(today: today, calendar: calendar), id: \.self) {
+                        monthStart in
+                        MonthBlock(
+                            monthStart: monthStart,
+                            today: today,
+                            valuesByDay: valuesByDay,
+                            cell: cell,
+                            gap: gap,
+                            theme: theme
+                        )
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .mask {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+            }
+        }
+
+        private func monthStarts(today: Date, calendar: Calendar) -> [Date] {
+            guard
+                let startOfThisMonth = calendar.date(
+                    from: calendar.dateComponents([.year, .month], from: today))
+            else {
+                return []
+            }
+
+            let count = max(1, monthsBack)
+            return (0..<count).compactMap { offset in
+                calendar.date(byAdding: .month, value: -(count - 1 - offset), to: startOfThisMonth)
+            }
+        }
+
+        private struct MonthBlock: View {
+            let monthStart: Date
+            let today: Date
+            let valuesByDay: [Date: Int]
+            let cell: CGFloat
+            let gap: CGFloat
+            let theme: AppTheme
+
+            var body: some View {
+                let calendar = Calendar.current
+                let monthEnd = endOfMonth(for: monthStart, calendar: calendar)
+                let clampedEnd = min(monthEnd, today)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(monthStart.formatted(.dateTime.month(.abbreviated)))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
+
+                    HStack(alignment: .top, spacing: gap) {
+                        ForEach(
+                            weekStarts(
+                                forMonthStart: monthStart, monthEnd: clampedEnd, calendar: calendar),
+                            id: \.self
+                        ) { weekStart in
+                            VStack(spacing: gap) {
+                                ForEach(0..<7, id: \.self) { dayOffset in
+                                    let date =
+                                        calendar.date(
+                                            byAdding: .day, value: dayOffset, to: weekStart)
+                                        ?? weekStart
+                                    DayCell(
+                                        date: date,
+                                        monthStart: monthStart,
+                                        monthEnd: clampedEnd,
+                                        valuesByDay: valuesByDay,
+                                        cell: cell,
+                                        theme: theme
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            private func endOfMonth(for date: Date, calendar: Calendar) -> Date {
+                guard
+                    let start = calendar.date(
+                        from: calendar.dateComponents([.year, .month], from: date)),
+                    let next = calendar.date(byAdding: .month, value: 1, to: start),
+                    let end = calendar.date(byAdding: .day, value: -1, to: next)
+                else {
+                    return date
+                }
+                return end
+            }
+
+            private func weekStarts(
+                forMonthStart monthStart: Date, monthEnd: Date, calendar: Calendar
+            ) -> [Date] {
+                guard
+                    let firstWeekStart = calendar.dateInterval(of: .weekOfYear, for: monthStart)?
+                        .start,
+                    let lastWeekStart = calendar.dateInterval(of: .weekOfYear, for: monthEnd)?.start
+                else {
+                    return []
+                }
+
+                var weeks: [Date] = []
+                var cursor = firstWeekStart
+                while cursor <= lastWeekStart {
+                    weeks.append(cursor)
+                    guard let next = calendar.date(byAdding: .day, value: 7, to: cursor) else {
+                        break
+                    }
+                    cursor = next
+                }
+                return weeks
+            }
+        }
+
+        private struct DayCell: View {
+            let date: Date
+            let monthStart: Date
+            let monthEnd: Date
+            let valuesByDay: [Date: Int]
+            let cell: CGFloat
+            let theme: AppTheme
+
+            var body: some View {
+                let calendar = Calendar.current
+                let day = calendar.startOfDay(for: date)
+                let isInMonth =
+                    day >= calendar.startOfDay(for: monthStart)
+                    && day <= calendar.startOfDay(for: monthEnd)
+
+                Group {
+                    if isInMonth {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(color(for: valuesByDay[day, default: 0]))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .stroke(theme.cardStroke.opacity(0.7), lineWidth: 0.5)
+                            }
+                            .accessibilityLabel(
+                                accessibilityText(day: day, count: valuesByDay[day, default: 0]))
+                    } else {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color.clear)
+                    }
+                }
+                .frame(width: cell, height: cell)
+            }
+
+            private func color(for count: Int) -> Color {
+                switch count {
+                case 0:
+                    return theme.accent.opacity(0)
+                case 1:
+                    return theme.accent.opacity(0.18)
+                case 2:
+                    return theme.accent.opacity(0.34)
+                case 3:
+                    return theme.accent.opacity(0.52)
+                default:
+                    return theme.accent.opacity(0.75)
+                }
+            }
+
+            private func accessibilityText(day: Date, count: Int) -> String {
+                if count == 0 {
+                    return "\(day.formatted(date: .abbreviated, time: .omitted)): no workouts"
+                }
+                if count == 1 {
+                    return "\(day.formatted(date: .abbreviated, time: .omitted)): 1 workout"
+                }
+                return "\(day.formatted(date: .abbreviated, time: .omitted)): \(count) workouts"
+            }
+        }
+    }
+
+    private func streakDayPill(for date: Date) -> some View {
+        let calendar = Calendar.current
+        let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+        let isInStreak = isDateInCurrentStreak(date)
+
+        return Button {
+            selectedDate = date
+            showCalendar = true
+        } label: {
+            VStack(spacing: 6) {
+                Text(date.formatted(.dateTime.weekday(.narrow)))
+                    .font(.caption2.weight(.semibold))
+
+                Text(date.formatted(.dateTime.day()))
+                    .font(.subheadline.weight(.bold))
+                    .monospacedDigit()
+            }
+            .frame(width: 44, height: 56)
+            .foregroundStyle(pillForeground(isSelected: isSelected, isInStreak: isInStreak))
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(pillBackground(isSelected: isSelected, isInStreak: isInStreak))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(theme.cardStroke, lineWidth: 1)
+                    }
+            }
+            .overlay(alignment: .topTrailing) {
+                if isInStreak {
+                    Circle()
+                        .fill(theme.accent)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 4, y: -4)
                 }
             }
         }
         .buttonStyle(.plain)
     }
 
-    private var todaysGoalCard: some View {
-        BFCard(theme: theme) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Today's Goal")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-                HStack(spacing: 20) {
-                    GoalStat(icon: "figure.run", value: "0mi", theme: theme)
-                    GoalStat(icon: "clock.fill", value: "60min", theme: theme)
-                    GoalStat(
-                        icon: "flame.fill", value: "\(suggestedWorkout.exercises.count * 500)",
-                        theme: theme)
-                }
-
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        // Background bars
-                        HStack(spacing: 2) {
-                            ForEach(0..<30, id: \.self) { _ in
-                                Rectangle()
-                                    .fill(.white.opacity(0.2))
-                                    .frame(width: 3)
-                            }
-                        }
-
-                        // Progress indicator
-                        Circle()
-                            .fill(Color.yellow)
-                            .frame(width: 28, height: 28)
-                            .offset(x: geometry.size.width * weeklyGoalProgress)
-                    }
-                }
-                .frame(height: 30)
-            }
+    private func pillBackground(isSelected: Bool, isInStreak: Bool) -> AnyShapeStyle {
+        if isSelected {
+            return AnyShapeStyle(theme.accent.opacity(0.28))
         }
+        if isInStreak {
+            return AnyShapeStyle(theme.accent.opacity(0.14))
+        }
+        return AnyShapeStyle(theme.cardBackground)
+    }
+
+    private func pillForeground(isSelected: Bool, isInStreak: Bool) -> AnyShapeStyle {
+        if isSelected {
+            return AnyShapeStyle(Color.primary)
+        }
+        if isInStreak {
+            return AnyShapeStyle(Color.primary)
+        }
+        return AnyShapeStyle(Color.secondary)
     }
 
     // MARK: - Gamification Card
@@ -256,28 +825,6 @@ struct WorkoutHomeView: View {
                 // Bright yellow background
                 RoundedRectangle(cornerRadius: 24)
                     .fill(Color(red: 0.98, green: 0.93, blue: 0.25))
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Walk during the Golden hour")
-                        .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundStyle(.black)
-                        .lineLimit(2)
-
-                    Text("Turn on location to know the best time for your walk.")
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(.black.opacity(0.8))
-                        .lineLimit(2)
-
-                    Capsule()
-                        .fill(.black)
-                        .frame(width: 140, height: 50)
-                        .overlay {
-                            Text("Continue")
-                                .font(.headline.weight(.bold))
-                                .foregroundStyle(.white)
-                        }
-                }
-                .padding(24)
 
                 // Decorative sunrise/sunset graphic (optional)
                 Image(systemName: "sun.max.fill")
@@ -589,6 +1136,19 @@ struct WorkoutHomeView: View {
             return AnyShapeStyle(theme.accent.opacity(0.25))
         }
         return AnyShapeStyle(theme.cardBackground)
+    }
+
+    private func isDateInCurrentStreak(_ date: Date) -> Bool {
+        guard currentStreak > 0, let lastWorkoutDate else {
+            return false
+        }
+
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: date)
+        let lastDay = calendar.startOfDay(for: lastWorkoutDate)
+        let difference = calendar.dateComponents([.day], from: day, to: lastDay).day ?? Int.max
+
+        return difference >= 0 && difference < currentStreak
     }
 
     private func refreshStatuses() {
