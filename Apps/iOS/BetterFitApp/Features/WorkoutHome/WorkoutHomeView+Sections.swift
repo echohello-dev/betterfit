@@ -50,9 +50,6 @@ extension WorkoutHomeView {
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-                SemiCircularGauge(value: weeklyProgress, theme: theme)
-                    .frame(width: 120, height: 78)
-
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text("\(Int(weeklyProgress * 100))%")
@@ -137,8 +134,6 @@ extension WorkoutHomeView {
                 Text("Streak")
                     .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
-                Spacer(minLength: 0)
-
                 Label {
                     Text("\(currentStreak) days")
                         .font(.subheadline.weight(.semibold))
@@ -150,13 +145,25 @@ extension WorkoutHomeView {
             }
 
             HStack(spacing: 10) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(streakWeekDays, id: \.self) { date in
-                            streakDayPill(for: date)
+                let today = Calendar.current.startOfDay(for: Date.now)
+
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(streakVisibleDays, id: \.self) { date in
+                                streakDayPill(for: date)
+                                    .id(date)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .onAppear {
+                        guard !didAutoScrollStreakToToday else { return }
+                        didAutoScrollStreakToToday = true
+                        DispatchQueue.main.async {
+                            proxy.scrollTo(today, anchor: .center)
                         }
                     }
-                    .padding(.vertical, 2)
                 }
                 .scrollClipDisabled()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -183,11 +190,6 @@ extension WorkoutHomeView {
                 .padding(.bottom, 6)
 
             HStack {
-                Text("Vitals")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-                Spacer(minLength: 0).padding(.vertical, 4)
-
                 Menu {
                     Button("1 Week") {
                         heatmapRange = .week
@@ -220,6 +222,8 @@ extension WorkoutHomeView {
                 }
             }
 
+            Spacer(minLength: 12)
+
             ContributionHeatmap(
                 startDate: range.start,
                 endDate: range.end,
@@ -228,20 +232,8 @@ extension WorkoutHomeView {
             )
             .frame(height: 86)
 
-            HStack(spacing: 12) {
-                MetricPill(
-                    title: "Recovery", value: recoveryValue, systemImage: "heart.fill",
-                    theme: theme)
+            Spacer(minLength: 12)
 
-                MetricPill(
-                    title: "Streak", value: "\(currentStreak)d", systemImage: "flame.fill",
-                    theme: theme)
-
-                MetricPill(
-                    title: "Work",
-                    value: "\(bf.socialManager.getUserProfile().totalWorkouts)",
-                    systemImage: "figure.strengthtraining.traditional", theme: theme)
-            }
         }
     }
 

@@ -26,6 +26,8 @@ struct WorkoutHomeView: View {
 
     @State var showStreakSummary = false
 
+    @State var didAutoScrollStreakToToday = false
+
     // Gamification
     @State var currentStreak = 0
     @State var longestStreak = 0

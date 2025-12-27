@@ -211,7 +211,8 @@ struct FloatingNavBar: View {
                         }
                         .glassEffectID("tab.recovery", in: glassNamespace)
                     }
-                }
+                }.frame(height: 50)
+                    .frame(maxWidth: .infinity)
             } else {
                 HStack(spacing: 20) {
                     NavButton(
@@ -301,12 +302,12 @@ struct FloatingNavBar: View {
         } label: {
             Image(systemName: "magnifyingglass")
                 .font(.body.weight(.semibold))
-                .frame(width: navButtonHeight, height: navButtonHeight)
+                .frame(width: 58, height: 58)
                 .background { searchMorphBackground }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Search")
-        .contentShape(Rectangle())
+        .contentShape(Circle())
     }
 
     private func pill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -393,7 +394,7 @@ struct NavButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 16) {
                 Image(systemName: icon)
                     .font(.title3.weight(.semibold))
                     .symbolEffect(.bounce, value: isSelected)
@@ -414,7 +415,6 @@ struct NavButton: View {
             }
             .scaleEffect(isPressed ? 0.95 : 1.0)
         }
-        .buttonStyle(.plain)
         .modifier(NavButtonGlassStyle(isSelected: isSelected, theme: theme))
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
