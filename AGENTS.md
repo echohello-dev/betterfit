@@ -1,5 +1,11 @@
 # AGENTS.md (BetterFit)
 
+## Philosophy
+- **Keep it simple** – prefer deleting code over adding more
+- **Use native iOS APIs** – reach for `.searchable()`, `.sheet()`, `.navigationTitle()` before building custom UI
+- **Refactor before extending** – simplify existing code rather than layering complexity
+- **Avoid reinventing the wheel** – SwiftUI and UIKit already solve most problems
+
 ## Fast workflows (use `mise`)
 - Install tools: `mise install`
 - Build SwiftPM package: `mise run build` (runs `swift build`)
