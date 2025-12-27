@@ -185,6 +185,7 @@ struct FloatingNavBar: View {
 
     private func pill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
+            .padding(.vertical, 4)
             .background {
                 if #available(iOS 26.0, *) {
                     Capsule()

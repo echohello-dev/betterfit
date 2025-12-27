@@ -34,7 +34,7 @@ struct WorkoutHomeView: View {
         case custom
     }
 
-    @State private var heatmapRange: HeatmapRange = .month
+    @State private var heatmapRange: HeatmapRange = .year
     @State private var showCustomRangeSheet = false
     @State private var customRangeStart: Date =
         Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
@@ -739,6 +739,11 @@ struct WorkoutHomeView: View {
                     }
                 }
                 .onChange(of: endDate) {
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("heatmap-end", anchor: .trailing)
+                    }
+                }
+                .onChange(of: startDate) {
                     DispatchQueue.main.async {
                         proxy.scrollTo("heatmap-end", anchor: .trailing)
                     }

@@ -33,6 +33,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit
         SWIFT_VERSION: "5.0"
         CODE_SIGN_ENTITLEMENTS: BetterFitApp/BetterFitApp.entitlements
+      configs:
+        Debug:
+          CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
     capabilities:
       healthKit: true
     dependencies:
@@ -61,6 +64,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.dev
         SWIFT_VERSION: "5.0"
         CODE_SIGN_ENTITLEMENTS: BetterFitApp/BetterFitApp.entitlements
+      configs:
+        Debug:
+          CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
     capabilities:
       healthKit: true
     dependencies:
