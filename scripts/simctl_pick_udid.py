@@ -41,21 +41,49 @@ def main() -> int:
         default=None,
         help='Fallback substring match for device name (e.g. "iPhone" or "Apple Watch").',
     )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        default=15.0,
+        help="Timeout for the underlying `xcrun simctl list` call (default: 15s).",
+    )
 
     args = parser.parse_args()
 
     try:
-        raw = subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"])
+        result = subprocess.run(
+            ["xcrun", "simctl", "list", "devices", "available", "-j"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=args.timeout_seconds,
+        )
+        raw = result.stdout
     except FileNotFoundError:
-        # xcrun not available in environment
-        return 0
-    except subprocess.CalledProcessError:
-        return 0
+        sys.stderr.write("simctl_pick_udid.py: `xcrun` not found (install Xcode CLT / select Xcode).\n")
+        return 1
+    except subprocess.TimeoutExpired:
+        sys.stderr.write(
+            "simctl_pick_udid.py: timed out running `xcrun simctl list ...`.\n"
+            "CoreSimulator may be hung. Try: `mise run ios:sim:reset` then retry.\n"
+        )
+        return 2
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write("simctl_pick_udid.py: `xcrun simctl list` failed.\n")
+        if e.stderr:
+            try:
+                sys.stderr.write(e.stderr.decode("utf-8", errors="replace"))
+                if not e.stderr.endswith(b"\n"):
+                    sys.stderr.write("\n")
+            except Exception:
+                pass
+        return 3
 
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        return 0
+        sys.stderr.write("simctl_pick_udid.py: failed to parse JSON output from `xcrun simctl list`.\n")
+        return 4
 
     devices = (data.get("devices", {}) or {}).get(args.runtime, []) or []
     udid = pick_udid(devices, args.prefer, args.contains)

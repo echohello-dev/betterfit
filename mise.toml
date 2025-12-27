@@ -31,7 +31,8 @@ UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
   --prefer "Apple Watch Series 10 (46mm)" \
   --prefer "Apple Watch Series 10 (42mm)" \
   --prefer "Apple Watch Ultra 2 (49mm)" \
-  --contains "Apple Watch")
+  --contains "Apple Watch" \
+  --timeout-seconds 15) || { echo "Failed to query watchOS simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 if [ -n "$UDID" ]; then
   xcodebuild -project BetterFit.xcodeproj -scheme BetterFitWatch -destination "id=$UDID" build
@@ -51,7 +52,8 @@ UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
   --prefer "iPhone 16 Pro" \
   --prefer "iPhone 16 Plus" \
   --prefer "iPhone 16 Pro Max" \
-  --contains "iPhone")
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 if [ -n "$UDID" ]; then
   xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination "id=$UDID" build
@@ -71,7 +73,8 @@ UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
   --prefer "iPhone 16 Pro" \
   --prefer "iPhone 16 Plus" \
   --prefer "iPhone 16 Pro Max" \
-  --contains "iPhone")
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 if [ -n "$UDID" ]; then
   xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination "id=$UDID" build
@@ -90,7 +93,8 @@ UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
   --prefer "iPhone 16 Pro" \
   --prefer "iPhone 16 Plus" \
   --prefer "iPhone 16 Pro Max" \
-  --contains "iPhone")
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 if [ -z "$UDID" ]; then
   echo "No iOS 26.2 simulator runtime/devices found. Install iOS 26.2 Simulator runtime in Xcode Settings > Platforms." >&2
@@ -120,14 +124,16 @@ IOS_UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
   --prefer "iPhone 16 Pro" \
   --prefer "iPhone 16 Plus" \
   --prefer "iPhone 16 Pro Max" \
-  --contains "iPhone")
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query iOS simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 WATCH_UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
   --runtime "com.apple.CoreSimulator.SimRuntime.watchOS-26-2" \
   --prefer "Apple Watch Series 10 (46mm)" \
   --prefer "Apple Watch Series 10 (42mm)" \
   --prefer "Apple Watch Ultra 2 (49mm)" \
-  --contains "Apple Watch")
+  --contains "Apple Watch" \
+  --timeout-seconds 15) || { echo "Failed to query watchOS simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 if [ -z "$WATCH_UDID" ]; then
 	echo "No watchOS 26.2 simulator runtime/devices found. Install watchOS Simulator runtime in Xcode Settings > Platforms." >&2
