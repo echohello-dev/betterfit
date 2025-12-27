@@ -32,7 +32,6 @@ struct RootTabView: View {
 
     @State private var selectedTab: AppTab = .workout
     @State private var previousTab: AppTab = .workout
-    @State private var showSearch = false
     @State private var searchQuery = ""
 
     var body: some View {
@@ -49,13 +48,9 @@ struct RootTabView: View {
             .tint(theme.accent)
             .tabBarMinimizeBehavior(.onScrollDown)
             .onChange(of: selectedTab) { oldTab, newTab in
-                if newTab == .search {
-                    withAnimation { showSearch = true }
-                    selectedTab = oldTab
+                if newTab == .search && oldTab != .search {
+                    previousTab = oldTab
                 }
-            }
-            .sheet(isPresented: $showSearch) {
-                AppSearchView(theme: theme, betterFit: betterFit, query: $searchQuery)
             }
         } else {
             TabView(selection: $selectedTab) {
@@ -69,13 +64,9 @@ struct RootTabView: View {
             }
             .tint(theme.accent)
             .onChange(of: selectedTab) { oldTab, newTab in
-                if newTab == .search {
-                    withAnimation { showSearch = true }
-                    selectedTab = oldTab
+                if newTab == .search && oldTab != .search {
+                    previousTab = oldTab
                 }
-            }
-            .sheet(isPresented: $showSearch) {
-                AppSearchView(theme: theme, betterFit: betterFit, query: $searchQuery)
             }
         }
     }
@@ -96,7 +87,15 @@ struct RootTabView: View {
                 RecoveryView(betterFit: betterFit, theme: theme)
             }
         case .search:
-            EmptyView()
+            AppSearchView(
+                theme: theme,
+                betterFit: betterFit,
+                query: $searchQuery,
+                previousTabIcon: previousTab.icon,
+                onDismiss: {
+                    withAnimation { selectedTab = previousTab }
+                }
+            )
         }
     }
 }
