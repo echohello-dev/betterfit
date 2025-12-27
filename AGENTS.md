@@ -4,6 +4,7 @@
 - Install tools: `mise install`
 - Build SwiftPM package: `mise run build` (runs `swift build`)
 - Run unit tests: `mise run test` (runs `swift test`)
+- After making changes, run lint: `mise run lint`
 - iOS host app (XcodeGen): `mise run ios:open` (generates then opens `Apps/iOS/BetterFit.xcodeproj`)
 - CLI iOS build: `mise run ios:build:prod` / `mise run ios:build:dev`
 - watchOS app (XcodeGen): `mise run watch:open` (generates then opens project with watch target)
