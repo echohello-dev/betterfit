@@ -6,6 +6,7 @@ struct RootTabView: View {
     let theme: AppTheme
     @State private var selectedTab = 0
     @State private var showingSearch = false
+    @State private var showingWorkoutAlreadyActiveAlert = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -41,10 +42,50 @@ struct RootTabView: View {
 
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .overlay(alignment: .topTrailing) {
+            if selectedTab == 0 {
+                StartWorkoutTopButton(theme: theme) {
+                    if betterFit.getActiveWorkout() != nil {
+                        showingWorkoutAlreadyActiveAlert = true
+                    } else {
+                        startRecommendedOrQuickWorkout()
+                    }
+                }
+                .padding(.top, 10)
+                .padding(.trailing, 16)
+            }
+        }
+        .alert("Workout already in progress", isPresented: $showingWorkoutAlreadyActiveAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("You already have an active workout running.")
+        }
         .sheet(isPresented: $showingSearch) {
             AppSearchView(theme: theme, betterFit: betterFit)
                 .presentationDetents([.large])
         }
+    }
+
+    private func startRecommendedOrQuickWorkout() {
+        if let workout = betterFit.getRecommendedWorkout() {
+            betterFit.startWorkout(workout)
+            return
+        }
+
+        let exercise = Exercise(
+            name: "Quick Session",
+            equipmentRequired: .bodyweight,
+            muscleGroups: [.abs, .quads]
+        )
+
+        let workout = Workout(
+            name: "Quick Session",
+            exercises: [
+                WorkoutExercise(exercise: exercise, sets: [ExerciseSet(reps: 1, weight: 0)])
+            ]
+        )
+
+        betterFit.startWorkout(workout)
     }
 }
 
@@ -57,6 +98,15 @@ struct FloatingNavBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            navPill
+            searchPill
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private var navPill: some View {
+        pill {
             if #available(iOS 26.0, *) {
                 GlassEffectContainer(spacing: 12) {
                     HStack(spacing: 12) {
@@ -89,14 +139,6 @@ struct FloatingNavBar: View {
                         .glassEffectID("tab.recovery", in: glassNamespace)
                     }
                 }
-
-                BFChromeIconButton(
-                    systemImage: "magnifyingglass",
-                    accessibilityLabel: "Search",
-                    theme: theme
-                ) {
-                    onSearch()
-                }
             } else {
                 HStack(spacing: 20) {
                     NavButton(
@@ -126,25 +168,67 @@ struct FloatingNavBar: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background {
-            if #available(iOS 26.0, *) {
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .glassEffect(.regular.interactive(), in: Capsule())
-            } else {
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
-                    .shadow(
-                        color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
-                        radius: theme.preferredColorScheme == .dark ? 14 : 10,
-                        x: 0,
-                        y: 6
-                    )
+    }
+
+    private var searchPill: some View {
+        pill {
+            BFChromeIconButton(
+                systemImage: "magnifyingglass",
+                accessibilityLabel: "Search",
+                theme: theme
+            ) {
+                onSearch()
             }
+            .frame(width: 44, height: 44)
         }
+    }
+
+    private func pill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .background {
+                if #available(iOS 26.0, *) {
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular.interactive(), in: Capsule())
+                } else {
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                        .shadow(
+                            color: Color.black.opacity(
+                                theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                            radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                            x: 0,
+                            y: 6
+                        )
+                }
+            }
+    }
+}
+
+private struct StartWorkoutTopButton: View {
+    let theme: AppTheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("Start Workout", systemImage: "play.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .frame(height: 38)
+                .background {
+                    Capsule().fill(theme.accent)
+                }
+        }
+        .buttonStyle(.plain)
+        .shadow(
+            color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.24 : 0.14),
+            radius: 10,
+            x: 0,
+            y: 6
+        )
+        .accessibilityLabel("Start Workout")
     }
 }
 
