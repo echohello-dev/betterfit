@@ -58,8 +58,7 @@ struct AppSearchView: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    .listRowBackground(
-                        LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                    .listRowBackground(nativeRowBackground(cornerRadius: 14))
                 }
                 .listSectionSeparator(.hidden)
             }
@@ -78,8 +77,7 @@ struct AppSearchView: View {
                         .bfHeading(theme: theme, size: 17, relativeTo: .headline)
                     Spacer(minLength: 0)
                 }
-                .listRowBackground(
-                    LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                .listRowBackground(nativeRowBackground(cornerRadius: 14))
             }
         }
         .listSectionSeparator(.hidden)
@@ -91,8 +89,7 @@ struct AppSearchView: View {
             if results.isEmpty {
                 Text("No matches")
                     .foregroundStyle(.secondary)
-                    .listRowBackground(
-                        LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                    .listRowBackground(nativeRowBackground(cornerRadius: 14))
             } else {
                 ForEach(results, id: \.name) { exercise in
                     HStack(spacing: 12) {
@@ -109,12 +106,19 @@ struct AppSearchView: View {
 
                         Spacer(minLength: 0)
                     }
-                    .listRowBackground(
-                        LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                    .listRowBackground(nativeRowBackground(cornerRadius: 14))
                 }
             }
         }
         .listSectionSeparator(.hidden)
+    }
+
+    private func nativeRowBackground(cornerRadius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return shape
+            .fill(.regularMaterial)
+            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
     }
 
     // MARK: - Supporting Types

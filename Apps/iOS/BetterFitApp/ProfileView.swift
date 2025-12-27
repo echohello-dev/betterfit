@@ -23,7 +23,7 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                .listRowBackground(nativeRowBackground(cornerRadius: 14))
             }
             .listSectionSeparator(.hidden)
 
@@ -31,7 +31,7 @@ struct ProfileView: View {
                 LabeledContent("Version") {
                     Text("1.0")
                 }
-                .listRowBackground(LiquidGlassBackground(theme: theme, cornerRadius: 14))
+                .listRowBackground(nativeRowBackground(cornerRadius: 14))
             }
             .listSectionSeparator(.hidden)
         }
@@ -63,6 +63,14 @@ struct ProfileView: View {
             )
             .presentationDetents([.medium, .large])
         }
+    }
+
+    private func nativeRowBackground(cornerRadius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return shape
+            .fill(.regularMaterial)
+            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
     }
 }
 

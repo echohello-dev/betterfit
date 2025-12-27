@@ -2,7 +2,7 @@ import BetterFit
 import SwiftUI
 
 // swiftlint:disable file_length type_body_length identifier_name
- 
+
 struct WorkoutHomeView: View {
     let betterFit: BetterFit
     let theme: AppTheme
@@ -385,9 +385,8 @@ struct WorkoutHomeView: View {
             HStack {
                 Text("Vitals")
                     .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-                    .padding(.vertical, 4)
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 0).padding(.vertical, 4)
 
                 Menu {
                     Button("1 Week") {
@@ -439,7 +438,7 @@ struct WorkoutHomeView: View {
                     theme: theme)
 
                 MetricPill(
-                    title: "Workouts",
+                    title: "Work",
                     value: "\(betterFit.socialManager.getUserProfile().totalWorkouts)",
                     systemImage: "figure.strengthtraining.traditional", theme: theme)
             }
@@ -624,7 +623,18 @@ struct WorkoutHomeView: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background { LiquidGlassBackground(theme: theme, cornerRadius: 16) }
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+            shape
+                .fill(.regularMaterial)
+                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .shadow(
+                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                    radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                    x: 0,
+                    y: 6
+                )
+        }
     }
 
     private func recapExerciseDetail(_ workoutExercise: WorkoutExercise) -> String {
@@ -717,7 +727,8 @@ struct WorkoutHomeView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 14) {
                         ForEach(
-                            monthStarts(rangeStart: rangeStart, rangeEnd: rangeEnd, calendar: calendar),
+                            monthStarts(
+                                rangeStart: rangeStart, rangeEnd: rangeEnd, calendar: calendar),
                             id: \.self
                         ) { monthStart in
                             MonthBlock(
@@ -1176,7 +1187,16 @@ struct WorkoutHomeView: View {
                             .fill(.ultraThinMaterial)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
                     } else {
-                        LiquidGlassBackground(theme: theme, cornerRadius: 20)
+                        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        shape
+                            .fill(.ultraThinMaterial)
+                            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                            .shadow(
+                                color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                                radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                                x: 0,
+                                y: 6
+                            )
                     }
                 }
             }

@@ -134,7 +134,15 @@ struct FloatingNavBar: View {
                     .fill(.ultraThinMaterial)
                     .glassEffect(.regular.interactive(), in: Capsule())
             } else {
-                LiquidGlassBackground(theme: theme, cornerRadius: 40)
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                    .shadow(
+                        color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                        radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                        x: 0,
+                        y: 6
+                    )
             }
         }
     }

@@ -1,42 +1,5 @@
 import SwiftUI
 
-struct LiquidGlassBackground: View {
-    let theme: AppTheme
-    var cornerRadius: CGFloat = 16
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
-        shape
-            .fill(.regularMaterial)
-            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-            .shadow(
-                color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
-                radius: theme.preferredColorScheme == .dark ? 14 : 10,
-                x: 0,
-                y: 6
-            )
-    }
-}
-
-struct LiquidGlassCircleBackground: View {
-    let theme: AppTheme
-
-    var body: some View {
-        let shape = Circle()
-
-        shape
-            .fill(.regularMaterial)
-            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-            .shadow(
-                color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.20 : 0.07),
-                radius: theme.preferredColorScheme == .dark ? 12 : 9,
-                x: 0,
-                y: 5
-            )
-    }
-}
-
 struct BFChromeIconButton: View {
     let systemImage: String
     let accessibilityLabel: String
@@ -63,7 +26,14 @@ private struct BFChromeIconButtonStyle: ViewModifier {
                 .glassEffect(.regular.interactive(), in: Circle())
         } else {
             content
-                .background { LiquidGlassCircleBackground(theme: theme) }
+                .background(.regularMaterial, in: Circle())
+                .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+                .shadow(
+                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.20 : 0.07),
+                    radius: theme.preferredColorScheme == .dark ? 12 : 9,
+                    x: 0,
+                    y: 5
+                )
         }
     }
 }
@@ -78,11 +48,25 @@ struct BFCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .padding(16)
-            .background {
-                LiquidGlassBackground(theme: theme, cornerRadius: 16)
-            }
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            content
+                .padding(16)
+                .background(shape.fill(.ultraThinMaterial))
+                .glassEffect(.regular, in: shape)
+        } else {
+            content
+                .padding(16)
+                .background(shape.fill(.regularMaterial))
+                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .shadow(
+                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
+                    radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                    x: 0,
+                    y: 6
+                )
+        }
     }
 }
 
@@ -124,6 +108,8 @@ struct MetricPill: View {
     let theme: AppTheme
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
         HStack(spacing: 8) {
             Image(systemName: systemImage)
                 .foregroundStyle(theme.accent)
@@ -140,8 +126,7 @@ struct MetricPill: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background {
-            LiquidGlassBackground(theme: theme, cornerRadius: 14)
-        }
+        .background(shape.fill(.regularMaterial))
+        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
     }
 }
