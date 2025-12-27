@@ -251,6 +251,19 @@ extension WorkoutHomeView {
         return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
     }
 
+    var streakVisibleDays: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+
+        // Keep today centered by showing a few days on either side.
+        // Future days are displayed but disabled.
+        let halfWindow = 10
+        let start = calendar.date(byAdding: .day, value: -halfWindow, to: today) ?? today
+        return (0..<(halfWindow * 2 + 1)).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: start)
+        }
+    }
+
     var sundayFirstCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale.current
@@ -435,6 +448,9 @@ extension WorkoutHomeView {
 
     func streakDayPill(for date: Date) -> some View {
         let calendar = sundayFirstCalendar
+        let today = Calendar.current.startOfDay(for: Date.now)
+        let isToday = Calendar.current.isDate(date, inSameDayAs: today)
+        let isFuture = date > today
         let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
         let isInStreak = isDateInCurrentStreak(date)
 
@@ -448,13 +464,18 @@ extension WorkoutHomeView {
                 Text(date.formatted(.dateTime.weekday(.abbreviated)))
                     .font(.caption.weight(.semibold))
 
-                Text(date.formatted(.dateTime.day()))
-                    .font(.subheadline.weight(.bold))
-                    .monospacedDigit()
+                HStack(spacing: 4) {
+                    Text(date.formatted(.dateTime.month(.abbreviated)))
+                        .font(.caption.weight(.semibold))
+
+                    Text(date.formatted(.dateTime.day()))
+                        .font(.subheadline.weight(.bold))
+                        .monospacedDigit()
+                }
             }
             .frame(width: 60, height: 64)
             .foregroundStyle(
-                isSelected ? selectedText : (isInStreak ? Color.primary : Color.secondary)
+                isSelected ? selectedText : (isFuture ? Color.secondary : Color.primary)
             )
             .background {
                 let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -465,6 +486,12 @@ extension WorkoutHomeView {
                         .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
                 }
             }
+            .overlay {
+                if isToday, !isSelected {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(theme.accent.opacity(0.45), lineWidth: 1)
+                }
+            }
             .overlay(alignment: .topTrailing) {
                 if isInStreak {
                     Circle()
@@ -473,8 +500,10 @@ extension WorkoutHomeView {
                         .offset(x: 4, y: -4)
                 }
             }
+            .opacity(isFuture ? 0.55 : 1)
         }
         .buttonStyle(.plain)
+        .disabled(isFuture)
     }
 
     var displayRegions: [BodyRegion] {
