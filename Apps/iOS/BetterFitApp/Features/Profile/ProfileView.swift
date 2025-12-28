@@ -78,5 +78,6 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView(theme: .sunset)
+    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
+    return ProfileView(theme: .sunset)
 }

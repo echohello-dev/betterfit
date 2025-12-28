@@ -48,7 +48,7 @@ struct AppSearchView: View {
             .background(theme.backgroundGradient.ignoresSafeArea())
             .searchable(text: $query, prompt: "Search")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         onDismiss()
                     } label: {
@@ -362,6 +362,8 @@ struct AppSearchView: View {
 // MARK: - Preview
 
 #Preview {
+    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
+
     struct PreviewWrapper: View {
         @State private var query: String = ""
 
