@@ -40,4 +40,4 @@ Don’t delete old ADRs; supersede them.
 
 Keep a simple list below. Add new ADRs at the bottom.
 
-- (none yet)
+- [0001: Supabase for Authentication and Data Persistence](0001-supabase-auth-and-persistence.md) – Multi-platform auth (Apple Sign In) + PostgreSQL persistence, enabling guest mode and future Android/Web expansion.
