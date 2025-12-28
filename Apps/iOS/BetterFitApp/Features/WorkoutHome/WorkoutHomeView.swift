@@ -82,12 +82,6 @@ struct WorkoutHomeView: View {
             .padding(.bottom, 100)  // Space for floating nav bar
         }
         .background(theme.backgroundGradient.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                toolbarContent
-            }
-        }
         .sheet(isPresented: $showCalendar) {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
                 .presentationDetents([PresentationDetent.medium, PresentationDetent.large])

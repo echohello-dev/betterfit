@@ -1,23 +1,23 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct TrendsView: View {
     let theme: AppTheme
 
     // MARK: - Mock Data
-    
+
     struct VolumeData: Identifiable {
         let id = UUID()
         let day: String
         let volume: Double
     }
-    
+
     struct RecoveryData: Identifiable {
         let id = UUID()
         let date: Date
         let percentage: Double
     }
-    
+
     private var weeklyVolume: [VolumeData] {
         [
             VolumeData(day: "Mon", volume: 4200),
@@ -26,10 +26,10 @@ struct TrendsView: View {
             VolumeData(day: "Thu", volume: 5100),
             VolumeData(day: "Fri", volume: 4500),
             VolumeData(day: "Sat", volume: 2200),
-            VolumeData(day: "Sun", volume: 0)
+            VolumeData(day: "Sun", volume: 0),
         ]
     }
-    
+
     private var recoveryTrend: [RecoveryData] {
         let calendar = Calendar.current
         let today = Date()
@@ -49,7 +49,7 @@ struct TrendsView: View {
 
                 volumeSection
                 recoverySection
-                
+
                 BFCard(theme: theme) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("PR Tracking")
@@ -64,14 +64,13 @@ struct TrendsView: View {
             .padding(16)
         }
         .background(theme.backgroundGradient.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private var volumeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Weekly Volume")
                 .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-            
+
             BFCard(theme: theme) {
                 Chart {
                     ForEach(weeklyVolume) { data in
@@ -90,12 +89,12 @@ struct TrendsView: View {
             }
         }
     }
-    
+
     private var recoverySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Recovery Trend")
                 .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-            
+
             BFCard(theme: theme) {
                 Chart {
                     ForEach(recoveryTrend) { data in
@@ -106,7 +105,7 @@ struct TrendsView: View {
                         .interpolationMethod(.catmullRom)
                         .foregroundStyle(theme.accent)
                         .symbol(Circle().strokeBorder(lineWidth: 2))
-                        
+
                         AreaMark(
                             x: .value("Date", data.date),
                             y: .value("Recovery", data.percentage)

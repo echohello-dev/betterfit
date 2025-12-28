@@ -477,6 +477,8 @@ extension HKWorkoutActivityType {
 #Preview {
     @Previewable @State var selectedDate = Date.now
 
+    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
+
     let betterFit = BetterFit()
     let now = Date.now
     betterFit.completeWorkout(

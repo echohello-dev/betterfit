@@ -32,36 +32,7 @@ struct RecoveryView: View {
             }
             .padding(16)
         }
-        .navigationTitle("Recovery")
-        .navigationBarTitleDisplayMode(.large)
         .background(theme.backgroundGradient.ignoresSafeArea())
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if #available(iOS 26.0, *) {
-                    GlassEffectContainer(spacing: 16) {
-                        HStack(spacing: 10) {
-                            BFChromeIconButton(
-                                systemImage: "arrow.clockwise",
-                                accessibilityLabel: "Refresh",
-                                theme: theme
-                            ) {
-                                refresh()
-                            }
-                        }
-                    }
-                } else {
-                    HStack(spacing: 10) {
-                        BFChromeIconButton(
-                            systemImage: "arrow.clockwise",
-                            accessibilityLabel: "Refresh",
-                            theme: theme
-                        ) {
-                            refresh()
-                        }
-                    }
-                }
-            }
-        }
         .onAppear {
             refresh()
         }
@@ -198,5 +169,6 @@ struct RecoveryView: View {
 }
 
 #Preview {
-    RecoveryView(betterFit: BetterFit(), theme: .forest)
+    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
+    return RecoveryView(betterFit: BetterFit(), theme: .forest)
 }
