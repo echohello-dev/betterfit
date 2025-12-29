@@ -1,3 +1,30 @@
+[env]
+_.file = ".env"
+
+[tasks."supabase:start"]
+run = """
+echo "Starting local Supabase (PostgreSQL + Auth + Storage)..."
+supabase start
+echo ""
+echo "✅ Local Supabase running!"
+echo ""
+echo "Copy these values to your .env file:"
+echo "  SUPABASE_URL=http://127.0.0.1:54321"
+echo "  SUPABASE_ANON_KEY=<anon key from output above>"
+echo ""
+echo "Studio (database UI): http://127.0.0.1:54323"
+echo "To stop: mise run supabase:stop"
+"""
+
+[tasks."supabase:stop"]
+run = "supabase stop"
+
+[tasks."supabase:status"]
+run = "supabase status"
+
+[tasks."supabase:reset"]
+run = "supabase db reset"
+
 [tasks.test]
 run = "swift test"
 
@@ -151,4 +178,5 @@ open -a Simulator --args -CurrentDeviceUDID "$WATCH_UDID"
 """
 
 [tools]
+supabase = "latest"
 swiftlint = "latest"

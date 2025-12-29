@@ -15,9 +15,13 @@ targets:
     platform: iOS
     sources:
       - path: BetterFitApp
+        excludes:
+          - "**/*.md"
     resources:
       - path: BetterFitApp/Assets.xcassets
       - path: BetterFitApp/Fonts
+        excludes:
+          - "**/*.md"
     info:
       path: BetterFitApp/Info.plist
       properties:
@@ -47,9 +51,13 @@ targets:
     platform: iOS
     sources:
       - path: BetterFitApp
+        excludes:
+          - "**/*.md"
     resources:
       - path: BetterFitApp/Assets.xcassets
       - path: BetterFitApp/Fonts
+        excludes:
+          - "**/*.md"
     info:
       path: BetterFitApp/Info.plist
       properties:
