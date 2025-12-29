@@ -43,17 +43,17 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .midnight:
             colors = [
                 Color(red: 0.05, green: 0.06, blue: 0.10),
-                Color(red: 0.10, green: 0.07, blue: 0.18),
+                Color(red: 0.10, green: 0.07, blue: 0.18)
             ]
         case .forest:
             colors = [
                 Color(red: 0.04, green: 0.09, blue: 0.07),
-                Color(red: 0.06, green: 0.13, blue: 0.09),
+                Color(red: 0.06, green: 0.13, blue: 0.09)
             ]
         case .sunset:
             colors = [
                 Color(red: 0.10, green: 0.06, blue: 0.07),
-                Color(red: 0.16, green: 0.08, blue: 0.08),
+                Color(red: 0.16, green: 0.08, blue: 0.08)
             ]
         }
 
@@ -117,12 +117,19 @@ extension AppTheme {
 
 extension AppTheme {
     static let headingFontCandidates: [String] = [
+        "BBHHegarty-ExtraBold",
+        "BBHHegarty-Bold",
         "BBH Hegarty",
         "BBHHegarty",
         "BBH-Hegarty",
-        // Common PostScript-style names
-        "BBHHegarty-Regular",
-        "BBHHegarty-Bold",
+        "BBHHegarty-Regular"
+    ]
+
+    static let italicFontCandidates: [String] = [
+        "BBHHegarty-ExtraBoldItalic",
+        "BBHHegarty-BoldItalic",
+        "BBHHegarty-Italic",
+        "BBH Hegarty"
     ]
 
     func headingFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
@@ -135,12 +142,25 @@ extension AppTheme {
         #endif
         return .system(size: size, weight: .black, design: .rounded)
     }
+
+    func italicFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
+        #if canImport(UIKit)
+            if let resolvedName = AppTheme.italicFontCandidates.first(where: {
+                UIFont(name: $0, size: size) != nil
+            }) {
+                return .custom(resolvedName, size: size, relativeTo: textStyle)
+            }
+        #endif
+        return .system(size: size, weight: .bold, design: .rounded).italic()
+    }
 }
 
 extension View {
-    func bfHeading(theme: AppTheme, size: CGFloat, relativeTo textStyle: Font.TextStyle = .headline)
-        -> some View
-    {
+    func bfHeading(theme: AppTheme, size: CGFloat, relativeTo textStyle: Font.TextStyle = .headline) -> some View {
         font(theme.headingFont(size: size, relativeTo: textStyle))
+    }
+
+    func bfItalic(theme: AppTheme, size: CGFloat, relativeTo textStyle: Font.TextStyle = .body) -> some View {
+        font(theme.italicFont(size: size, relativeTo: textStyle))
     }
 }
