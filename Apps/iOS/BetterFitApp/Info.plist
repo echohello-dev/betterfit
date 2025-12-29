@@ -20,6 +20,15 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>BBHHegarty-Regular.ttf</string>
+		<string>BBHHegarty-Italic.ttf</string>
+		<string>BBHHegarty-Bold.ttf</string>
+		<string>BBHHegarty-BoldItalic.ttf</string>
+		<string>BBHHegarty-ExtraBold.ttf</string>
+		<string>BBHHegarty-ExtraBoldItalic.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
