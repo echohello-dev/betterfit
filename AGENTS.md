@@ -5,6 +5,8 @@
 - **Use native iOS APIs** – reach for `.searchable()`, `.sheet()`, `.navigationTitle()` before building custom UI
 - **Refactor before extending** – simplify existing code rather than layering complexity
 - **Avoid reinventing the wheel** – SwiftUI and UIKit already solve most problems
+- **Do NOT create progress/summary markdown files** (e.g., `SUMMARY.md`, `CHANGES.md`) to document your work—it's redundant and noisy.
+- **Use wide events for logging** – emit one comprehensive log event per request/operation with full context (user, business, infrastructure, performance) rather than scattering multiple log statements. This enables effective debugging at scale.
 
 ## Fast workflows (use `mise`)
 - Install tools: `mise install`
