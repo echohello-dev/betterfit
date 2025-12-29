@@ -39,6 +39,16 @@ let betterFit = BetterFit()
 
 Dev setup and contributor workflow live in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## License
+
+BetterFit is licensed under a BSD 3-Clause License with branding protection.
+You're free to use, modify, and distribute this code commercially, but must
+maintain the "BetterFit" branding for deployments over 50 users.
+
+For enterprise white-label licensing, contact: business@echohello.dev
+
+See [LICENSE](LICENSE) for full terms.
+
 ## Run Apps
 
 ### iOS App
