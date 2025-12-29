@@ -27,6 +27,13 @@ targets:
       properties:
         CFBundleDisplayName: BetterFit
         UILaunchScreen: {}
+        UIAppFonts:
+          - BBHHegarty-Regular.ttf
+          - BBHHegarty-Italic.ttf
+          - BBHHegarty-Bold.ttf
+          - BBHHegarty-BoldItalic.ttf
+          - BBHHegarty-ExtraBold.ttf
+          - BBHHegarty-ExtraBoldItalic.ttf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations:
@@ -63,6 +70,13 @@ targets:
       properties:
         CFBundleDisplayName: BetterFit Dev
         UILaunchScreen: {}
+        UIAppFonts:
+          - BBHHegarty-Regular.ttf
+          - BBHHegarty-Italic.ttf
+          - BBHHegarty-Bold.ttf
+          - BBHHegarty-BoldItalic.ttf
+          - BBHHegarty-ExtraBold.ttf
+          - BBHHegarty-ExtraBoldItalic.ttf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations:
@@ -89,12 +103,22 @@ targets:
       - path: BetterFitWatchApp
     resources:
       - path: BetterFitWatchApp/Assets.xcassets
+      - path: BetterFitApp/Fonts
+        excludes:
+          - "**/*.md"
     info:
       path: BetterFitWatchApp/Info.plist
       properties:
         CFBundleDisplayName: BetterFit
         WKApplication: true
         WKWatchOnly: true
+        UIAppFonts:
+          - BBHHegarty-Regular.ttf
+          - BBHHegarty-Italic.ttf
+          - BBHHegarty-Bold.ttf
+          - BBHHegarty-BoldItalic.ttf
+          - BBHHegarty-ExtraBold.ttf
+          - BBHHegarty-ExtraBoldItalic.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.watchkitapp
