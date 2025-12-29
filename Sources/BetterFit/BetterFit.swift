@@ -28,13 +28,20 @@ public class BetterFit {
     public let aiAdaptationService: AIAdaptationService
     public let imageService: EquipmentImageService
 
+    // MARK: - Persistence
+
+    public let persistenceService: PersistenceProtocol
+
     // MARK: - State
 
     private var workoutHistory: [Workout] = []
 
     // MARK: - Initialization
 
-    public init() {
+    public init(persistenceService: PersistenceProtocol? = nil) {
+        // Default to local persistence (guest mode) if none provided
+        self.persistenceService = persistenceService ?? LocalPersistenceService()
+
         self.planManager = PlanManager()
         self.templateManager = TemplateManager()
         self.equipmentSwapManager = EquipmentSwapManager()
@@ -45,6 +52,50 @@ public class BetterFit {
         self.autoTrackingService = AutoTrackingService()
         self.aiAdaptationService = AIAdaptationService()
         self.imageService = EquipmentImageService()
+
+        // Load persisted data
+        Task {
+            await loadPersistedData()
+        }
+    }
+
+    // MARK: - Data Loading
+
+    /// Load persisted data from storage
+    private func loadPersistedData() async {
+        do {
+            // Load workout history
+            workoutHistory = try await persistenceService.getWorkouts()
+
+            // Load user profile
+            if let profile = try await persistenceService.getUserProfile() {
+                socialManager.updateUserProfile(profile)
+            }
+
+            // Load streak data
+            _ = try await persistenceService.getStreakData()
+            // Update social manager with streak data (implementation depends on SocialManager API)
+
+            // Load active plan
+            if let activePlan = try await persistenceService.getActivePlan() {
+                planManager.updatePlan(activePlan)
+            }
+
+            // Load templates
+            let templates = try await persistenceService.getTemplates()
+            for template in templates {
+                templateManager.addTemplate(template)
+            }
+
+            // Load recovery data
+            if try await persistenceService.getBodyMapRecovery() != nil {
+                // Update body map with recovery data (implementation depends on BodyMapManager API)
+                // bodyMapManager.setRecovery(recovery)
+            }
+
+        } catch {
+            print("Failed to load persisted data: \(error)")
+        }
     }
 
     // MARK: - Workout Management
@@ -64,11 +115,27 @@ public class BetterFit {
         // Record in history
         workoutHistory.append(workout)
 
+        // Persist workout
+        Task {
+            try? await persistenceService.saveWorkout(workout)
+        }
+
         // Update recovery map
         bodyMapManager.recordWorkout(workout)
 
         // Update streak
         socialManager.recordWorkout(date: workout.date)
+
+        // Persist user profile, streak data, and recovery map
+        Task {
+            try? await persistenceService.saveUserProfile(socialManager.getUserProfile())
+            try? await persistenceService.saveStreakData(
+                currentStreak: socialManager.getCurrentStreak(),
+                longestStreak: socialManager.getLongestStreak(),
+                lastWorkoutDate: socialManager.getLastWorkoutDate()
+            )
+            try? await persistenceService.saveBodyMapRecovery(bodyMapManager.getRecoveryMap())
+        }
 
         // Analyze and adapt plan if needed
         if let activePlan = planManager.getActivePlan() {
@@ -81,6 +148,11 @@ public class BetterFit {
                 var updatedPlan = activePlan
                 aiAdaptationService.applyAdaptations(adaptations, to: &updatedPlan)
                 planManager.updatePlan(updatedPlan)
+
+                // Persist updated plan
+                Task {
+                    try? await persistenceService.savePlan(updatedPlan)
+                }
             }
         }
     }

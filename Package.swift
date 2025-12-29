@@ -5,18 +5,25 @@ let package = Package(
     name: "BetterFit",
     platforms: [
         .iOS(.v17),
-        .watchOS(.v10)
+        .watchOS(.v10),
+        .macOS(.v10_15),
     ],
     products: [
         .library(
             name: "BetterFit",
-            targets: ["BetterFit"]),
+            targets: ["BetterFit"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/supabase/supabase-swift.git", from: "2.39.0")
+    ],
     targets: [
         .target(
             name: "BetterFit",
-            dependencies: []),
+            dependencies: [
+                .product(name: "Supabase", package: "supabase-swift"),
+                .product(name: "Auth", package: "supabase-swift"),
+                .product(name: "PostgREST", package: "supabase-swift"),
+            ]),
         .testTarget(
             name: "BetterFitTests",
             dependencies: ["BetterFit"]),
