@@ -31,6 +31,17 @@ description = "Apply pending migrations to local database"
 run = "bash scripts/setup_local_env.sh"
 description = "Populate .env with local Supabase credentials"
 
+[tasks."supabase:configure"]
+run = """
+bash scripts/setup_local_env.sh
+cd Apps/iOS && xcodegen generate
+bash ../../scripts/update_scheme_env.sh
+echo ""
+echo "✨ All done! Open the project with: mise run ios:open"
+echo "   Credentials are loaded from .env (not committed to git)"
+"""
+description = "Full setup: populate .env, regenerate project, inject credentials into scheme"
+
 [tasks.test]
 run = "swift test"
 
@@ -43,10 +54,17 @@ swiftlint lint --config .swiftlint.yml
 """
 
 [tasks."ios:gen"]
-run = "cd Apps/iOS && xcodegen generate"
+run = """
+cd Apps/iOS && xcodegen generate
+cd ../.. && bash scripts/update_scheme_env.sh 2>/dev/null || echo "⚠️  No .env found. Run 'mise run supabase:configure' for local Supabase setup."
+"""
 
 [tasks."ios:open"]
-run = "cd Apps/iOS && xcodegen generate && open BetterFit.xcodeproj"
+run = """
+cd Apps/iOS && xcodegen generate
+cd ../.. && bash scripts/update_scheme_env.sh 2>/dev/null || echo "⚠️  No .env found. Run 'mise run supabase:configure' for local Supabase setup."
+cd Apps/iOS && open BetterFit.xcodeproj
+"""
 
 [tasks."watch:gen"]
 run = "cd Apps/iOS && xcodegen generate"

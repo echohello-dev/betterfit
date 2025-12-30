@@ -101,14 +101,14 @@ Automatically extracts live credentials from `supabase status` and writes to `.e
 
 **3. Build and run the app:**
 ```bash
-mise run ios:open      # Opens Xcode with fresh project generation
-mise run ios:build:dev # Builds for simulator with env vars loaded
+mise run ios:open      # Opens Xcode with fresh project generation + credential injection
+mise run ios:build:dev # Builds for simulator
 ```
 
-The build process automatically:
-- Runs `scripts/load_env.sh` as a build phase
-- Loads `.env` variables into the Xcode build environment
-- Passes `SUPABASE_URL` and `SUPABASE_ANON_KEY` to the app
+The setup process automatically:
+- Runs `scripts/update_scheme_env.sh` after project generation
+- Injects `.env` variables into Xcode scheme configuration
+- Xcode provides `SUPABASE_URL` and `SUPABASE_ANON_KEY` at runtime
 - `AppConfiguration` reads these via `ProcessInfo.processInfo.environment`
 
 **In the simulator:**
