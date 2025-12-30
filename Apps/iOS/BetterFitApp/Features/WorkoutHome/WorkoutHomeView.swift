@@ -45,6 +45,10 @@ struct WorkoutHomeView: View {
     @State var activityByDay: [Date: Int] = [:]
 
     @State var heatmapRange: HeatmapRange = .year
+
+    // Timer for animating elapsed time
+    @State var elapsedTimeUpdateTrigger = false
+    @State var workoutTimer: Timer?
     @State var showCustomRangeSheet = false
     @State var customRangeStart: Date =
         Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
@@ -137,11 +141,17 @@ struct WorkoutHomeView: View {
             loadGameStats()
             refreshVitals()
             refreshActiveWorkout()
+            startWorkoutTimerIfNeeded()
+        }
+        .onDisappear {
+            stopWorkoutTimer()
         }
         .onReceive(NotificationCenter.default.publisher(for: .workoutStarted)) { _ in
             refreshActiveWorkout()
+            startWorkoutTimerIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: .workoutCompleted)) { _ in
+            stopWorkoutTimer()
             refreshActiveWorkout()
             refreshStatuses()
             loadGameStats()
