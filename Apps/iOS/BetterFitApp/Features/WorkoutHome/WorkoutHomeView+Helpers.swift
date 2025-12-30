@@ -15,22 +15,22 @@ extension WorkoutHomeView {
     func refreshActiveWorkout() {
         activeWorkoutId = bf.getActiveWorkout()?.id
     }
-    
+
     func startWorkoutTimerIfNeeded() {
         guard hasActiveWorkout else {
             stopWorkoutTimer()
             return
         }
-        
+
         // Stop existing timer if any
         workoutTimer?.invalidate()
-        
+
         // Start timer that updates every 10ms for smooth animation
         workoutTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [self] _ in
             self.elapsedTimeUpdateTrigger.toggle()
         }
     }
-    
+
     func stopWorkoutTimer() {
         workoutTimer?.invalidate()
         workoutTimer = nil
