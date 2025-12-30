@@ -29,11 +29,6 @@ targets:
         UILaunchScreen: {}
         UIAppFonts:
           - BBHHegarty-Regular.ttf
-          - BBHHegarty-Italic.ttf
-          - BBHHegarty-Bold.ttf
-          - BBHHegarty-BoldItalic.ttf
-          - BBHHegarty-ExtraBold.ttf
-          - BBHHegarty-ExtraBoldItalic.ttf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations:
@@ -78,11 +73,6 @@ targets:
         WKWatchOnly: true
         UIAppFonts:
           - BBHHegarty-Regular.ttf
-          - BBHHegarty-Italic.ttf
-          - BBHHegarty-Bold.ttf
-          - BBHHegarty-BoldItalic.ttf
-          - BBHHegarty-ExtraBold.ttf
-          - BBHHegarty-ExtraBoldItalic.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.watchkitapp
