@@ -43,17 +43,10 @@ targets:
       configs:
         Debug:
           CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
-          SUPABASE_URL: $(inherited)
-          SUPABASE_ANON_KEY: $(inherited)
     capabilities:
       healthKit: true
     dependencies:
       - package: BetterFit
-    buildPhases:
-      - script:
-          script: |
-            source "${PROJECT_DIR}/../../scripts/load_env.sh"
-          name: Load Environment Variables
 
   BetterFitWatch:
     type: application
@@ -91,6 +84,8 @@ schemes:
         BetterFitApp: all
     run:
       config: Debug
+      # Environment variables are injected by scripts/update_scheme_env.sh
+      # This keeps credentials out of version control
   BetterFitWatch:
     build:
       targets:

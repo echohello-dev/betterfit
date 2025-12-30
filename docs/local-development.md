@@ -36,14 +36,14 @@ mise run supabase:reset
 ```
 Creates all persistence tables (workouts, templates, plans, etc.) with Row Level Security.
 
-### 4. Populate .env with credentials
+### 4. Configure Xcode project with Supabase credentials
 ```bash
-mise run supabase:env
+mise run supabase:configure
 ```
-Reads local Supabase credentials and writes to `.env`:
-- Extracts from `supabase status` 
-- Updates `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY`
-- Skips if `.env` already exists with valid credentials
+This single command:
+1. Populates `.env` with credentials from `supabase status`
+2. Regenerates Xcode project with XcodeGen
+3. Injects environment variables from `.env` into Xcode scheme
 
 **What gets set:**
 ```dotenv
@@ -51,6 +51,12 @@ SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_ANON_KEY=sb_publishable_ACJWl...
 SUPABASE_SECRET_KEY=sb_secret_N7UND0U...
 ```
+
+**Why this approach?**
+- Credentials stay in `.env` (git-ignored), never committed to version control
+- No hardcoded values in `project.yml` or scheme files
+- Each developer's credentials are local to their machine
+- Script automatically updates scheme when credentials change
 
 ### 5. Build and run the app
 ```bash
@@ -61,11 +67,13 @@ mise run ios:open
 mise run ios:build:dev
 ```
 
-The build automatically:
-1. Runs `scripts/load_env.sh` as a build phase
-2. Sources `.env` file into build environment
-3. Passes variables to Xcode build settings
-4. App reads via `AppConfiguration` → `EnvironmentLoader` → `ProcessInfo.processInfo.environment`
+**Note:** `ios:open` and `ios:gen` automatically inject credentials from `.env` into the scheme after generation.
+
+The runtime flow:
+1. Xcode scheme provides `SUPABASE_URL` and `SUPABASE_ANON_KEY` as environment variables
+2. App reads via `ProcessInfo.processInfo.environment`
+3. `AppConfiguration` → `EnvironmentLoader` loads credentials
+4. App initializes `AuthService` and `BetterFit` with Supabase client
 
 ### 6. Test authentication
 In the simulator:
@@ -75,37 +83,43 @@ In the simulator:
 
 ## How It Works
 
-### Environment Variable Loading
+### Credential Management (Secure Approach)
 
 ```
-.env (git-ignored)
+Supabase running locally
     ↓
-scripts/load_env.sh (sourced during build)
+scripts/setup_local_env.sh (reads supabase status)
     ↓
-Xcode build settings (SUPABASE_URL, SUPABASE_ANON_KEY)
+.env file (git-ignored, never committed)
     ↓
-ProcessInfo.processInfo.environment
+scripts/update_scheme_env.sh (injects into Xcode scheme XML)
     ↓
-AppConfiguration.swift (reads via EnvironmentLoader)
+BetterFit.xcscheme (local file, credentials injected post-generation)
     ↓
-App initialization (AuthService, BetterFit)
+ProcessInfo.processInfo.environment (runtime)
+    ↓
+AppConfiguration.swift (via EnvironmentLoader)
+    ↓
+AuthService, BetterFit initialization
 ```
 
-### Build Phase
+**Key principle:** Credentials never committed to version control
+- `project.yml` has no hardcoded values (only declares scheme structure)
+- `.env` is git-ignored
+- Scheme files have credentials injected locally via script
+- Each developer runs `mise run supabase:configure` to set up their environment
 
-In `Apps/iOS/project.yml`:
-```yaml
-buildPhases:
-  - script:
-      script: |
-        source "${PROJECT_DIR}/../../scripts/load_env.sh"
-        if [ -n "$SUPABASE_URL" ]; then
-          echo "✅ Loaded SUPABASE_URL from .env"
-        fi
-      name: Load Environment Variables
+### Project Generation Flow
+
+In `mise.toml`:
+```toml
+[tasks."supabase:configure"]
+run = """
+bash scripts/setup_local_env.sh           # Populate .env
+cd Apps/iOS && xcodegen generate          # Generate Xcode project
+bash ../../scripts/update_scheme_env.sh   # Inject .env into scheme
+"""
 ```
-
-Runs **before** app compilation, ensuring env vars are available to the app.
 
 ### App Configuration Reading
 
