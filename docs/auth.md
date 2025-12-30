@@ -83,19 +83,66 @@ Dashboard > Authentication > Email Templates
 
 ## Testing Locally
 
+### Quick Start: Local Supabase + iOS Simulator
+
+**1. Start local Supabase (one-time setup per session):**
+```bash
+mise run supabase:start
+```
+This starts PostgreSQL, Auth, Storage, and Studio locally. Services run in Docker.
+
+**2. Populate .env with credentials:**
+```bash
+mise run supabase:env
+```
+Automatically extracts live credentials from `supabase status` and writes to `.env`:
+- `SUPABASE_URL=http://127.0.0.1:54321`
+- `SUPABASE_ANON_KEY=sb_publishable_...` (from local instance)
+
+**3. Build and run the app:**
+```bash
+mise run ios:open      # Opens Xcode with fresh project generation
+mise run ios:build:dev # Builds for simulator with env vars loaded
+```
+
+The build process automatically:
+- Runs `scripts/load_env.sh` as a build phase
+- Loads `.env` variables into the Xcode build environment
+- Passes `SUPABASE_URL` and `SUPABASE_ANON_KEY` to the app
+- `AppConfiguration` reads these via `ProcessInfo.processInfo.environment`
+
+**In the simulator:**
+- ✅ Email/password authentication works immediately
+- ✅ Guest mode (offline) works immediately
+- ✅ Apple Sign In works (configured by default)
+- ⚠️ Google OAuth requires additional setup (see below)
+
+**Access local Supabase services:**
+- **Studio (web UI):** http://127.0.0.1:54323 - Browse database, manage auth, view storage
+- **API:** http://127.0.0.1:54321 - Direct API calls
+- **Mailpit (email testing):** http://127.0.0.1:54324 - View emails sent by auth system
+
+**Stop when done:**
+```bash
+mise run supabase:stop
+```
+
 ### With Local Supabase
+
+For quick testing, you can also start Supabase without populating .env (app runs in guest-only mode):
 
 ```bash
 mise run supabase:start
-# Email/password auth works immediately
+# Email/password auth works immediately after setting .env
 # Google OAuth requires browser redirect (can test with email fallback)
 ```
 
 ### With Production Supabase
 
-Credentials from Dashboard > Settings > API
+For cloud testing, use credentials from Dashboard > Settings > API:
 
 ```bash
+# Update .env with production credentials:
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 ```

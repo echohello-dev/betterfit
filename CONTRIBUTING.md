@@ -50,71 +50,17 @@ mise run build
 mise run test
 ```
 
-## Run the iOS host app (Simulator)
+## Running the app
 
-BetterFit is a Swift Package (library). The runnable iOS host app lives in `Apps/iOS` and is generated via XcodeGen.
+For detailed instructions on running iOS and watchOS apps, including simulators and troubleshooting, see:
 
-### Open in Xcode (recommended)
+- **[Local Development Guide](docs/local-development.md)** - Complete setup and common tasks
+- **[Main Docs](docs/README.md)** - iOS and watchOS simulator instructions
 
-```bash
-mise run ios:open
-```
+## Documentation
 
-In Xcode:
-
-1. Pick a scheme: **BetterFit** (works for both Dev and Prod)
-2. Pick an iPhone Simulator
-3. Press **Run**
-
-### Generate the project only
-
-```bash
-mise run ios:gen
-```
-
-### Build from the CLI
-
-```bash
-mise run ios:build:prod
-mise run ios:build:dev
-```
-
-### Simulator troubleshooting
-
-```bash
-mise run ios:sim:reset
-```
-
-## Run the watch app (Simulator)
-
-The watch app lives in `Apps/iOS` and is generated via XcodeGen.
-
-### Boot the watch simulator
-
-```bash
-mise run watch:sim:boot
-```
-
-### Open in Xcode (recommended)
-
-```bash
-mise run watch:open
-```
-
-In Xcode:
-
-1. Pick scheme: **BetterFitWatch**
-2. Pick a paired destination (an iPhone Simulator + an Apple Watch Simulator)
-3. Press **Run**
-
-### Build from the CLI
-
-```bash
-mise run watch:build
-```
-
-## Docs
-
-- High-level entrypoint: `README.md` (root)
-- Reference material lives in `docs/`
-- iOS Simulator run steps live in `docs/README.md`
+- **[Local Development Guide](docs/local-development.md)** - Setup, environment variables, common tasks
+- **[Docs Index](docs/README.md)** - API reference, examples, iOS/watchOS run instructions
+- **[Authentication Guide](docs/auth.md)** - Auth methods and configuration
+- **[Root README](../README.md)** - Project overview
+- **[AGENTS.md](AGENTS.md)** - Code organization and philosophy

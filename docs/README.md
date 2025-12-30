@@ -1,5 +1,10 @@
 # BetterFit Docs
 
+## Setup & Local Development
+
+- **[Local Development Guide](local-development.md)** - Set up Supabase, .env, and iOS simulator (start here!)
+- [Authentication Setup](auth.md) - Configure Apple Sign In, Google OAuth, email auth
+
 ## Run the app (iOS Simulator)
 
 BetterFit is a Swift Package (library). To run something on Simulator, use the iOS host app in `Apps/iOS`.
@@ -76,6 +81,7 @@ mise run watch:build
 
 - [API Reference](api.md)
 - [Usage Examples](examples.md)
+- [Authentication Details](auth.md)
 
 ## Architecture
 
