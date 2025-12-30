@@ -43,9 +43,5 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
-      - name: Build (Dev scheme)
+      - name: Build iOS
         run: mise run ios:build:dev
-
-      - name: Build (Prod scheme)
-        if: github.ref == 'refs/heads/main'
-        run: mise run ios:build:prod
