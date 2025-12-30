@@ -30,7 +30,13 @@ API:     http://127.0.0.1:54321
 Mailpit: http://127.0.0.1:54324
 ```
 
-### 3. Populate .env with credentials
+### 3. Apply database migrations
+```bash
+mise run supabase:reset
+```
+Creates all persistence tables (workouts, templates, plans, etc.) with Row Level Security.
+
+### 4. Populate .env with credentials
 ```bash
 mise run supabase:env
 ```
@@ -46,7 +52,7 @@ SUPABASE_ANON_KEY=sb_publishable_ACJWl...
 SUPABASE_SECRET_KEY=sb_secret_N7UND0U...
 ```
 
-### 4. Build and run the app
+### 5. Build and run the app
 ```bash
 # Generate Xcode project and open it
 mise run ios:open
@@ -61,7 +67,7 @@ The build automatically:
 3. Passes variables to Xcode build settings
 4. App reads via `AppConfiguration` → `EnvironmentLoader` → `ProcessInfo.processInfo.environment`
 
-### 5. Test authentication
+### 6. Test authentication
 In the simulator:
 - Tap "Sign in with Email" → enter any email/password (6+ chars for new accounts)
 - Tap "Continue as Guest" → offline mode
@@ -134,7 +140,13 @@ Open http://127.0.0.1:54324 in browser
 ```bash
 mise run supabase:reset
 ```
-Runs all migrations and seeds from `supabase/seed.sql` (if present).
+Runs all migrations from `supabase/migrations/` and seeds from `supabase/seed.sql` (if present).
+
+### Apply Pending Migrations
+```bash
+mise run supabase:migrate
+```
+Applies only new migrations without resetting data.
 
 ### Stop Supabase
 ```bash
@@ -196,9 +208,24 @@ mise run supabase:env
 
 ### BetterFit Integration
 - **AuthService:** Uses Supabase Swift client
-- **Persistence:** SupabasePersistenceService for syncing
+- **Persistence:** SupabasePersistenceService for cloud sync (authenticated users)
+- **Local Storage:** LocalPersistenceService using UserDefaults (guest mode)
 - **Configuration:** AppConfiguration validates env vars at startup
 - **Fallback:** Guest mode available if Supabase not configured
+
+### Database Schema
+Tables created by migrations in `supabase/migrations/`:
+
+| Table | Purpose |
+|-------|---------|
+| `workouts` | Completed/in-progress workout sessions |
+| `workout_templates` | Reusable workout templates |
+| `training_plans` | Multi-week training programs |
+| `user_profiles` | User profile + social data |
+| `body_map_recovery` | Muscle recovery tracking |
+| `streak_data` | Workout streak tracking |
+
+All tables use Row Level Security (RLS) - users can only access their own data.
 
 See [docs/api.md](api.md) for API integration details.
 
