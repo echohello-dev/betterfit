@@ -108,6 +108,26 @@ public class BetterFit {
         scheduleWorkoutNotifications()
     }
 
+    /// Pause the current workout
+    public func pauseWorkout() {
+        autoTrackingService.pauseTracking()
+    }
+
+    /// Resume a paused workout
+    public func resumeWorkout() {
+        autoTrackingService.resumeTracking()
+    }
+
+    /// Check if workout is paused
+    public func isWorkoutPaused() -> Bool {
+        return autoTrackingService.isPausedTracking()
+    }
+
+    /// Cancel the current workout without saving
+    public func cancelWorkout() {
+        autoTrackingService.stopTracking()
+    }
+
     /// Complete a workout
     public func completeWorkout(_ workout: Workout) {
         autoTrackingService.stopTracking()

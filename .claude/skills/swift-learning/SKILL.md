@@ -1,91 +1,86 @@
 ---
 name: swift-ios-teaching
-description: Teach Swift and iOS 26 development to experienced React/Next.js developers
+description: Teach Swift and iOS 26 development to experienced developers
 ---
 
 # Swift & iOS Teaching Skill
 
-Use this skill whenever the user asks about Swift language features, SwiftUI patterns, iOS development concepts, or needs help understanding code in this project. Always explain concepts by relating them to React, Next.js, and cloud/backend patterns.
+Use this skill whenever the user asks about Swift language features, SwiftUI patterns, iOS development concepts, or needs help understanding code in this project. Explain concepts by relating them to general modern programming patterns and declarative UI principles, specifically targeting senior engineers familiar with React, TypeScript, Python, Java, and PHP.
 
 ## When to activate this skill
 
 - User asks "how does X work in Swift?"
 - User is confused by Swift syntax or SwiftUI patterns
-- User asks to compare Swift to TypeScript/JavaScript
+- User asks to compare Swift to other modern languages (React, TS, Java, etc.)
 - User needs help understanding Xcode, schemes, or build concepts
 - User is implementing a new SwiftUI view or feature
 - User asks about iOS 26-specific features (Liquid Glass, etc.)
 
 ## Core mental model mappings
 
-Always use these analogies when explaining:
+### SwiftUI Concepts (React/Web Analogy)
+| Swift | Concept | React/Web Analogy |
+|-------|---------|-------------------|
+| `@State` | Local State | `useState` hook |
+| `@Binding` | Reference State | Prop + Callback (two-way binding) |
+| `@Environment` | Context/DI | `useContext` hook |
+| `@Observable` | Data Model | MobX, Signals, or Redux store |
+| `var body: some View` | Render | Functional component return / JSX |
+| `.onAppear` | Lifecycle | `useEffect(() => ..., [])` |
+| `.task` | Async Lifecycle | `useEffect` with async/await + cleanup |
+| `.onChange(of:)` | Reactive Observer | `useEffect(() => ..., [dependency])` |
+| `ForEach` | Iteration | `array.map()` with `key` |
+| `NavigationStack` | Routing | React Router / Next.js Link |
 
-### SwiftUI → React
-| Swift | React | Quick explanation |
-|-------|-------|-------------------|
-| `@State` | `useState` | Local view state |
-| `@Binding` | Passing `setState` as prop | Two-way binding to parent |
-| `@Environment` | `useContext` | Inject values down tree |
-| `@Observable` | Zustand/Jotai store | Observed class instance |
-| `var body: some View` | `return <JSX>` | Declarative render |
-| `.onAppear` | `useEffect(() => {}, [])` | Mount effect |
-| `.task` | `useEffect` + async | Async effect with auto-cancel |
-| `.onChange(of:)` | `useEffect(() => {}, [dep])` | Effect on dep change |
-| `ForEach` | `.map()` | Iterate with identity |
-| `NavigationStack` | React Router / Next.js router | Declarative routing |
-| View modifiers | Styled-components / Tailwind | Chained styling |
-
-### Swift → TypeScript
-| Swift | TypeScript |
-|-------|------------|
-| `let x: String` | `const x: string` |
-| `var x: Int` | `let x: number` |
-| `String?` | `string \| null` |
-| `??` | `??` (nullish coalescing) |
-| `?.` | `?.` (optional chaining) |
-| `protocol` | `interface` |
-| `struct` | Plain object (value semantics) |
-| `class` | `class` (reference semantics) |
-| `enum` with associated values | Discriminated union |
-| `async/await` | `async/await` |
-| `throws` | Function that can throw |
+### Swift Language Features (Polyglot Analogy)
+| Swift | Concept | TS / Java / Python / PHP Analogy |
+|-------|---------|----------------------------------|
+| `protocol` | Interface | `interface` (TS/Java), `Protocol` (Python) |
+| `struct` | Value type | `type` (TS), POJO (Java), `dataclass` (Python) |
+| `class` | Reference type | `class` (Java/PHP/Python) |
+| `Optional` | Nullable | `T | null` (TS), `Optional<T>` (Java), `?string` (PHP) |
+| `??` | Nil-coalescing | `??` (TS/PHP), `or` (Python) |
+| `enum` | Sum type | Enums with associated values (Rust/TS unions) |
+| `async/await` | Concurrency | Same as JS/TS/Python/PHP 8.1+ |
+| `ARC` | Memory Mgmt | Deterministic Reference Counting (vs Java/PHP GC) |
 
 ## Teaching approach
 
-1. **Start with the familiar**: "This is like X in React..."
-2. **Show the Swift way**: Provide concise code example
-3. **Highlight differences**: What's different and why it matters
-4. **Warn about gotchas**: Common mistakes React devs make
+1. **Start with the concept**: Describe the Swift/SwiftUI mechanism using standard software engineering terminology (e.g., "Value Semantics," "Dependency Injection").
+2. **Map to existing mental models**: Relate the concept to React hooks, Java interfaces, or TypeScript's type system.
+3. **Scaffold, don't solve**: Provide the boilerplate or a partial snippet, then ask the user to complete the logic.
+4. **Highlight Swift-specifics**: Explain unique behaviors like strict typing, `guard` statements, or ARC.
+5. **Warn about gotchas**: Common pitfalls for developers moving from garbage-collected or dynamic languages.
+
+## Interactive Teaching
+
+- **Prioritize learning**: The goal is for the user to type the solution.
+- **Use "Fill-in-the-blanks"**: Provide code with comments like `// Your logic here`.
+- **Prompt for implementation**: Ask the user to apply the concept rather than providing the full block.
+- **Verify understanding**: Ask the user to explain how they think a specific modifier or property wrapper will behave compared to their primary language.
 
 ## Common gotchas to proactively mention
 
-When relevant, warn about these:
-
-1. **Modifier order matters**: `.padding().background()` ≠ `.background().padding()`
-2. **Structs are copied**: Assigning a struct creates a copy, not a reference
-3. **`@State` must be private**: The view owns it; share via `@Binding`
-4. **No virtual DOM**: SwiftUI diffs directly; views are value types
-5. **`body` is computed**: Don't do side effects in `body`
-6. **ARC memory**: Use `[weak self]` in closures to avoid retain cycles
-7. **Strong typing**: No `any` escape hatch; embrace protocols
+1. **Modifier order matters**: `.padding().background()` is different from `.background().padding()`.
+2. **Structs are value types**: Assigning a struct creates a copy, not a reference (unlike PHP/Java objects).
+3. **`@State` ownership**: The view owns it; use `@Binding` to share write access.
+4. **Declarative diffing**: SwiftUI updates views based on state changes; views are lightweight descriptions.
+5. **Side effects**: Avoid performing side effects directly inside the `body` property.
+6. **Memory management**: Use `[weak self]` in closures to prevent strong reference cycles (ARC), similar to avoiding memory leaks in long-running Node.js or Java apps.
 
 ## iOS 26 specifics
 
-When discussing iOS 26 features:
-
-- **Liquid Glass**: New design language with `.glassEffect()` modifier
-- **Always use `@available`**: Gate iOS 26 APIs with availability checks
-- **Materials**: `.ultraThinMaterial`, `.regularMaterial`, `.thickMaterial`
+- **Liquid Glass**: New design language with `.glassEffect()` modifier.
+- **Availability**: Always gate iOS 26 APIs with `@available` or `#available` checks.
+- **Materials**: Use `.ultraThinMaterial`, `.regularMaterial`, etc., for blur effects.
 
 ## Project-specific context
 
-This BetterFit project:
-
-- SwiftPM library in `Sources/BetterFit/`
-- iOS host app in `Apps/iOS/BetterFitApp/`
-- watchOS app in `Apps/iOS/BetterFitWatchApp/`
-- Uses facade pattern (`BetterFit.swift`) for DI (like NestJS module)
-- Feature-based organization (like Next.js `app/` directory)
+- SwiftPM library in `Sources/BetterFit/`.
+- iOS host app in `Apps/iOS/BetterFitApp/`.
+- watchOS app in `Apps/iOS/BetterFitWatchApp/`.
+- Uses facade pattern (`BetterFit.swift`) for orchestration.
+- Feature-based organization.
 - Custom UI primitives: `BFCard`, `LiquidGlassBackground`, etc.
 
 ## Build commands to reference
@@ -100,22 +95,14 @@ mise run ios:build:dev  # Build for development
 
 ## Example teaching response format
 
-When explaining a concept:
+**Concept**:
+In SwiftUI, we use `@State` for local component state, much like `useState` in React. It should be `private` because the view owns this source of truth.
 
-```
-**In React terms**: This is like `useState` - it's local state owned by the component.
+**Your turn**:
+How would you declare a private state variable named `isToggled` that starts as `false`?
 
-**Swift version**:
 ```swift
-@State private var count = 0
+// Declare your state here
 ```
 
-**Key difference**: In Swift, `@State` must be `private` because the view owns the source of truth. To share state with children, you pass a `@Binding` (similar to passing `setState` as a prop).
-
-**Watch out**: Unlike React's `useState`, mutating `@State` triggers an immediate re-render synchronously.
-```
-
-## Full reference
-
-For comprehensive mappings, see:
-`.github/instructions/learning-swift.instructions.md`
+**Watch out**: Mutating `@State` triggers a view re-render. Unlike React, you can mutate the variable directly (e.g., `isToggled.toggle()`) instead of using a setter function.
