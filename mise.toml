@@ -21,6 +21,11 @@ run = "supabase status"
 
 [tasks."supabase:reset"]
 run = "supabase db reset"
+description = "Reset database and run all migrations"
+
+[tasks."supabase:migrate"]
+run = "supabase migration up"
+description = "Apply pending migrations to local database"
 
 [tasks."supabase:env"]
 run = "bash scripts/setup_local_env.sh"
