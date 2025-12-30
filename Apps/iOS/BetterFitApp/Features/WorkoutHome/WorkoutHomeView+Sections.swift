@@ -55,13 +55,13 @@ extension WorkoutHomeView {
 
             Spacer()
 
-            // Elapsed time
-            if let active = bf.getActiveWorkout() {
-                let elapsed = Date.now.timeIntervalSince(active.date)
-                Text(formatElapsed(elapsed))
-                    .font(.subheadline.weight(.bold).monospacedDigit())
-                    .foregroundStyle(theme.accent)
-            }
+            // Elapsed time (animated) - isolated view to prevent parent re-renders
+            ElapsedTimeDisplay(
+                betterFit: bf,
+                theme: theme,
+                elapsedTimeUpdateTrigger: $elapsedTimeUpdateTrigger,
+                formatElapsed: formatElapsed
+            )
         }
     }
 
@@ -686,6 +686,25 @@ extension WorkoutHomeView {
                     }
                 }
             }
+        }
+    }
+}
+// MARK: - Isolated Elapsed Time Display
+/// Separate view component to prevent parent hierarchy re-renders on timer updates
+private struct ElapsedTimeDisplay: View {
+    let betterFit: BetterFit
+    let theme: AppTheme
+    @Binding var elapsedTimeUpdateTrigger: Bool
+    let formatElapsed: (TimeInterval) -> String
+
+    var body: some View {
+        if let active = betterFit.getActiveWorkout() {
+            let _ = elapsedTimeUpdateTrigger  // Force update on timer tick
+            let elapsed = Date.now.timeIntervalSince(active.date)
+            Text(formatElapsed(elapsed))
+                .font(.subheadline.weight(.bold).monospacedDigit())
+                .foregroundStyle(theme.accent)
+                .animation(.none, value: elapsed)
         }
     }
 }

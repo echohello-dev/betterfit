@@ -105,15 +105,16 @@ struct ActiveWorkoutView: View {
     }
 
     private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            elapsedTime += 1
+        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
+            elapsedTime += 0.01
         }
     }
 
     private func timeString(from timeInterval: TimeInterval) -> String {
         let minutes = Int(timeInterval) / 60
         let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        let milliseconds = Int((timeInterval.truncatingRemainder(dividingBy: 1)) * 100)
+        return String(format: "%02d:%02d.%02d", minutes, seconds, milliseconds)
     }
 }
 

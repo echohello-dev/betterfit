@@ -15,6 +15,26 @@ extension WorkoutHomeView {
     func refreshActiveWorkout() {
         activeWorkoutId = bf.getActiveWorkout()?.id
     }
+    
+    func startWorkoutTimerIfNeeded() {
+        guard hasActiveWorkout else {
+            stopWorkoutTimer()
+            return
+        }
+        
+        // Stop existing timer if any
+        workoutTimer?.invalidate()
+        
+        // Start timer that updates every 10ms for smooth animation
+        workoutTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [self] _ in
+            self.elapsedTimeUpdateTrigger.toggle()
+        }
+    }
+    
+    func stopWorkoutTimer() {
+        workoutTimer?.invalidate()
+        workoutTimer = nil
+    }
 
     func loadGameStats() {
         currentStreak = bf.socialManager.getCurrentStreak()
@@ -428,11 +448,12 @@ extension WorkoutHomeView {
         let hrs = minutes / 60
         let mins = minutes % 60
         let secs = total % 60
+        let milliseconds = Int((seconds.truncatingRemainder(dividingBy: 1)) * 100)
 
         if hrs > 0 {
-            return String(format: "%d:%02d:%02d", hrs, mins, secs)
+            return String(format: "%d:%02d:%02d.%02d", hrs, mins, secs, milliseconds)
         }
-        return String(format: "%02d:%02d", mins, secs)
+        return String(format: "%02d:%02d.%02d", mins, secs, milliseconds)
     }
 
     func makeDailyWorkoutCounts(startDate: Date, endDate: Date) -> [Date: Int] {
