@@ -86,23 +86,38 @@ struct BetterFitApp: App {
                     }
                 } else if let betterFit {
                     // Show main app
-                    RootTabView(betterFit: betterFit, theme: theme)
-                        .tint(theme.accent)
-                        .preferredColorScheme(theme.preferredColorScheme)
-                        .overlay(alignment: .bottom) {
-                            // Show warning banner above Start Workout button if guest mode
-                            if !config.isSupabaseConfigured && showConfigWarning {
-                                configWarningBanner(
-                                    icon: "info.circle.fill",
-                                    message: "Running in guest mode. Cloud features are disabled.",
-                                    color: .blue,
-                                    theme: theme
-                                )
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 126)  // Above Start Workout button + tab bar
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                    RootTabView(
+                        betterFit: betterFit, theme: theme, isGuest: authService.isGuest,
+                        onShowSignIn: {
+                            showSignIn = true
+                        },
+                        onLogout: {
+                            Task {
+                                try? await authService.signOut()
+                                withAnimation {
+                                    self.betterFit = nil
+                                    hasCompletedOnboarding = false
+                                    showSignIn = true
+                                }
                             }
                         }
+                    )
+                    .tint(theme.accent)
+                    .preferredColorScheme(theme.preferredColorScheme)
+                    .overlay(alignment: .bottom) {
+                        // Show warning banner above Start Workout button if guest mode
+                        if !config.isSupabaseConfigured && showConfigWarning {
+                            configWarningBanner(
+                                icon: "info.circle.fill",
+                                message: "Running in guest mode. Cloud features are disabled.",
+                                color: .blue,
+                                theme: theme
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 126)  // Above Start Workout button + tab bar
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
                 } else {
                     // Loading state
                     ZStack {
@@ -126,8 +141,15 @@ struct BetterFitApp: App {
                     // Initialize BetterFit based on auth state
                     if authService.isAuthenticated {
                         initializeBetterFitWithSupabasePersistence()
+                        hasCompletedOnboarding = true
                     } else if authService.isGuest {
                         initializeBetterFitWithLocalPersistence()
+                        hasCompletedOnboarding = true
+                    } else {
+                        // Not authenticated and Supabase is configured
+                        // Show sign in screen by keeping hasCompletedOnboarding = false
+                        // or explicitly set showSignIn = true
+                        showSignIn = true
                     }
                 }
             }

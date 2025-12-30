@@ -4,15 +4,15 @@ import SwiftUI
 enum AppTab: String, CaseIterable {
     case workout
     case plan
-    case recovery
     case search
+    case me
 
     var title: String {
         switch self {
         case .workout: "Workout"
         case .plan: "Plan"
-        case .recovery: "Recovery"
         case .search: "Search"
+        case .me: "Me"
         }
     }
 
@@ -20,8 +20,8 @@ enum AppTab: String, CaseIterable {
         switch self {
         case .workout: "figure.run"
         case .plan: "waveform"
-        case .recovery: "clock"
         case .search: "magnifyingglass"
+        case .me: "person.fill"
         }
     }
 }
@@ -29,6 +29,9 @@ enum AppTab: String, CaseIterable {
 struct RootTabView: View {
     let betterFit: BetterFit
     let theme: AppTheme
+    let isGuest: Bool
+    let onShowSignIn: () -> Void
+    let onLogout: (() -> Void)?
 
     @State private var selectedTab: AppTab = .workout
     @State private var previousTab: AppTab = .workout
@@ -289,11 +292,7 @@ struct RootTabView: View {
             }
         case .plan:
             NavigationStack {
-                TrendsView(theme: theme)
-            }
-        case .recovery:
-            NavigationStack {
-                RecoveryView(betterFit: betterFit, theme: theme)
+                PlanView(betterFit: betterFit, theme: theme)
             }
         case .search:
             AppSearchView(
@@ -305,6 +304,12 @@ struct RootTabView: View {
                     withAnimation { selectedTab = tabToReturnTo }
                 }
             )
+        case .me:
+            NavigationStack {
+                ProfileView(
+                    betterFit: betterFit, theme: theme, isGuest: isGuest,
+                    onShowSignIn: onShowSignIn, onLogout: onLogout)
+            }
         }
     }
 }
@@ -312,6 +317,14 @@ struct RootTabView: View {
 #Preview {
     UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
     let theme: AppTheme = .defaultTheme
-    return RootTabView(betterFit: BetterFit(), theme: theme)
-        .preferredColorScheme(theme.preferredColorScheme)
+    return RootTabView(
+        betterFit: BetterFit(), theme: theme, isGuest: false,
+        onShowSignIn: {
+            print("Show sign in")
+        },
+        onLogout: {
+            print("Logout")
+        }
+    )
+    .preferredColorScheme(theme.preferredColorScheme)
 }
