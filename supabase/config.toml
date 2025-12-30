@@ -57,14 +57,8 @@ double_confirm_changes = true
 enable_confirmations = false
 
 # Apple OAuth configuration (for Sign in with Apple)
-[auth.external.apple]
-enabled = true
-# Add your Apple OAuth credentials here when needed
+# Uncomment and add credentials when needed
+# [auth.external.apple]
+# enabled = true
 # client_id = "your.bundle.id"
 # secret = "your-apple-secret"
-
-[edge_functions]
-enabled = false
-
-[analytics]
-enabled = false
