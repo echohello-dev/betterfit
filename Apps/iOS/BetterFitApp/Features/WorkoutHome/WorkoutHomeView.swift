@@ -28,6 +28,13 @@ struct WorkoutHomeView: View {
 
     @State var didAutoScrollStreakToToday = false
 
+    // Workout card selection
+    @State var selectedWorkoutIndex: Int = 0
+    @State var cardSwipeOffset: CGFloat = 0
+    @State var showEquipmentSwapSheet = false
+    @State var availableEquipment: Set<Equipment> = Set(Equipment.allCases)
+    @State var activeWorkoutId: UUID?  // Track active workout for view updates
+
     // Gamification
     @State var currentStreak = 0
     @State var longestStreak = 0
@@ -57,27 +64,40 @@ struct WorkoutHomeView: View {
         isDemoMode ? demoBetterFit : betterFit
     }
 
+    var hasActiveWorkout: Bool {
+        bf.getActiveWorkout() != nil
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Welcome Section
-                welcomeSection
+            VStack(alignment: .leading, spacing: hasActiveWorkout ? 12 : 20) {
+                // Welcome Section (compact when active workout)
+                if hasActiveWorkout {
+                    compactWelcomeSection
+                } else {
+                    welcomeSection
+                }
 
-                // Overview (summary + gauge)
-                workoutOverviewSection
+                // Overview (summary + gauge) - hide when active workout
+                if !hasActiveWorkout {
+                    workoutOverviewSection
+                }
 
-                // Streak + Vitals (merged, no card background)
-                streakVitalsSection
+                // Streak + Vitals (compact when active workout)
+                if hasActiveWorkout {
+                    compactStreakSection
+                } else {
+                    streakVitalsSection
+                    // Swipeable Workout Cards
+                    workoutCardStack
+                }
 
-                // Workout recap
-                workoutRecapCard
-
-                // Suggested Workouts Section
-                suggestedWorkoutsSection
+                // Workout Preview for selected card
+                workoutPreviewSection
 
                 Spacer(minLength: 8)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 100)  // Space for floating nav bar
         }
@@ -103,8 +123,26 @@ struct WorkoutHomeView: View {
             )
             .presentationDetents([PresentationDetent.medium])
         }
+        .sheet(isPresented: $showEquipmentSwapSheet) {
+            EquipmentSwapSheet(
+                theme: theme,
+                availableEquipment: $availableEquipment,
+                onApply: { applyEquipmentSwaps() }
+            )
+            .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
+        }
         .onAppear {
             ensureDemoSeededIfNeeded()
+            refreshStatuses()
+            loadGameStats()
+            refreshVitals()
+            refreshActiveWorkout()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .workoutStarted)) { _ in
+            refreshActiveWorkout()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .workoutCompleted)) { _ in
+            refreshActiveWorkout()
             refreshStatuses()
             loadGameStats()
             refreshVitals()

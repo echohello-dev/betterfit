@@ -1,8 +1,20 @@
 import BetterFit
 import SwiftUI
 
+// MARK: - Workout Notifications
+extension Notification.Name {
+    static let workoutStarted = Notification.Name("BetterFit.workoutStarted")
+    static let workoutCompleted = Notification.Name("BetterFit.workoutCompleted")
+    static let workoutPaused = Notification.Name("BetterFit.workoutPaused")
+    static let workoutResumed = Notification.Name("BetterFit.workoutResumed")
+}
+
 extension WorkoutHomeView {
     // MARK: - Helper Functions
+
+    func refreshActiveWorkout() {
+        activeWorkoutId = bf.getActiveWorkout()?.id
+    }
 
     func loadGameStats() {
         currentStreak = bf.socialManager.getCurrentStreak()
@@ -115,12 +127,14 @@ extension WorkoutHomeView {
     func startWorkout() {
         let workout = suggestedWorkout
         bf.startWorkout(workout)
-        // Navigate to active workout screen
+        activeWorkoutId = workout.id
+        NotificationCenter.default.post(name: .workoutStarted, object: workout.id)
     }
 
     func selectWorkout(_ workout: Workout) {
         bf.startWorkout(workout)
-        // Navigate to active workout screen
+        activeWorkoutId = workout.id
+        NotificationCenter.default.post(name: .workoutStarted, object: workout.id)
     }
 
     func overviewSummaryText(weeklyWorkouts: Int, recovery: Int) -> String {

@@ -33,6 +33,62 @@ extension WorkoutHomeView {
         }
     }
 
+    // MARK: - Compact Welcome (Active Workout)
+    var compactWelcomeSection: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(theme.accent.opacity(0.22))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Workout in progress")
+                    .font(.subheadline.weight(.semibold))
+                Text(username)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            // Elapsed time
+            if let active = bf.getActiveWorkout() {
+                let elapsed = Date.now.timeIntervalSince(active.date)
+                Text(formatElapsed(elapsed))
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(theme.accent)
+            }
+        }
+    }
+
+    // MARK: - Compact Streak (Active Workout)
+    var compactStreakSection: some View {
+        HStack(spacing: 14) {
+            Label {
+                Text("\(currentStreak) day streak")
+                    .font(.subheadline.weight(.semibold))
+            } icon: {
+                Image(systemName: "flame.fill")
+                    .foregroundStyle(theme.accent)
+            }
+
+            Spacer()
+
+            Button {
+                showStreakSummary = true
+            } label: {
+                Text("View Details")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(theme.accent)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
     // MARK: - Workout Overview Section
     var workoutOverviewSection: some View {
         let overallRecovery = bf.bodyMapManager.getOverallRecoveryPercentage()
@@ -331,6 +387,207 @@ extension WorkoutHomeView {
                 }
             }
         }
+    }
+
+    // MARK: - Swipeable Workout Card Stack
+    var workoutCardStack: some View {
+        let workouts = suggestedWorkouts
+        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
+
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Up Next")
+                    .bfHeading(theme: theme, size: 18, relativeTo: .largeTitle)
+
+                Spacer()
+
+                Button {
+                    showEquipmentSwapSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.left.arrow.right")
+                        Text("Swap")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                }
+
+                Menu {
+                    Button("Customize") {}
+                    Button("Generate New") { generateWorkout() }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+            }
+
+            if !workouts.isEmpty {
+                Text("\(workouts[safeIndex].exercises.count) Exercises")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Card stack with swipe gesture
+            ZStack {
+                ForEach(Array(workouts.enumerated().reversed()), id: \.offset) { index, workout in
+                    let isTop = index == safeIndex
+                    let offset = CGFloat(index - safeIndex)
+
+                    WorkoutSwipeCard(
+                        workout: workout,
+                        theme: theme,
+                        isTopCard: isTop
+                    )
+                    .offset(x: isTop ? cardSwipeOffset : 0)
+                    .offset(y: offset * 8)
+                    .scaleEffect(1 - abs(offset) * 0.05)
+                    .opacity(index >= safeIndex && index <= safeIndex + 2 ? 1 : 0)
+                    .zIndex(Double(workouts.count - index))
+                    .gesture(
+                        isTop ? swipeGesture : nil
+                    )
+                }
+            }
+            .frame(height: 180)
+
+            // Page indicator
+            HStack(spacing: 8) {
+                ForEach(0..<min(workouts.count, 3), id: \.self) { idx in
+                    Circle()
+                        .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                cardSwipeOffset = value.translation.width
+            }
+            .onEnded { value in
+                let threshold: CGFloat = 100
+                let workouts = suggestedWorkouts
+
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    if value.translation.width < -threshold {
+                        // Swipe left - next workout
+                        if selectedWorkoutIndex < workouts.count - 1 {
+                            selectedWorkoutIndex += 1
+                        }
+                    } else if value.translation.width > threshold {
+                        // Swipe right - previous workout
+                        if selectedWorkoutIndex > 0 {
+                            selectedWorkoutIndex -= 1
+                        }
+                    }
+                    cardSwipeOffset = 0
+                }
+            }
+    }
+
+    func swapToNextWorkout() {
+        let workouts = suggestedWorkouts
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+            selectedWorkoutIndex = (selectedWorkoutIndex + 1) % workouts.count
+        }
+    }
+
+    func applyEquipmentSwaps() {
+        // Update the equipment swap manager with available equipment
+        bf.equipmentSwapManager.setAvailableEquipment(availableEquipment)
+    }
+
+    // MARK: - Workout Preview Section
+    var workoutPreviewSection: some View {
+        let workouts = suggestedWorkouts
+        guard !workouts.isEmpty else { return AnyView(EmptyView()) }
+        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
+        let workout = workouts[safeIndex]
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 16) {
+                // Target Muscles
+                targetMusclesSection(for: workout)
+
+                // Exercises list
+                exercisesPreviewSection(for: workout)
+            }
+        )
+    }
+
+    func targetMusclesSection(for workout: Workout) -> some View {
+        let muscleGroups = workout.exercises
+            .flatMap { $0.exercise.muscleGroups }
+            .reduce(into: [MuscleGroup: Int]()) { counts, group in
+                counts[group, default: 0] += 1
+            }
+            .sorted { $0.value > $1.value }
+            .prefix(3)
+
+        let totalCount = max(1, muscleGroups.reduce(0) { $0 + $1.value })
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Target Muscles")
+                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+
+            HStack(spacing: 20) {
+                ForEach(Array(muscleGroups), id: \.key) { group, count in
+                    let percent = Int((Double(count) / Double(totalCount)) * 100)
+                    TargetMuscleView(
+                        muscle: prettifyMuscleGroup(group.rawValue),
+                        percent: percent,
+                        theme: theme
+                    )
+                }
+            }
+        }
+    }
+
+    func exercisesPreviewSection(for workout: Workout) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, we in
+                if index > 0 && shouldShowSupersetDivider(at: index, in: workout) {
+                    supersetDivider(at: index, in: workout)
+                }
+
+                ExercisePreviewRow(
+                    exercise: we,
+                    theme: theme
+                )
+            }
+        }
+    }
+
+    func shouldShowSupersetDivider(at index: Int, in workout: Workout) -> Bool {
+        // Show divider every 2 exercises to simulate superset grouping
+        return index % 2 == 0
+    }
+
+    func supersetDivider(at index: Int, in workout: Workout) -> some View {
+        let roundCount = (workout.exercises.count - index + 1) / 2
+        return HStack {
+            Text("Superset • \(max(1, roundCount)) Rounds")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Image(systemName: "ellipsis")
+                .foregroundStyle(.secondary)
+        }
+        .padding(.top, 8)
+    }
+
+    func startWorkoutFromSelection() {
+        let workouts = suggestedWorkouts
+        guard !workouts.isEmpty else { return }
+        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
+        selectWorkout(workouts[safeIndex])
     }
 
     var titleRow: some View {

@@ -98,7 +98,7 @@ struct BetterFitApp: App {
                                     color: .blue,
                                     theme: theme
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 20)
                                 .padding(.bottom, 126)  // Above Start Workout button + tab bar
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                             }

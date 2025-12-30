@@ -3,6 +3,7 @@ import Foundation
 /// Auto-tracking service for Watch sensor data
 public class AutoTrackingService {
     private var isTracking: Bool = false
+    private var isPaused: Bool = false
     private var currentWorkout: Workout?
     private var currentExerciseIndex: Int = 0
     private var detectedReps: Int = 0
@@ -13,13 +14,30 @@ public class AutoTrackingService {
     public func startTracking(workout: Workout) {
         self.currentWorkout = workout
         self.isTracking = true
+        self.isPaused = false
         self.currentExerciseIndex = 0
         self.detectedReps = 0
+    }
+
+    /// Pause tracking (keeps workout state)
+    public func pauseTracking() {
+        self.isPaused = true
+    }
+
+    /// Resume tracking after pause
+    public func resumeTracking() {
+        self.isPaused = false
+    }
+
+    /// Check if tracking is paused
+    public func isPausedTracking() -> Bool {
+        return isPaused
     }
 
     /// Stop tracking
     public func stopTracking() {
         self.isTracking = false
+        self.isPaused = false
         self.currentWorkout = nil
         self.currentExerciseIndex = 0
         self.detectedReps = 0
@@ -74,6 +92,7 @@ public class AutoTrackingService {
     public func getTrackingStatus() -> TrackingStatus {
         return TrackingStatus(
             isTracking: isTracking,
+            isPaused: isPaused,
             currentExercise: currentExerciseIndex,
             detectedReps: detectedReps
         )
@@ -137,11 +156,13 @@ public enum TrackingEvent {
 /// Current tracking status
 public struct TrackingStatus {
     public var isTracking: Bool
+    public var isPaused: Bool
     public var currentExercise: Int
     public var detectedReps: Int
 
-    public init(isTracking: Bool, currentExercise: Int, detectedReps: Int) {
+    public init(isTracking: Bool, isPaused: Bool = false, currentExercise: Int, detectedReps: Int) {
         self.isTracking = isTracking
+        self.isPaused = isPaused
         self.currentExercise = currentExercise
         self.detectedReps = detectedReps
     }
