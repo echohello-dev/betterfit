@@ -26,12 +26,68 @@ public final class SupabasePersistenceService: PersistenceProtocol {
         self.client = supabaseClient
     }
 
+    // MARK: - Helpers
+
+    /// Gets the current authenticated user's ID
+    private func getCurrentUserId() async throws -> UUID {
+        guard let user = client.auth.currentUser else {
+            throw PersistenceError.notAuthenticated
+        }
+        return user.id
+    }
+
+    /// Error types for persistence operations
+    public enum PersistenceError: Error, LocalizedError {
+        case notAuthenticated
+
+        public var errorDescription: String? {
+            switch self {
+            case .notAuthenticated:
+                return "User must be authenticated to perform this operation"
+            }
+        }
+    }
+
     // MARK: - Workouts
 
+    /// Wrapper to include user_id when saving workouts
+    private struct WorkoutRecord: Encodable {
+        let id: UUID
+        let userId: UUID
+        let name: String
+        let exercises: [WorkoutExercise]
+        let date: Date
+        let duration: TimeInterval?
+        let isCompleted: Bool
+        let templateId: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case userId = "user_id"
+            case name
+            case exercises
+            case date
+            case duration
+            case isCompleted = "is_completed"
+            case templateId = "template_id"
+        }
+    }
+
     public func saveWorkout(_ workout: Workout) async throws {
+        let userId = try await getCurrentUserId()
+        let record = WorkoutRecord(
+            id: workout.id,
+            userId: userId,
+            name: workout.name,
+            exercises: workout.exercises,
+            date: workout.date,
+            duration: workout.duration,
+            isCompleted: workout.isCompleted,
+            templateId: workout.templateId
+        )
         try await client
             .from(Tables.workouts)
-            .upsert(workout)
+            .upsert(record)
             .execute()
     }
 
@@ -74,10 +130,44 @@ public final class SupabasePersistenceService: PersistenceProtocol {
 
     // MARK: - Templates
 
+    /// Wrapper to include user_id when saving templates
+    private struct TemplateRecord: Encodable {
+        let id: UUID
+        let userId: UUID
+        let name: String
+        let description: String?
+        let exercises: [TemplateExercise]
+        let tags: [String]
+        let createdDate: Date
+        let lastUsedDate: Date?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case userId = "user_id"
+            case name
+            case description
+            case exercises
+            case tags
+            case createdDate = "created_date"
+            case lastUsedDate = "last_used_date"
+        }
+    }
+
     public func saveTemplate(_ template: WorkoutTemplate) async throws {
+        let userId = try await getCurrentUserId()
+        let record = TemplateRecord(
+            id: template.id,
+            userId: userId,
+            name: template.name,
+            description: template.description,
+            exercises: template.exercises,
+            tags: template.tags,
+            createdDate: template.createdDate,
+            lastUsedDate: template.lastUsedDate
+        )
         try await client
             .from(Tables.templates)
-            .upsert(template)
+            .upsert(record)
             .execute()
     }
 
@@ -102,10 +192,47 @@ public final class SupabasePersistenceService: PersistenceProtocol {
 
     // MARK: - Training Plans
 
+    /// Wrapper to include user_id when saving plans
+    private struct PlanRecord: Encodable {
+        let id: UUID
+        let userId: UUID
+        let name: String
+        let description: String?
+        let weeks: [TrainingWeek]
+        let currentWeek: Int
+        let goal: TrainingGoal
+        let createdDate: Date
+        let aiAdapted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case userId = "user_id"
+            case name
+            case description
+            case weeks
+            case currentWeek = "current_week"
+            case goal
+            case createdDate = "created_date"
+            case aiAdapted = "ai_adapted"
+        }
+    }
+
     public func savePlan(_ plan: TrainingPlan) async throws {
+        let userId = try await getCurrentUserId()
+        let record = PlanRecord(
+            id: plan.id,
+            userId: userId,
+            name: plan.name,
+            description: plan.description,
+            weeks: plan.weeks,
+            currentWeek: plan.currentWeek,
+            goal: plan.goal,
+            createdDate: plan.createdDate,
+            aiAdapted: plan.aiAdapted
+        )
         try await client
             .from(Tables.plans)
-            .upsert(plan)
+            .upsert(record)
             .execute()
     }
 
@@ -142,10 +269,41 @@ public final class SupabasePersistenceService: PersistenceProtocol {
 
     // MARK: - User Profile
 
+    /// Wrapper to include user_id when saving profiles
+    private struct ProfileRecord: Encodable {
+        let id: UUID
+        let userId: UUID
+        let username: String
+        let currentStreak: Int
+        let longestStreak: Int
+        let totalWorkouts: Int
+        let activeChallenges: [UUID]
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case userId = "user_id"
+            case username
+            case currentStreak = "current_streak"
+            case longestStreak = "longest_streak"
+            case totalWorkouts = "total_workouts"
+            case activeChallenges = "active_challenges"
+        }
+    }
+
     public func saveUserProfile(_ profile: UserProfile) async throws {
+        let userId = try await getCurrentUserId()
+        let record = ProfileRecord(
+            id: profile.id,
+            userId: userId,
+            username: profile.username,
+            currentStreak: profile.currentStreak,
+            longestStreak: profile.longestStreak,
+            totalWorkouts: profile.totalWorkouts,
+            activeChallenges: profile.activeChallenges
+        )
         try await client
             .from(Tables.userProfiles)
-            .upsert(profile)
+            .upsert(record)
             .execute()
     }
 
@@ -163,10 +321,29 @@ public final class SupabasePersistenceService: PersistenceProtocol {
 
     // MARK: - Body Map Recovery
 
+    /// Wrapper to include user_id when saving recovery data
+    private struct RecoveryRecord: Encodable {
+        let userId: UUID
+        let regions: [BodyRegion: RecoveryStatus]
+        let lastUpdated: Date
+
+        enum CodingKeys: String, CodingKey {
+            case userId = "user_id"
+            case regions
+            case lastUpdated = "last_updated"
+        }
+    }
+
     public func saveBodyMapRecovery(_ recovery: BodyMapRecovery) async throws {
+        let userId = try await getCurrentUserId()
+        let record = RecoveryRecord(
+            userId: userId,
+            regions: recovery.regions,
+            lastUpdated: recovery.lastUpdated
+        )
         try await client
             .from(Tables.bodyMapRecovery)
-            .upsert(recovery)
+            .upsert(record, onConflict: "user_id")
             .execute()
     }
 
@@ -187,12 +364,16 @@ public final class SupabasePersistenceService: PersistenceProtocol {
     public func saveStreakData(currentStreak: Int, longestStreak: Int, lastWorkoutDate: Date?)
         async throws
     {
+        let userId = try await getCurrentUserId()
+
         struct StreakDataRequest: Encodable {
+            let userId: UUID
             let currentStreak: Int
             let longestStreak: Int
             let lastWorkoutDate: String?
 
             enum CodingKeys: String, CodingKey {
+                case userId = "user_id"
                 case currentStreak = "current_streak"
                 case longestStreak = "longest_streak"
                 case lastWorkoutDate = "last_workout_date"
@@ -201,6 +382,7 @@ public final class SupabasePersistenceService: PersistenceProtocol {
 
         let lastWorkoutDateStr = lastWorkoutDate.map { ISO8601DateFormatter().string(from: $0) }
         let streakData = StreakDataRequest(
+            userId: userId,
             currentStreak: currentStreak,
             longestStreak: longestStreak,
             lastWorkoutDate: lastWorkoutDateStr
@@ -208,7 +390,7 @@ public final class SupabasePersistenceService: PersistenceProtocol {
 
         try await client
             .from(Tables.streaks)
-            .upsert(streakData)
+            .upsert(streakData, onConflict: "user_id")
             .execute()
     }
 
