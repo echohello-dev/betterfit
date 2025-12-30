@@ -8,10 +8,7 @@ supabase start
 echo ""
 echo "✅ Local Supabase running!"
 echo ""
-echo "Copy these values to your .env file:"
-echo "  SUPABASE_URL=http://127.0.0.1:54321"
-echo "  SUPABASE_ANON_KEY=<anon key from output above>"
-echo ""
+echo "To set up .env with credentials, run: mise run supabase:env"
 echo "Studio (database UI): http://127.0.0.1:54323"
 echo "To stop: mise run supabase:stop"
 """
@@ -24,6 +21,10 @@ run = "supabase status"
 
 [tasks."supabase:reset"]
 run = "supabase db reset"
+
+[tasks."supabase:env"]
+run = "bash scripts/setup_local_env.sh"
+description = "Populate .env with local Supabase credentials"
 
 [tasks.test]
 run = "swift test"

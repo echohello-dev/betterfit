@@ -32,6 +32,10 @@ DerivedData/
 .env.local
 .env.*.local
 
+# Supabase local development
+supabase/.branches/
+supabase/.temp/
+
 # Secrets (Supabase keys in Info.plist)
 # Note: Info.plist template is tracked, but developers should replace placeholder values
 # Apps/iOS/BetterFitApp/Info.plist (if it contains real keys)
