@@ -104,9 +104,9 @@ UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
   --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
 
 if [ -n "$UDID" ]; then
-  xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination "id=$UDID" build
+  xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination "id=$UDID" build
 else
-  xcodebuild -project BetterFit.xcodeproj -scheme BetterFitDev -destination 'generic/platform=iOS Simulator' build
+  xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination 'generic/platform=iOS Simulator' build
 fi
 """
 

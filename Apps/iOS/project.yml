@@ -53,49 +53,6 @@ targets:
     dependencies:
       - package: BetterFit
 
-  BetterFitDev:
-    type: application
-    platform: iOS
-    sources:
-      - path: BetterFitApp
-        excludes:
-          - "**/*.md"
-    resources:
-      - path: BetterFitApp/Assets.xcassets
-      - path: BetterFitApp/Fonts
-        excludes:
-          - "**/*.md"
-    info:
-      path: BetterFitApp/Info.plist
-      properties:
-        CFBundleDisplayName: BetterFit Dev
-        UILaunchScreen: {}
-        UIAppFonts:
-          - BBHHegarty-Regular.ttf
-          - BBHHegarty-Italic.ttf
-          - BBHHegarty-Bold.ttf
-          - BBHHegarty-BoldItalic.ttf
-          - BBHHegarty-ExtraBold.ttf
-          - BBHHegarty-ExtraBoldItalic.ttf
-        UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: true
-          UISceneConfigurations:
-            UIWindowSceneSessionRoleApplication:
-              - UISceneConfigurationName: Default Configuration
-                UISceneDelegateClassName: ""
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit.dev
-        SWIFT_VERSION: "5.0"
-        CODE_SIGN_ENTITLEMENTS: BetterFitApp/BetterFitApp.entitlements
-      configs:
-        Debug:
-          CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
-    capabilities:
-      healthKit: true
-    dependencies:
-      - package: BetterFit
-
   BetterFitWatch:
     type: application
     platform: watchOS
@@ -135,12 +92,6 @@ schemes:
     build:
       targets:
         BetterFitApp: all
-    run:
-      config: Debug
-  BetterFitDev:
-    build:
-      targets:
-        BetterFitDev: all
     run:
       config: Debug
   BetterFitWatch:

@@ -19,7 +19,7 @@ mise run ios:open
 
 In Xcode:
 
-1. Pick a scheme: **BetterFit** (Prod) or **BetterFitDev** (Dev)
+1. Pick a scheme: **BetterFit** (works for both Dev and Prod)
 2. Pick an iPhone Simulator
 3. Press **Run**
 
