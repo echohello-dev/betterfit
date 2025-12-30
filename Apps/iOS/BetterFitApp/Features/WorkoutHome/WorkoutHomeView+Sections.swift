@@ -391,105 +391,14 @@ extension WorkoutHomeView {
 
     // MARK: - Swipeable Workout Card Stack
     var workoutCardStack: some View {
-        let workouts = suggestedWorkouts
-        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
-
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Up Next")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .largeTitle)
-
-                Spacer()
-
-                Button {
-                    showEquipmentSwapSheet = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.left.arrow.right")
-                        Text("Swap")
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
-                }
-
-                Menu {
-                    Button("Customize") {}
-                    Button("Generate New") { generateWorkout() }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-            }
-
-            if !workouts.isEmpty {
-                Text("\(workouts[safeIndex].exercises.count) Exercises")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Card stack with swipe gesture
-            ZStack {
-                ForEach(Array(workouts.enumerated().reversed()), id: \.offset) { index, workout in
-                    let isTop = index == safeIndex
-                    let offset = CGFloat(index - safeIndex)
-
-                    WorkoutSwipeCard(
-                        workout: workout,
-                        theme: theme,
-                        isTopCard: isTop
-                    )
-                    .offset(x: isTop ? cardSwipeOffset : 0)
-                    .offset(y: offset * 8)
-                    .scaleEffect(1 - abs(offset) * 0.05)
-                    .opacity(index >= safeIndex && index <= safeIndex + 2 ? 1 : 0)
-                    .zIndex(Double(workouts.count - index))
-                    .gesture(
-                        isTop ? swipeGesture : nil
-                    )
-                }
-            }
-            .frame(height: 180)
-
-            // Page indicator
-            HStack(spacing: 8) {
-                ForEach(0..<min(workouts.count, 3), id: \.self) { idx in
-                    Circle()
-                        .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
-                        .frame(width: 8, height: 8)
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    private var swipeGesture: some Gesture {
-        DragGesture()
-            .onChanged { value in
-                cardSwipeOffset = value.translation.width
-            }
-            .onEnded { value in
-                let threshold: CGFloat = 100
-                let workouts = suggestedWorkouts
-
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                    if value.translation.width < -threshold {
-                        // Swipe left - next workout
-                        if selectedWorkoutIndex < workouts.count - 1 {
-                            selectedWorkoutIndex += 1
-                        }
-                    } else if value.translation.width > threshold {
-                        // Swipe right - previous workout
-                        if selectedWorkoutIndex > 0 {
-                            selectedWorkoutIndex -= 1
-                        }
-                    }
-                    cardSwipeOffset = 0
-                }
-            }
+        // Isolated child view prevents cardSwipeOffset updates from re-rendering target muscles
+        WorkoutCardStackContainer(
+            suggestedWorkouts: suggestedWorkouts,
+            selectedWorkoutIndex: $selectedWorkoutIndex,
+            showEquipmentSwapSheet: $showEquipmentSwapSheet,
+            theme: theme,
+            generateWorkout: generateWorkout
+        )
     }
 
     func swapToNextWorkout() {
@@ -706,5 +615,118 @@ private struct ElapsedTimeDisplay: View {
                 .foregroundStyle(theme.accent)
                 .animation(.none, value: elapsed)
         }
+    }
+}
+
+// MARK: - Isolated Workout Card Stack Container
+/// Separate view component to prevent cardSwipeOffset from triggering re-renders of target muscles
+private struct WorkoutCardStackContainer: View {
+    let suggestedWorkouts: [Workout]
+    @Binding var selectedWorkoutIndex: Int
+    @Binding var showEquipmentSwapSheet: Bool
+    let theme: AppTheme
+    let generateWorkout: () -> Void
+
+    @State private var cardSwipeOffset: CGFloat = 0
+
+    var body: some View {
+        let workouts = suggestedWorkouts
+        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
+
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Up Next")
+                    .bfHeading(theme: theme, size: 18, relativeTo: .largeTitle)
+
+                Spacer()
+
+                Button {
+                    showEquipmentSwapSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.left.arrow.right")
+                        Text("Swap")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                }
+
+                Menu {
+                    Button("Customize") {}
+                    Button("Generate New") { generateWorkout() }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+            }
+
+            if !workouts.isEmpty {
+                Text("\(workouts[safeIndex].exercises.count) Exercises")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Card stack with swipe gesture - use WorkoutHomeView.WorkoutSwipeCard
+            ZStack {
+                ForEach(Array(workouts.enumerated().reversed()), id: \.offset) { index, workout in
+                    let isTop = index == safeIndex
+                    let offset = CGFloat(index - safeIndex)
+
+                    WorkoutHomeView.WorkoutSwipeCard(
+                        workout: workout,
+                        theme: theme,
+                        isTopCard: isTop
+                    )
+                    .offset(x: isTop ? cardSwipeOffset : 0)
+                    .offset(y: offset * 8)
+                    .scaleEffect(1 - abs(offset) * 0.05)
+                    .opacity(index >= safeIndex && index <= safeIndex + 2 ? 1 : 0)
+                    .zIndex(Double(workouts.count - index))
+                    .gesture(
+                        isTop ? swipeGesture : nil
+                    )
+                }
+            }
+            .frame(height: 180)
+
+            // Page indicator
+            HStack(spacing: 8) {
+                ForEach(0..<min(workouts.count, 3), id: \.self) { idx in
+                    Circle()
+                        .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                cardSwipeOffset = value.translation.width
+            }
+            .onEnded { value in
+                let threshold: CGFloat = 100
+
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    if value.translation.width < -threshold {
+                        // Swipe left - next workout
+                        if selectedWorkoutIndex < suggestedWorkouts.count - 1 {
+                            selectedWorkoutIndex += 1
+                        }
+                    } else if value.translation.width > threshold {
+                        // Swipe right - previous workout
+                        if selectedWorkoutIndex > 0 {
+                            selectedWorkoutIndex -= 1
+                        }
+                    }
+                    cardSwipeOffset = 0
+                }
+            }
     }
 }

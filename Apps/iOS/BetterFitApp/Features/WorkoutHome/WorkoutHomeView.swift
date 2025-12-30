@@ -30,7 +30,6 @@ struct WorkoutHomeView: View {
 
     // Workout card selection
     @State var selectedWorkoutIndex: Int = 0
-    @State var cardSwipeOffset: CGFloat = 0
     @State var showEquipmentSwapSheet = false
     @State var availableEquipment: Set<Equipment> = Set(Equipment.allCases)
     @State var activeWorkoutId: UUID?  // Track active workout for view updates

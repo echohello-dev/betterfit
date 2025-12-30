@@ -29,6 +29,41 @@
   - `// MARK: - Supporting Types` (nested structs/enums)
 - Keep marks short and consistent; add them when a file has multiple logical blocks.
 
+## SwiftUI State & Reactivity (preventing unwanted re-renders)
+- **Problem**: Reading frequently-changing `@State` in a computed property causes SwiftUI to re-evaluate that property on every state change. This cascades to all sibling views in the same parent, causing flickering and performance issues.
+  - Example: `elapsedTimeUpdateTrigger` toggled 100x/second in timer callback, read in parent's `compactWelcomeSection` → target muscles section re-renders 100x/second.
+  - Example: `cardSwipeOffset` updated every frame during drag gesture, read in parent's `workoutCardStack` → target muscles section flickers during swipe.
+- **Solution**: Extract the view that reads the frequently-changing state into its own child component with `@Binding`. This creates a "reactivity boundary" — only the child re-renders, not the parent or siblings.
+  - Move the state to the child as `@State private`.
+  - Pass the binding from parent: `$elapsedTimeUpdateTrigger`.
+  - Child reads the binding in its `body`, isolating re-renders.
+- **Pattern**:
+  ```swift
+  // Parent (WorkoutHomeView)
+  @State var elapsedTimeUpdateTrigger = false
+  
+  var compactWelcomeSection: some View {
+    // Isolated child—only this component re-renders on timer ticks
+    ElapsedTimeDisplay(elapsedTimeUpdateTrigger: $elapsedTimeUpdateTrigger, ...)
+  }
+  
+  // Child (private struct)
+  private struct ElapsedTimeDisplay: View {
+    @Binding var elapsedTimeUpdateTrigger: Bool
+    
+    var body: some View {
+      let _ = elapsedTimeUpdateTrigger  // Force read on every state change
+      // Only this view re-renders, not parent siblings
+      Text(formatElapsed(...))
+    }
+  }
+  ```
+- **When to extract**:
+  - Timer/animation loops that toggle state frequently (>10x/sec).
+  - Drag gestures that update state on every movement.
+  - Any computed property reading a high-frequency state that has unrelated siblings.
+- **Don't over-extract**: If a section reads stable state (only changes on user tap), keep it in the parent as a computed property.
+
 ## Large Swift files (when/how to split)
 
 ### When to split
