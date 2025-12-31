@@ -12,6 +12,10 @@ xcuserdata/
 *~.nib
 DerivedData/
 
+# XcodeGen generated Info.plist files
+Apps/iOS/BetterFitApp/Info.plist
+Apps/iOS/BetterFitWatchApp/Info.plist
+
 # Build artifacts
 *.o
 *.a
