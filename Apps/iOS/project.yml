@@ -29,6 +29,8 @@ targets:
         UILaunchScreen: {}
         UIAppFonts:
           - BBHHegarty-Regular.ttf
+        NSHealthShareUsageDescription: BetterFit reads your health data to track workouts, monitor recovery, and provide personalized fitness insights.
+        NSHealthUpdateUsageDescription: BetterFit saves your workouts and activity data to Apple Health to keep all your fitness information in one place.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations:
