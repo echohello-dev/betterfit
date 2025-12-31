@@ -27,6 +27,7 @@ public class BetterFit {
     public let autoTrackingService: AutoTrackingService
     public let aiAdaptationService: AIAdaptationService
     public let imageService: EquipmentImageService
+    public let healthKitService: HealthKitService
 
     // MARK: - Persistence
 
@@ -52,6 +53,7 @@ public class BetterFit {
         self.autoTrackingService = AutoTrackingService()
         self.aiAdaptationService = AIAdaptationService()
         self.imageService = EquipmentImageService()
+        self.healthKitService = HealthKitService()
 
         // Load persisted data
         Task {
@@ -138,6 +140,9 @@ public class BetterFit {
         // Persist workout
         Task {
             try? await persistenceService.saveWorkout(workout)
+
+            // Save to HealthKit
+            _ = await healthKitService.saveWorkout(workout)
         }
 
         // Update recovery map
