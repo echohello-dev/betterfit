@@ -1,224 +1,291 @@
 # Authentication Setup
 
-BetterFit supports three authentication methods:
+Guide for implementing Apple Sign In, Google OAuth, and email/password authentication with Supabase in iOS apps.
 
-## 1. Apple Sign In (Recommended for iOS)
+## Apple Sign In
 
-**Setup required:**
-- Enabled by default in Supabase
-- Configure in Xcode: Signing & Capabilities > Sign in with Apple
-- Add bundle ID to Apple Developer Portal
+### Prerequisites
 
-**In app:**
-- Tap "Sign in with Apple"
-- Approve with Face ID / Touch ID
-- Account created automatically
+- Active Apple Developer Account
+- App ID with Sign in with Apple capability
+- Supabase project
 
-## 2. Google OAuth
+### Setup Steps
 
-**Setup required:**
-1. Create OAuth 2.0 credentials at [Google Cloud Console](https://console.cloud.google.com)
-2. Enable Google provider in Supabase Dashboard > Authentication > Providers > Google
-3. Add OAuth Client ID and Secret
-4. Configure redirect URI: `betterfit://auth/callback`
+**1. Enable in Apple Developer Portal**
 
-**In app:**
-- Tap "Sign in with Google"
-- Opens browser for Google login
-- Redirected back to app after authentication
+- Go to [Certificates, Identifiers & Profiles](https://developer.apple.com/account)
+- Select your App ID (e.g., `com.yourcompany.yourapp`)
+- Enable **Sign in with Apple**
+- Save changes
 
-**Note:** Currently shows email/password form as fallback while OAuth redirect handling is configured.
+**2. Configure Xcode**
 
-## 3. Email & Password
+- Open your project
+- Target → **Signing & Capabilities** → **+ Capability**
+- Add **Sign in with Apple**
+- Verify `.entitlements` includes `com.apple.developer.applesignin`
 
-**Setup required:**
-- Enabled by default in Supabase
-- Optional: Configure email verification in Supabase Dashboard
+**3. Supabase Configuration**
 
-**In app:**
-- Tap "Sign in with Email"
-- Enter email and password
-- Toggle between "Sign In" and "Create Account"
-- For new accounts: password must be at least 6 characters
+For iOS-only apps, no Supabase setup needed—native authentication uses `signInWithIdToken` directly.
 
-**Optional email verification:**
-- In Supabase Dashboard > Authentication > Email Templates
-- Configure confirmation email template
-- Users must verify email before accessing app
+For web or cross-platform, configure Apple OAuth:
 
-## Guest Mode (No Setup)
+**Create Service ID** (Apple Developer Portal):
 
-- Tap "Continue as Guest"
-- Works completely offline
-- Data stored locally (UserDefaults)
-- No authentication required
+- Identifiers → **+** → **Services IDs**
+- Description: `Your App Web Auth`
+- Identifier: `com.yourcompany.yourapp.web`
+- Enable **Sign in with Apple** → Configure
+- Primary App ID: Select your app ID
+- Website URL: `your-project-ref.supabase.co`
+- Return URLs: `https://your-project-ref.supabase.co/auth/v1/callback`
+- Save and register
 
-## Supabase Configuration
+**Configure Supabase**:
 
-### Enable Providers
+- [Supabase Dashboard](https://supabase.com/dashboard) → Authentication → Apple
+- Enable provider
+- Client IDs: `com.yourcompany.yourapp.web`
 
-Dashboard > Authentication > Providers
+**Generate Secret Key** (JWT):
 
-1. **Apple** - Usually enabled by default
-2. **Google** - Requires OAuth credentials
-3. **Email** - Enabled by default, optional verification
+Create key in Apple Developer Portal:
 
-### Set Up Redirect URLs
+- Keys → **+** → Name: `Your App Apple Sign In Key`
+- Enable **Sign in with Apple** → Configure → Select your app ID
+- Download `.p8` file (once only!)
+- Note **Key ID** and **Team ID**
 
-For OAuth providers, configure in Supabase > Authentication > URL Configuration:
-
-```
-Allowed Redirect URLs:
-- betterfit://auth/callback
-- http://localhost:3000/auth/callback  (for testing)
-```
-
-### Optional: Email Verification
-
-Dashboard > Authentication > Email Templates
-
-- Enable "Confirm signup" template
-- Users receive verification email
-- Must click link before account is active
-
-## Testing Locally
-
-### Quick Start: Local Supabase + iOS Simulator
-
-**1. Start local Supabase (one-time setup per session):**
-```bash
-mise run supabase:start
-```
-This starts PostgreSQL, Auth, Storage, and Studio locally. Services run in Docker.
-
-**2. Populate .env with credentials:**
-```bash
-mise run supabase:env
-```
-Automatically extracts live credentials from `supabase status` and writes to `.env`:
-- `SUPABASE_URL=http://127.0.0.1:54321`
-- `SUPABASE_ANON_KEY=sb_publishable_...` (from local instance)
-
-**3. Build and run the app:**
-```bash
-mise run ios:open      # Opens Xcode with fresh project generation + credential injection
-mise run ios:build:dev # Builds for simulator
-```
-
-The setup process automatically:
-- Runs `scripts/update_scheme_env.sh` after project generation
-- Injects `.env` variables into Xcode scheme configuration
-- Xcode provides `SUPABASE_URL` and `SUPABASE_ANON_KEY` at runtime
-- `AppConfiguration` reads these via `ProcessInfo.processInfo.environment`
-
-**In the simulator:**
-- ✅ Email/password authentication works immediately
-- ✅ Guest mode (offline) works immediately
-- ✅ Apple Sign In works (configured by default)
-- ⚠️ Google OAuth requires additional setup (see below)
-
-**Access local Supabase services:**
-- **Studio (web UI):** http://127.0.0.1:54323 - Browse database, manage auth, view storage
-- **API:** http://127.0.0.1:54321 - Direct API calls
-- **Mailpit (email testing):** http://127.0.0.1:54324 - View emails sent by auth system
-
-**Stop when done:**
-```bash
-mise run supabase:stop
-```
-
-### With Local Supabase
-
-For quick testing, you can also start Supabase without populating .env (app runs in guest-only mode):
+Generate JWT:
 
 ```bash
-mise run supabase:start
-# Email/password auth works immediately after setting .env
-# Google OAuth requires browser redirect (can test with email fallback)
+brew install mike-engel/jwt-cli/jwt-cli
+jwt encode --alg ES256 --kid "YOUR_KEY_ID" --iss "YOUR_TEAM_ID" --exp "+180d" \
+  --aud "https://appleid.apple.com" --sub "com.yourcompany.yourapp.web" \
+  --secret @path/to/AuthKey_KEYID.p8
 ```
 
-### With Production Supabase
+Paste JWT in Supabase **Secret Key** field. ⚠️ Expires every 6 months.
 
-For cloud testing, use credentials from Dashboard > Settings > API:
+## Google OAuth
 
-```bash
-# Update .env with production credentials:
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+### Setup Steps
+
+**1. Create OAuth Client** ([Google Cloud Console](https://console.cloud.google.com))
+
+- APIs & Services → Credentials → **+ CREATE CREDENTIALS** → OAuth client ID
+- Type: **Web application** (required for Supabase)
+- Name: `Your App Web OAuth`
+- Authorized redirect URIs: `https://your-project-ref.supabase.co/auth/v1/callback`
+- Save and note **Client ID** and **Client Secret**
+
+**2. Configure OAuth Consent Screen**
+
+- APIs & Services → OAuth consent screen
+- Type: **External** (or Internal for G Suite)
+- App name, support email, developer contact
+- Scopes: `email`, `profile`, `openid`
+
+**3. Configure Supabase**
+
+- Authentication → Providers → Google
+- Enable provider
+- Enter **Client ID** and **Client Secret**
+- Save
+
+**4. Add App Redirect URL**
+
+- Authentication → URL Configuration → Redirect URLs
+- Add: `yourapp://auth/callback` (replace `yourapp` with your URL scheme)
+
+**5. Configure iOS App**
+
+Add URL scheme to `Info.plist`:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>yourapp</string>
+        </array>
+    </dict>
+</array>
 ```
 
-All auth methods work immediately.
-
-## Code Integration
-
-### AuthService (Sources/BetterFit/Services/Auth/AuthService.swift)
+Handle redirects in `AppDelegate`:
 
 ```swift
-// Apple Sign In
-try await authService.signInWithApple(idToken: token, nonce: nonce)
-
-// Google OAuth
-try await authService.signInWithGoogle()
-
-// Email & Password Sign In
-try await authService.signInWithEmail(email: email, password: password)
-
-// Email & Password Sign Up
-try await authService.signUpWithEmail(email: email, password: password)
-
-// Guest Mode
-authService.continueAsGuest()
-
-// Sign Out
-try await authService.signOut()
+func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    NotificationCenter.default.post(name: .authCallbackReceived, object: url)
+    return true
+}
 ```
 
-### SignInView (Apps/iOS/BetterFitApp/Features/Auth/SignInView.swift)
+## Email & Password
 
-Provides UI for all three auth methods:
-- Native Apple Sign In button
-- Google OAuth button (with email fallback)
-- Email/Password form with sign-up toggle
-- Guest mode button
+Enabled by default in Supabase. Optionally configure email verification:
+
+- Dashboard → Authentication → Email Templates
+- Customize confirmation email
+- Require verification before access
+
+## Local Development
+
+```bash
+supabase start
+supabase status  # Get API URL and anon key
+```
+
+Configure app with local credentials:
+
+```swift
+let supabaseURL = URL(string: "http://127.0.0.1:54321")!
+let supabaseKey = "your-anon-key"
+```
+
+**Services:**
+
+- Studio: http://127.0.0.1:54323
+- API: http://127.0.0.1:54321
+- Email: http://127.0.0.1:54324
+
+**Testing:**
+
+- ✅ Email/password works immediately
+- ✅ Apple Sign In (requires Apple Developer setup)
+- ⚠️ Google OAuth (requires Cloud Console setup)
+
+Test URL scheme:
+
+```bash
+xcrun simctl openurl booted "yourapp://auth/callback?test=1"
+```
+
+## Code Implementation
+
+### AuthService
+
+```swift
+import Supabase
+import AuthenticationServices
+
+class AuthService: ObservableObject {
+    @Published var currentUser: User?
+    private let supabaseClient: SupabaseClient
+    
+    init(supabaseURL: URL, supabaseKey: String) {
+        self.supabaseClient = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseKey)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleAuthCallback), name: .authCallbackReceived, object: nil)
+    }
+    
+    func signInWithApple(idToken: String, nonce: String) async throws {
+        let session = try await supabaseClient.auth.signInWithIdToken(
+            credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
+        )
+        currentUser = session.user
+    }
+    
+    func signInWithGoogle() async throws {
+        let url = try await supabaseClient.auth.signInWithOAuth(
+            provider: .google,
+            redirectTo: URL(string: "yourapp://auth/callback")
+        )
+        await MainActor.run { UIApplication.shared.open(url) }
+    }
+    
+    func signInWithEmail(email: String, password: String) async throws {
+        let session = try await supabaseClient.auth.signIn(email: email, password: password)
+        currentUser = session.user
+    }
+    
+    @objc private func handleAuthCallback(_ notification: Notification) {
+        guard let url = notification.object as? URL else { return }
+        Task { try await handleOAuthCallback(url: url) }
+    }
+    
+    func handleOAuthCallback(url: URL) async throws {
+        currentUser = try await supabaseClient.auth.session(from: url).user
+    }
+    
+    func signOut() async throws {
+        try await supabaseClient.auth.signOut()
+        currentUser = nil
+    }
+}
+
+extension Notification.Name {
+    static let authCallbackReceived = Notification.Name("authCallbackReceived")
+}
+```
+
+### Sign In UI
+
+```swift
+import SwiftUI
+import AuthenticationServices
+
+struct SignInView: View {
+    @StateObject private var authService: AuthService
+    @State private var email = ""
+    @State private var password = ""
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            SignInWithAppleButton(.signIn) { request in
+                request.requestedScopes = [.email, .fullName]
+            } onCompletion: { handleAppleSignIn($0) }
+            .frame(height: 50)
+            
+            Button("Sign in with Google") {
+                Task { try await authService.signInWithGoogle() }
+            }
+            
+            TextField("Email", text: $email).textFieldStyle(.roundedBorder)
+            SecureField("Password", text: $password).textFieldStyle(.roundedBorder)
+            Button("Sign In") {
+                Task { try await authService.signInWithEmail(email: email, password: password) }
+            }
+        }
+        .padding()
+    }
+    
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+        guard case .success(let auth) = result,
+              let cred = auth.credential as? ASAuthorizationAppleIDCredential,
+              let token = cred.identityToken.flatMap({ String(data: $0, encoding: .utf8) })
+        else { return }
+        Task { try await authService.signInWithApple(idToken: token, nonce: "NONCE") }
+    }
+}
+```
 
 ## Troubleshooting
 
-### "Sign in failed" with email/password
+**Redirect URI mismatch:**
 
-1. **Invalid email format** - Check for `@` symbol
-2. **Short password** - Minimum 6 characters for new accounts
-3. **Email already exists** - Use different email or sign in instead
-4. **Supabase down** - Check Dashboard > Status page
+- Verify `yourapp://auth/callback` in Supabase URL Configuration
+- Verify Supabase callback in Google Cloud authorized URIs
 
-### Apple Sign In not working
+**OAuth doesn't redirect back:**
 
-1. Check Xcode: Signing & Capabilities > Sign in with Apple enabled
-2. Verify bundle ID matches Apple Developer portal
-3. Check local Supabase is running (`mise run supabase:status`)
+- Check `CFBundleURLSchemes` includes your URL scheme
+- Verify `AppDelegate` connected via `@UIApplicationDelegateAdaptor`
+- Test: `xcrun simctl openurl booted yourapp://test`
 
-### Google OAuth not working
+**Invalid client error:**
 
-1. Verify credentials in Supabase > Google provider settings
-2. Check redirect URL configured in Google Cloud Console and Supabase
-3. Test browser redirect: `betterfit://auth/callback` registered in Info.plist
+- Confirm Client ID/Secret match in Supabase and Cloud Console
+- Google OAuth requires **Web application** client type, not iOS
+- Check OAuth consent screen is published
 
-### User can't verify email
+**Apple Sign In fails:**
 
-1. Check local Supabase email testing: http://127.0.0.1:54324 (Inbucket)
-2. For production: Check email spam folder or resend verification
-3. Verify email templates configured in Supabase dashboard
-
-## Security Notes
-
-- **Passwords:** Transmitted over HTTPS, hashed in Supabase
-- **Apple Sign In:** Uses nonce-based verification, secure by default
-- **Google OAuth:** Handled by Supabase, never see user password
-- **Local Supabase:** All auth works offline, suitable for development
-- **Production:** Enable email verification and configure HTTPS only
-
-## Next Steps
-
-1. Choose auth method(s) to enable
-2. Configure in Supabase dashboard
-3. Test in simulator (`mise run ios:open`)
-4. Users can sign in and data syncs to Supabase
+- Verify Sign in with Apple capability enabled in Xcode
+- Bundle ID must match Apple Developer Portal
+- For native iOS, no Supabase Apple provider setup needed

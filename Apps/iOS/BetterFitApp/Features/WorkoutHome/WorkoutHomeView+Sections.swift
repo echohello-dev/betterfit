@@ -501,7 +501,8 @@ extension WorkoutHomeView {
 
             // Compact exercise rows (non-scrollable)
             VStack(spacing: 8) {
-                ForEach(Array(workout.exercises.prefix(4).enumerated()), id: \.element.id) { index, exercise in
+                ForEach(Array(workout.exercises.prefix(4).enumerated()), id: \.element.id) {
+                    index, exercise in
                     CompactExerciseRow(
                         exercise: exercise,
                         index: index,
