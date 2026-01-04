@@ -518,7 +518,23 @@ extension WorkoutHomeView {
                             index: index,
                             isFirst: index == 0,
                             isLast: index == min(exercises.count, 5) - 1,
-                            theme: theme
+                            theme: theme,
+                            onTap: { tappedExercise in
+                                selectedExerciseForDetail = tappedExercise
+                                showExerciseDetailSheet = true
+                            },
+                            onDelete: { _ in
+                                // Handle delete
+                            },
+                            onReplace: { _ in
+                                // Handle replace
+                            },
+                            onSuperset: { _ in
+                                // Handle superset
+                            },
+                            onHistory: { _ in
+                                // Handle history
+                            }
                         )
                     }
                 }
@@ -1027,6 +1043,11 @@ private struct StaticTimelineRow: View {
     let isFirst: Bool
     let isLast: Bool
     let theme: AppTheme
+    var onTap: ((PlannedExercise) -> Void)?
+    var onDelete: ((PlannedExercise) -> Void)?
+    var onReplace: ((PlannedExercise) -> Void)?
+    var onSuperset: ((PlannedExercise) -> Void)?
+    var onHistory: ((PlannedExercise) -> Void)?
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
@@ -1038,6 +1059,37 @@ private struct StaticTimelineRow: View {
             exerciseCard
         }
         .frame(height: 80)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?(exercise)
+        }
+        .contextMenu {
+            Button {
+                onHistory?(exercise)
+            } label: {
+                Label("History", systemImage: "clock.arrow.circlepath")
+            }
+
+            Button {
+                onReplace?(exercise)
+            } label: {
+                Label("Replace", systemImage: "arrow.triangle.2.circlepath")
+            }
+
+            Button {
+                onSuperset?(exercise)
+            } label: {
+                Label("Superset", systemImage: "link")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                onDelete?(exercise)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     // MARK: - Timeline Indicator

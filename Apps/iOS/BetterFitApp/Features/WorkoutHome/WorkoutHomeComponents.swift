@@ -10,20 +10,25 @@ extension WorkoutHomeView {
         let theme: AppTheme
 
         var body: some View {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Image(systemName: muscleIcon)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(theme.accent)
+                    .frame(width: 14)
 
                 Text(muscle)
                     .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(-1)
 
                 Text("\(percent)%")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .fixedSize()
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
             .background(.regularMaterial, in: Capsule())
             .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
         }

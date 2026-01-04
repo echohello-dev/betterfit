@@ -56,6 +56,8 @@ struct WorkoutHomeView: View {
         Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
     @State var customRangeEnd: Date = Date.now
     @State var showAddExerciseSheet = false
+    @State var selectedExerciseForDetail: PlannedExercise?
+    @State var showExerciseDetailSheet = false
 
     init(
         betterFit: BetterFit, theme: AppTheme, healthKitManager: HealthKitManager? = nil,
@@ -156,6 +158,27 @@ struct WorkoutHomeView: View {
                 }
             )
             .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
+        }
+        .sheet(isPresented: $showExerciseDetailSheet) {
+            if let exercise = selectedExerciseForDetail {
+                ExerciseDetailSheet(
+                    exercise: exercise,
+                    theme: theme,
+                    onDelete: {
+                        // Handle delete
+                    },
+                    onReplace: {
+                        // Handle replace
+                    },
+                    onSuperset: {
+                        // Handle superset
+                    },
+                    onUpdate: { updated in
+                        // Handle exercise update
+                    }
+                )
+                .presentationDetents([PresentationDetent.large])
+            }
         }
         .onAppear {
             ensureDemoSeededIfNeeded()
