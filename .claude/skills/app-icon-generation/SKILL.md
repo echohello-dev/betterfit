@@ -86,7 +86,7 @@ inkscape icon/source.svg \
 
 ```bash
 SOURCE="icon/source-1024.png"
-DEST="Apps/iOS/BetterFitApp/Assets.xcassets/AppIcon.appiconset"
+DEST="path/to/Assets.xcassets/AppIcon.appiconset"  # Update for your project
 
 for size in 20 29 40 58 60 76 80 87 120 152 167 180 1024; do
   sips -z $size $size "$SOURCE" --out "$DEST/AppIcon-$size.png"
@@ -97,7 +97,7 @@ done
 
 ```bash
 SOURCE="icon/source-1024.png"
-DEST="Apps/iOS/BetterFitWatchApp/Assets.xcassets/AppIcon.appiconset"
+DEST="path/to/WatchAssets.xcassets/AppIcon.appiconset"  # Update for your project
 
 for size in 80 88 92 100 102 108 1024; do
   sips -z $size $size "$SOURCE" --out "$DEST/AppIcon-watch-$size.png"
@@ -109,7 +109,7 @@ done
 ### Step 1: Create directory and generate PNGs
 
 ```bash
-ASSETS="Apps/iOS/BetterFitApp/Assets.xcassets"
+ASSETS="path/to/Assets.xcassets"  # Update for your project
 NAME="MyImage"
 
 mkdir -p "$ASSETS/$NAME.imageset"
@@ -150,12 +150,19 @@ inkscape source.svg --export-type=png --export-filename="$ASSETS/$NAME.imageset/
 
 ## Project asset locations
 
-| Type | Path |
+Locate asset catalogs in your project. Common patterns:
+
+| Type | Typical Path |
 |------|------|
-| iOS App Icon | `Apps/iOS/BetterFitApp/Assets.xcassets/AppIcon.appiconset/` |
-| watchOS App Icon | `Apps/iOS/BetterFitWatchApp/Assets.xcassets/AppIcon.appiconset/` |
-| iOS Image Assets | `Apps/iOS/BetterFitApp/Assets.xcassets/*.imageset/` |
-| Source Icons (Figma exports) | `icon/` and `logo/` |
+| iOS App Icon | `<App>/Assets.xcassets/AppIcon.appiconset/` |
+| watchOS App Icon | `<WatchApp>/Assets.xcassets/AppIcon.appiconset/` |
+| Image Assets | `<App>/Assets.xcassets/*.imageset/` |
+| Source Icons | `icon/`, `logo/`, or `assets/` at project root |
+
+Find your project's asset catalog:
+```bash
+find . -name "*.xcassets" -type d
+```
 
 ## Naming convention for source files
 
@@ -221,6 +228,6 @@ Before finishing icon generation:
 
 - [ ] 1024px source PNG created from SVG
 - [ ] All iOS sizes generated (13 files)
-- [ ] All watchOS sizes generated (7 files)
+- [ ] All watchOS sizes generated (7 files if applicable)
 - [ ] Contents.json matches generated filenames
-- [ ] Verify with `mise run ios:build:dev`
+- [ ] Build project to verify icons appear correctly
