@@ -56,63 +56,145 @@ struct ProfileView: View {
     @State private var heatmapRange: HeatmapRange = .year
     @State private var activityByDay: [Date: Int] = [:]
 
-    #if DEBUG
-        @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
-    #endif
+    @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
 
-    // MARK: - Mock Data
+    // MARK: - Data (Real or Demo)
 
     private var personalRecords: [PersonalRecord] {
-        [
-            PersonalRecord(
-                exercise: "Bench Press", value: "225 lbs",
-                date: .now.addingTimeInterval(-86400 * 7), improvement: "+10 lbs",
-                icon: "figure.strengthtraining.traditional"),
-            PersonalRecord(
-                exercise: "Deadlift", value: "315 lbs", date: .now.addingTimeInterval(-86400 * 14),
-                improvement: "+15 lbs", icon: "figure.strengthtraining.traditional"),
-            PersonalRecord(
-                exercise: "Squat", value: "275 lbs", date: .now.addingTimeInterval(-86400 * 3),
-                improvement: "+5 lbs", icon: "figure.strengthtraining.traditional"),
-            PersonalRecord(
-                exercise: "Pull-ups", value: "15 reps", date: .now.addingTimeInterval(-86400 * 5),
-                improvement: "+2 reps", icon: "figure.strengthtraining.functional"),
-        ]
+        if workoutHomeDemoModeEnabled {
+            return Self.demoPersonalRecords
+        }
+        // Real data from betterFit - returns empty if no PRs exist
+        // TODO: Integrate with betterFit.getPersonalRecords() when available
+        return []
     }
 
     private var weeklyGoals: [WeeklyGoal] {
-        [
+        if workoutHomeDemoModeEnabled {
+            return Self.demoWeeklyGoals
+        }
+        // Real data from betterFit - compute from workout history
+        guard let bf = betterFit else { return [] }
+        let history = bf.getWorkoutHistory()
+        let calendar = Calendar.current
+        let startOfWeek =
+            calendar.date(
+                from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))
+            ?? Date()
+        let thisWeekWorkouts = history.filter { $0.date >= startOfWeek }
+
+        let workoutCount = Double(thisWeekWorkouts.count)
+        let totalVolume = thisWeekWorkouts.reduce(0.0) { total, workout in
+            total
+                + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
+                    exerciseTotal
+                        + exercise.sets.reduce(0.0) { setTotal, set in
+                            setTotal + (set.weight ?? 0) * Double(set.reps)
+                        }
+                }
+        }
+        let totalMinutes = thisWeekWorkouts.reduce(0.0) { total, workout in
+            guard let duration = workout.duration else { return total }
+            return total + duration / 60.0
+        }
+
+        return [
             WeeklyGoal(
-                title: "Workouts", current: 4, target: 5, unit: "sessions", icon: "figure.run",
+                title: "Workouts", current: workoutCount, target: 5, unit: "sessions",
+                icon: "figure.run",
                 color: .orange),
             WeeklyGoal(
-                title: "Volume", current: 45000, target: 50000, unit: "lbs", icon: "scalemass.fill",
+                title: "Volume", current: totalVolume, target: 50000, unit: "lbs",
+                icon: "scalemass.fill",
                 color: .blue),
             WeeklyGoal(
-                title: "Active Time", current: 180, target: 240, unit: "min", icon: "clock.fill",
+                title: "Active Time", current: totalMinutes, target: 240, unit: "min",
+                icon: "clock.fill",
                 color: .purple),
-            WeeklyGoal(
-                title: "Calories", current: 1800, target: 2500, unit: "cal", icon: "flame.fill",
-                color: .red),
         ]
     }
 
     private var achievements: [Achievement] {
-        [
+        if workoutHomeDemoModeEnabled {
+            return Self.demoAchievements
+        }
+        // Real achievements - compute from workout history
+        guard let bf = betterFit else { return [] }
+        let totalWorkouts = bf.getWorkoutHistory().count
+        let currentStreak = bf.socialManager.getCurrentStreak()
+
+        return [
             Achievement(
                 title: "Iron Warrior", description: "Complete 100 workouts", icon: "shield.fill",
-                isEarned: true, earnedDate: .now.addingTimeInterval(-86400 * 30), progress: nil),
+                isEarned: totalWorkouts >= 100,
+                earnedDate: totalWorkouts >= 100 ? Date() : nil,
+                progress: totalWorkouts >= 100 ? nil : Double(totalWorkouts) / 100.0),
             Achievement(
                 title: "Streak Master", description: "Maintain a 30-day streak", icon: "flame.fill",
-                isEarned: true, earnedDate: .now.addingTimeInterval(-86400 * 10), progress: nil),
+                isEarned: currentStreak >= 30,
+                earnedDate: currentStreak >= 30 ? Date() : nil,
+                progress: currentStreak >= 30 ? nil : Double(currentStreak) / 30.0),
             Achievement(
-                title: "Heavy Hitter", description: "Lift 1M total pounds", icon: "bolt.fill",
-                isEarned: false, earnedDate: nil, progress: 0.75),
+                title: "First Steps", description: "Complete your first workout",
+                icon: "figure.walk",
+                isEarned: totalWorkouts >= 1,
+                earnedDate: totalWorkouts >= 1 ? Date() : nil,
+                progress: nil),
             Achievement(
-                title: "Early Bird", description: "Complete 20 morning workouts",
-                icon: "sunrise.fill", isEarned: false, earnedDate: nil, progress: 0.45),
+                title: "Week Warrior", description: "Complete 7 workouts", icon: "calendar",
+                isEarned: totalWorkouts >= 7,
+                earnedDate: totalWorkouts >= 7 ? Date() : nil,
+                progress: totalWorkouts >= 7 ? nil : Double(totalWorkouts) / 7.0),
         ]
     }
+
+    // MARK: - Demo Data
+
+    private static let demoPersonalRecords: [PersonalRecord] = [
+        PersonalRecord(
+            exercise: "Bench Press", value: "225 lbs",
+            date: .now.addingTimeInterval(-86400 * 7), improvement: "+10 lbs",
+            icon: "figure.strengthtraining.traditional"),
+        PersonalRecord(
+            exercise: "Deadlift", value: "315 lbs", date: .now.addingTimeInterval(-86400 * 14),
+            improvement: "+15 lbs", icon: "figure.strengthtraining.traditional"),
+        PersonalRecord(
+            exercise: "Squat", value: "275 lbs", date: .now.addingTimeInterval(-86400 * 3),
+            improvement: "+5 lbs", icon: "figure.strengthtraining.traditional"),
+        PersonalRecord(
+            exercise: "Pull-ups", value: "15 reps", date: .now.addingTimeInterval(-86400 * 5),
+            improvement: "+2 reps", icon: "figure.strengthtraining.functional"),
+    ]
+
+    private static let demoWeeklyGoals: [WeeklyGoal] = [
+        WeeklyGoal(
+            title: "Workouts", current: 4, target: 5, unit: "sessions", icon: "figure.run",
+            color: .orange),
+        WeeklyGoal(
+            title: "Volume", current: 45000, target: 50000, unit: "lbs", icon: "scalemass.fill",
+            color: .blue),
+        WeeklyGoal(
+            title: "Active Time", current: 180, target: 240, unit: "min", icon: "clock.fill",
+            color: .purple),
+        WeeklyGoal(
+            title: "Calories", current: 1800, target: 2500, unit: "cal", icon: "flame.fill",
+            color: .red),
+    ]
+
+    private static let demoAchievements: [Achievement] = [
+        Achievement(
+            title: "Iron Warrior", description: "Complete 100 workouts", icon: "shield.fill",
+            isEarned: true, earnedDate: .now.addingTimeInterval(-86400 * 30), progress: nil),
+        Achievement(
+            title: "Streak Master", description: "Maintain a 30-day streak", icon: "flame.fill",
+            isEarned: true, earnedDate: .now.addingTimeInterval(-86400 * 10), progress: nil),
+        Achievement(
+            title: "Heavy Hitter", description: "Lift 1M total pounds", icon: "bolt.fill",
+            isEarned: false, earnedDate: nil, progress: 0.75),
+        Achievement(
+            title: "Early Bird", description: "Complete 20 morning workouts",
+            icon: "sunrise.fill", isEarned: false, earnedDate: nil, progress: 0.45),
+    ]
 
     var body: some View {
         ScrollView {
@@ -277,7 +359,9 @@ struct ProfileView: View {
     // MARK: - Health Stats Section
 
     private var healthStatsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let stats = healthStats
+
+        return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "heart.fill")
                     .font(.caption)
@@ -287,48 +371,155 @@ struct ProfileView: View {
                     .bfHeading(theme: theme, size: 20, relativeTo: .headline)
             }
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12),
-                ],
-                spacing: 12
-            ) {
-                healthStatCard(
-                    icon: "figure.stand",
-                    label: "BMI",
-                    value: "23.4",
-                    subtitle: "Normal",
-                    color: .green,
-                    source: "Apple Health"
-                )
-                healthStatCard(
-                    icon: "scalemass.fill",
-                    label: "Strength Score",
-                    value: "78",
-                    subtitle: "Advanced",
-                    color: theme.accent,
-                    source: "Calculated"
-                )
-                healthStatCard(
-                    icon: "heart.fill",
-                    label: "Resting HR",
-                    value: "62",
-                    subtitle: "bpm",
-                    color: .red,
-                    source: "Apple Health"
-                )
-                healthStatCard(
-                    icon: "figure.walk",
-                    label: "Active Cal",
-                    value: "2,450",
-                    subtitle: "Today",
-                    color: .orange,
-                    source: "Apple Health"
-                )
+            if stats.isEmpty && !workoutHomeDemoModeEnabled {
+                BFCard(theme: theme) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "heart.text.clipboard")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("No health data yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Complete workouts to see your stats")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+            } else {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12),
+                    ],
+                    spacing: 12
+                ) {
+                    ForEach(stats, id: \.label) { stat in
+                        healthStatCard(
+                            icon: stat.icon,
+                            label: stat.label,
+                            value: stat.value,
+                            subtitle: stat.subtitle,
+                            color: stat.color,
+                            source: stat.source
+                        )
+                    }
+                }
             }
         }
     }
+
+    private struct HealthStat {
+        let icon: String
+        let label: String
+        let value: String
+        let subtitle: String
+        let color: Color
+        let source: String
+    }
+
+    private var healthStats: [HealthStat] {
+        if workoutHomeDemoModeEnabled {
+            return Self.demoHealthStats
+        }
+
+        // Real stats from workout history
+        guard let bf = betterFit else { return [] }
+        let history = bf.getWorkoutHistory()
+        guard !history.isEmpty else { return [] }
+
+        let totalWorkouts = history.count
+        let totalVolume = history.reduce(0.0) { total, workout in
+            total
+                + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
+                    exerciseTotal
+                        + exercise.sets.reduce(0.0) { setTotal, set in
+                            setTotal + (set.weight ?? 0) * Double(set.reps)
+                        }
+                }
+        }
+        let totalMinutes = history.reduce(0.0) { total, workout in
+            guard let duration = workout.duration else { return total }
+            return total + duration / 60.0
+        }
+
+        var stats: [HealthStat] = []
+
+        stats.append(
+            HealthStat(
+                icon: "figure.run",
+                label: "Total Workouts",
+                value: "\(totalWorkouts)",
+                subtitle: "All time",
+                color: .orange,
+                source: "BetterFit"
+            ))
+
+        if totalVolume > 0 {
+            let volumeStr =
+                totalVolume >= 1000
+                ? String(format: "%.1fK", totalVolume / 1000) : "\(Int(totalVolume))"
+            stats.append(
+                HealthStat(
+                    icon: "scalemass.fill",
+                    label: "Total Volume",
+                    value: volumeStr,
+                    subtitle: "lbs",
+                    color: .blue,
+                    source: "BetterFit"
+                ))
+        }
+
+        if totalMinutes > 0 {
+            stats.append(
+                HealthStat(
+                    icon: "clock.fill",
+                    label: "Time Active",
+                    value: "\(Int(totalMinutes))",
+                    subtitle: "min",
+                    color: .purple,
+                    source: "BetterFit"
+                ))
+        }
+
+        return stats
+    }
+
+    private static let demoHealthStats: [HealthStat] = [
+        HealthStat(
+            icon: "figure.stand",
+            label: "BMI",
+            value: "23.4",
+            subtitle: "Normal",
+            color: .green,
+            source: "Apple Health"
+        ),
+        HealthStat(
+            icon: "scalemass.fill",
+            label: "Strength Score",
+            value: "78",
+            subtitle: "Advanced",
+            color: .orange,
+            source: "Calculated"
+        ),
+        HealthStat(
+            icon: "heart.fill",
+            label: "Resting HR",
+            value: "62",
+            subtitle: "bpm",
+            color: .red,
+            source: "Apple Health"
+        ),
+        HealthStat(
+            icon: "figure.walk",
+            label: "Active Cal",
+            value: "2,450",
+            subtitle: "Today",
+            color: .orange,
+            source: "Apple Health"
+        ),
+    ]
 
     @ViewBuilder
     private func healthStatCard(
@@ -366,8 +557,11 @@ struct ProfileView: View {
     // MARK: - Streak Section
 
     private var streakSection: some View {
-        let currentStreak = betterFit?.socialManager.getCurrentStreak() ?? 24
-        let longestStreak = betterFit?.socialManager.getLongestStreak() ?? 42
+        let currentStreak =
+            workoutHomeDemoModeEnabled ? 24 : (betterFit?.socialManager.getCurrentStreak() ?? 0)
+        let longestStreak =
+            workoutHomeDemoModeEnabled ? 42 : (betterFit?.socialManager.getLongestStreak() ?? 0)
+        let thisWeekWorkouts = workoutHomeDemoModeEnabled ? 4 : calculateThisWeekWorkouts()
         let range = heatmapDateRange()
 
         return VStack(alignment: .leading, spacing: 12) {
@@ -420,7 +614,10 @@ struct ProfileView: View {
                         HStack(spacing: 3) {
                             ForEach(0..<7, id: \.self) { day in
                                 Circle()
-                                    .fill(day < 4 ? theme.accent : theme.accent.opacity(0.2))
+                                    .fill(
+                                        day < thisWeekWorkouts
+                                            ? theme.accent : theme.accent.opacity(0.2)
+                                    )
                                     .frame(width: 8, height: 8)
                             }
                         }
@@ -551,6 +748,16 @@ struct ProfileView: View {
         }
     }
 
+    private func calculateThisWeekWorkouts() -> Int {
+        guard let bf = betterFit else { return 0 }
+        let calendar = Calendar.current
+        let startOfWeek =
+            calendar.date(
+                from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))
+            ?? Date()
+        return bf.getWorkoutHistory().filter { $0.date >= startOfWeek }.count
+    }
+
     // MARK: - Weekly Targets Section
 
     private var weeklyTargetsSection: some View {
@@ -561,18 +768,38 @@ struct ProfileView: View {
 
                 Spacer(minLength: 0)
 
-                Button {
-                    // Edit targets
-                } label: {
-                    Text("Edit")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(theme.accent)
+                if !weeklyGoals.isEmpty {
+                    Button {
+                        // Edit targets
+                    } label: {
+                        Text("Edit")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                    }
                 }
             }
 
-            VStack(spacing: 10) {
-                ForEach(weeklyGoals) { goal in
-                    weeklyGoalRow(goal)
+            if weeklyGoals.isEmpty {
+                BFCard(theme: theme) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "target")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("No activity this week")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Start a workout to track your progress")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(weeklyGoals) { goal in
+                        weeklyGoalRow(goal)
+                    }
                 }
             }
         }
@@ -662,18 +889,38 @@ struct ProfileView: View {
 
                 Spacer(minLength: 0)
 
-                Button {
-                    // View all PRs
-                } label: {
-                    Text("View All")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(theme.accent)
+                if !personalRecords.isEmpty {
+                    Button {
+                        // View all PRs
+                    } label: {
+                        Text("View All")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                    }
                 }
             }
 
-            VStack(spacing: 8) {
-                ForEach(personalRecords.prefix(3)) { record in
-                    prRow(record)
+            if personalRecords.isEmpty {
+                BFCard(theme: theme) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "trophy")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("No personal records yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Complete workouts to set your first PRs")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(personalRecords.prefix(3)) { record in
+                        prRow(record)
+                    }
                 }
             }
         }
@@ -726,7 +973,10 @@ struct ProfileView: View {
     // MARK: - Achievements Section
 
     private var achievementsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let earnedCount = achievements.filter { $0.isEarned }.count
+        let totalCount = achievements.count
+
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "medal.fill")
@@ -739,15 +989,35 @@ struct ProfileView: View {
 
                 Spacer(minLength: 0)
 
-                Text("8/24")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                if totalCount > 0 {
+                    Text("\(earnedCount)/\(totalCount)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(achievements) { achievement in
-                        achievementCard(achievement)
+            if achievements.isEmpty {
+                BFCard(theme: theme) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "medal")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("No achievements yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Complete workouts to unlock achievements")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(achievements) { achievement in
+                            achievementCard(achievement)
+                        }
                     }
                 }
             }
