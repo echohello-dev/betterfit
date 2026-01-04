@@ -52,6 +52,9 @@ struct ProfileView: View {
     @State private var showLogoutConfirmation = false
     @State private var showYearlyWrapped = false
     @State private var selectedYear = Calendar.current.component(.year, from: Date())
+    @State private var isHeatmapExpanded = false
+    @State private var heatmapRange: HeatmapRange = .year
+    @State private var activityByDay: [Date: Int] = [:]
 
     #if DEBUG
         @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
@@ -363,56 +366,188 @@ struct ProfileView: View {
     // MARK: - Streak Section
 
     private var streakSection: some View {
-        BFCard(theme: theme) {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(.orange.opacity(0.2))
-                        .frame(width: 60, height: 60)
+        let currentStreak = betterFit?.socialManager.getCurrentStreak() ?? 24
+        let longestStreak = betterFit?.socialManager.getLongestStreak() ?? 42
+        let range = heatmapDateRange()
 
-                    VStack(spacing: 0) {
+        return VStack(alignment: .leading, spacing: 12) {
+            // Compact streak header with expand/collapse
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isHeatmapExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(.orange.opacity(0.2))
+                            .frame(width: 48, height: 48)
+
                         Image(systemName: "flame.fill")
-                            .font(.title2)
+                            .font(.title3)
                             .foregroundStyle(.orange)
                     }
-                }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Current Streak")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(currentStreak)")
+                                .font(.system(size: 28, weight: .bold))
+                                .monospacedDigit()
 
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("24")
-                            .font(.system(size: 36, weight: .bold))
-                            .monospacedDigit()
+                            Text("day streak")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
 
-                        Text("days")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        if longestStreak > currentStreak {
+                            Text("Best: \(longestStreak) days")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
-                    Text("Best: 42 days • Keep it up! 🔥")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                    Spacer()
 
-                Spacer(minLength: 0)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Image(systemName: isHeatmapExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("This Week")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        Text("This Week")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
 
-                    HStack(spacing: 3) {
-                        ForEach(0..<7, id: \.self) { day in
-                            Circle()
-                                .fill(day < 4 ? theme.accent : theme.accent.opacity(0.2))
-                                .frame(width: 8, height: 8)
+                        HStack(spacing: 3) {
+                            ForEach(0..<7, id: \.self) { day in
+                                Circle()
+                                    .fill(day < 4 ? theme.accent : theme.accent.opacity(0.2))
+                                    .frame(width: 8, height: 8)
+                            }
                         }
                     }
                 }
+                .padding(14)
+                .background {
+                    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    shape
+                        .fill(.regularMaterial)
+                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                }
             }
+            .buttonStyle(.plain)
+
+            // Expanded heatmap content
+            if isHeatmapExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Range selector
+                    HStack {
+                        Menu {
+                            Button("1 Week") { heatmapRange = .week }
+                            Button("1 Month") { heatmapRange = .month }
+                            Button("1 Year") { heatmapRange = .year }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(heatmapRangeLabel())
+                                    .font(.caption.weight(.semibold))
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2.weight(.semibold))
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background {
+                                Capsule().fill(theme.cardBackground)
+                            }
+                            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                        }
+
+                        Spacer()
+
+                        Text("\(activityByDay.values.reduce(0, +)) workouts")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Heatmap
+                    ProfileContributionHeatmap(
+                        startDate: range.start,
+                        endDate: range.end,
+                        valuesByDay: activityByDay,
+                        theme: theme
+                    )
+                    .frame(height: 86)
+                }
+                .padding(14)
+                .background {
+                    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    shape
+                        .fill(.regularMaterial)
+                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .onAppear {
+            refreshActivityData()
+        }
+        .onChange(of: heatmapRange) {
+            refreshActivityData()
+        }
+    }
+
+    private func refreshActivityData() {
+        guard let bf = betterFit else {
+            activityByDay = [:]
+            return
+        }
+
+        let range = heatmapDateRange()
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: range.start)
+        let end = calendar.startOfDay(for: range.end)
+
+        var counts: [Date: Int] = [:]
+        for workout in bf.getWorkoutHistory() {
+            let day = calendar.startOfDay(for: workout.date)
+            guard day >= start, day <= end else { continue }
+            counts[day, default: 0] += 1
+        }
+
+        if bf.getActiveWorkout() != nil {
+            let today = calendar.startOfDay(for: Date.now)
+            if today >= start, today <= end {
+                counts[today, default: 0] += 1
+            }
+        }
+
+        activityByDay = counts
+    }
+
+    private func heatmapDateRange() -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+
+        switch heatmapRange {
+        case .week:
+            let start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+            return (start, today)
+        case .month:
+            let start = calendar.date(byAdding: .month, value: -1, to: today) ?? today
+            return (calendar.startOfDay(for: start), today)
+        case .year:
+            let start = calendar.date(byAdding: .year, value: -1, to: today) ?? today
+            return (calendar.startOfDay(for: start), today)
+        case .custom:
+            return (today, today)
+        }
+    }
+
+    private func heatmapRangeLabel() -> String {
+        switch heatmapRange {
+        case .week: return "1W"
+        case .month: return "1M"
+        case .year: return "1Y"
+        case .custom: return "Custom"
         }
     }
 
@@ -1076,5 +1211,219 @@ struct YearlyWrappedView: View {
             onShowSignIn: { print("Show sign in") },
             onLogout: { print("Logout") }
         )
+    }
+}
+
+// MARK: - Profile Contribution Heatmap
+
+private struct ProfileContributionHeatmap: View {
+    let startDate: Date
+    let endDate: Date
+    let valuesByDay: [Date: Int]
+    let theme: AppTheme
+
+    @State private var didAutoScrollToEnd = false
+
+    private let cell: CGFloat = 11
+    private let gap: CGFloat = 4
+
+    var body: some View {
+        let calendar = Calendar.current
+        let rangeStart = calendar.startOfDay(for: startDate)
+        let rangeEnd = calendar.startOfDay(for: endDate)
+
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(
+                        monthStarts(
+                            rangeStart: rangeStart, rangeEnd: rangeEnd, calendar: calendar),
+                        id: \.self
+                    ) { monthStart in
+                        MonthBlock(
+                            monthStart: monthStart,
+                            rangeStart: rangeStart,
+                            rangeEnd: rangeEnd,
+                            valuesByDay: valuesByDay,
+                            cell: cell,
+                            gap: gap,
+                            theme: theme
+                        )
+                        .id(monthStart)
+                    }
+
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .id("heatmap-end")
+                }
+                .padding(.vertical, 2)
+            }
+            .onAppear {
+                guard !didAutoScrollToEnd else { return }
+                didAutoScrollToEnd = true
+                DispatchQueue.main.async {
+                    proxy.scrollTo("heatmap-end", anchor: .trailing)
+                }
+            }
+            .onChange(of: endDate) {
+                DispatchQueue.main.async {
+                    proxy.scrollTo("heatmap-end", anchor: .trailing)
+                }
+            }
+        }
+        .mask { RoundedRectangle(cornerRadius: 16, style: .continuous) }
+    }
+
+    private func monthStarts(rangeStart: Date, rangeEnd: Date, calendar: Calendar) -> [Date] {
+        guard rangeStart <= rangeEnd else { return [] }
+        guard
+            let startOfStartMonth = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: rangeStart)),
+            let startOfEndMonth = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: rangeEnd))
+        else {
+            return []
+        }
+
+        var months: [Date] = []
+        var cursor = startOfStartMonth
+        while cursor <= startOfEndMonth {
+            months.append(cursor)
+            guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+        return months
+    }
+
+    private struct MonthBlock: View {
+        let monthStart: Date
+        let rangeStart: Date
+        let rangeEnd: Date
+        let valuesByDay: [Date: Int]
+        let cell: CGFloat
+        let gap: CGFloat
+        let theme: AppTheme
+
+        var body: some View {
+            let calendar = Calendar.current
+            let monthEnd = endOfMonth(for: monthStart, calendar: calendar)
+            let clampedEnd = min(monthEnd, rangeEnd)
+            let clampedStart = max(monthStart, rangeStart)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(monthStart.formatted(.dateTime.month(.abbreviated)))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .top, spacing: gap) {
+                    ForEach(
+                        weekStarts(
+                            forMonthStart: monthStart, monthEnd: clampedEnd, calendar: calendar),
+                        id: \.self
+                    ) { weekStart in
+                        VStack(spacing: gap) {
+                            ForEach(0..<7, id: \.self) { dayOffset in
+                                let date =
+                                    calendar.date(
+                                        byAdding: .day, value: dayOffset, to: weekStart)
+                                    ?? weekStart
+                                DayCell(
+                                    date: date,
+                                    rangeStart: clampedStart,
+                                    rangeEnd: clampedEnd,
+                                    valuesByDay: valuesByDay,
+                                    cell: cell,
+                                    theme: theme
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private func endOfMonth(for date: Date, calendar: Calendar) -> Date {
+            guard
+                let start = calendar.date(
+                    from: calendar.dateComponents([.year, .month], from: date)),
+                let next = calendar.date(byAdding: .month, value: 1, to: start),
+                let end = calendar.date(byAdding: .day, value: -1, to: next)
+            else {
+                return date
+            }
+            return end
+        }
+
+        private func weekStarts(
+            forMonthStart monthStart: Date, monthEnd: Date, calendar: Calendar
+        ) -> [Date] {
+            guard
+                let firstWeekStart = calendar.dateInterval(of: .weekOfYear, for: monthStart)?
+                    .start,
+                let lastWeekStart = calendar.dateInterval(of: .weekOfYear, for: monthEnd)?.start
+            else {
+                return []
+            }
+
+            var weeks: [Date] = []
+            var cursor = firstWeekStart
+            while cursor <= lastWeekStart {
+                weeks.append(cursor)
+                guard let next = calendar.date(byAdding: .day, value: 7, to: cursor) else {
+                    break
+                }
+                cursor = next
+            }
+            return weeks
+        }
+    }
+
+    private struct DayCell: View {
+        let date: Date
+        let rangeStart: Date
+        let rangeEnd: Date
+        let valuesByDay: [Date: Int]
+        let cell: CGFloat
+        let theme: AppTheme
+
+        var body: some View {
+            let calendar = Calendar.current
+            let day = calendar.startOfDay(for: date)
+            let isInRange =
+                day >= calendar.startOfDay(for: rangeStart)
+                && day <= calendar.startOfDay(for: rangeEnd)
+
+            Group {
+                if isInRange {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(color(for: valuesByDay[day, default: 0]))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .stroke(theme.cardStroke.opacity(0.7), lineWidth: 0.5)
+                        }
+                } else {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(Color.clear)
+                }
+            }
+            .frame(width: cell, height: cell)
+        }
+
+        private func color(for count: Int) -> Color {
+            switch count {
+            case 0:
+                return theme.accent.opacity(0)
+            case 1:
+                return theme.accent.opacity(0.18)
+            case 2:
+                return theme.accent.opacity(0.34)
+            case 3:
+                return theme.accent.opacity(0.52)
+            default:
+                return theme.accent.opacity(0.75)
+            }
+        }
     }
 }

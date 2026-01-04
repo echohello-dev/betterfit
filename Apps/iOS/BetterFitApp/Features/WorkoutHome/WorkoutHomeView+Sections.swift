@@ -185,111 +185,128 @@ extension WorkoutHomeView {
         let _ = "\(Int(overallRecovery))%"
         let range = heatmapDateRange()
 
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Streak")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-                Label {
-                    Text("\(currentStreak) days")
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
-                } icon: {
-                    Image(systemName: "flame.fill")
+        return VStack(alignment: .leading, spacing: 12) {
+            // Compact streak header with expand/collapse
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isHeatmapExpanded.toggle()
                 }
-                .foregroundStyle(theme.accent)
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: "flame.fill")
+                        .foregroundStyle(theme.accent)
+
+                    Text("\(currentStreak)")
+                        .font(.title3.weight(.bold))
+                        .monospacedDigit()
+
+                    Text("day streak")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    if longestStreak > currentStreak {
+                        Text("• Best: \(longestStreak)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: isHeatmapExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
             }
+            .buttonStyle(.plain)
 
-            HStack(spacing: 10) {
-                let today = Calendar.current.startOfDay(for: Date.now)
+            // Expanded content
+            if isHeatmapExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Day pills row
+                    HStack(spacing: 10) {
+                        let today = Calendar.current.startOfDay(for: Date.now)
 
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(streakVisibleDays, id: \.self) { date in
-                                streakDayPill(for: date)
-                                    .id(date)
+                        ScrollViewReader { proxy in
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(streakVisibleDays, id: \.self) { date in
+                                        streakDayPill(for: date)
+                                            .id(date)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            .onAppear {
+                                guard !didAutoScrollStreakToToday else { return }
+                                didAutoScrollStreakToToday = true
+                                DispatchQueue.main.async {
+                                    proxy.scrollTo(today, anchor: .center)
+                                }
                             }
                         }
-                        .padding(.vertical, 2)
-                    }
-                    .onAppear {
-                        guard !didAutoScrollStreakToToday else { return }
-                        didAutoScrollStreakToToday = true
-                        DispatchQueue.main.async {
-                            proxy.scrollTo(today, anchor: .center)
+                        .scrollClipDisabled()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        BFChromeIconButton(
+                            systemImage: "ellipsis",
+                            accessibilityLabel: "Streak summary",
+                            theme: theme
+                        ) {
+                            showStreakSummary = true
                         }
                     }
-                }
-                .scrollClipDisabled()
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                BFChromeIconButton(
-                    systemImage: "ellipsis",
-                    accessibilityLabel: "Streak summary",
-                    theme: theme
-                ) {
-                    showStreakSummary = true
-                }
-            }
+                    // Range selector
+                    HStack {
+                        Menu {
+                            Button("1 Week") {
+                                heatmapRange = .week
+                            }
+                            Button("1 Month") {
+                                heatmapRange = .month
+                            }
+                            Button("1 Year") {
+                                heatmapRange = .year
+                            }
+                            Divider()
+                            Button("Custom…") {
+                                heatmapRange = .custom
+                                showCustomRangeSheet = true
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(heatmapRangeLabel())
+                                    .font(.caption.weight(.semibold))
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2.weight(.semibold))
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background {
+                                Capsule().fill(theme.cardBackground)
+                            }
+                            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                        }
 
-            if longestStreak > 0 {
-                Text("Longest: \(longestStreak) days")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                        Spacer()
+                    }
+
+                    // Heatmap
+                    ContributionHeatmap(
+                        startDate: range.start,
+                        endDate: range.end,
+                        valuesByDay: activityByDay,
+                        theme: theme
+                    )
+                    .frame(height: 86)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             Divider()
                 .opacity(0.6)
-                .padding(.top, 2)
-                .padding(.bottom, 6)
-
-            HStack {
-                Menu {
-                    Button("1 Week") {
-                        heatmapRange = .week
-                    }
-                    Button("1 Month") {
-                        heatmapRange = .month
-                    }
-                    Button("1 Year") {
-                        heatmapRange = .year
-                    }
-                    Divider()
-                    Button("Custom…") {
-                        heatmapRange = .custom
-                        showCustomRangeSheet = true
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(heatmapRangeLabel())
-                            .font(.caption.weight(.semibold))
-                        Image(systemName: "chevron.down")
-                            .font(.caption2.weight(.semibold))
-                    }
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background {
-                        Capsule().fill(theme.cardBackground)
-                    }
-                    .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
-                }
-            }
-
-            Spacer(minLength: 12)
-
-            ContributionHeatmap(
-                startDate: range.start,
-                endDate: range.end,
-                valuesByDay: activityByDay,
-                theme: theme
-            )
-            .frame(height: 86)
-
-            Spacer(minLength: 12)
-
         }
     }
 
@@ -397,6 +414,7 @@ extension WorkoutHomeView {
             selectedWorkoutIndex: $selectedWorkoutIndex,
             showEquipmentSwapSheet: $showEquipmentSwapSheet,
             theme: theme,
+            planManager: planManager,
             generateWorkout: generateWorkout
         )
     }
@@ -460,7 +478,12 @@ extension WorkoutHomeView {
     }
 
     func exercisesPreviewSection(for workout: Workout) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let displayCount = min(workout.exercises.count, 5)
+        let rowHeight: CGFloat = 88
+        let headerHeight: CGFloat = 32
+        let listHeight = CGFloat(displayCount) * rowHeight + headerHeight
+
+        return VStack(alignment: .leading, spacing: 0) {
             UnifiedExerciseTimeline(
                 exercises: Array(workout.exercises.prefix(5)),
                 selectedIndex: nil,
@@ -475,14 +498,21 @@ extension WorkoutHomeView {
                 onMove: nil,
                 onAdd: nil
             )
-            .frame(height: CGFloat(min(workout.exercises.count, 5)) * 88)
+            .frame(height: listHeight)
 
             if workout.exercises.count > 5 {
-                Text("+\(workout.exercises.count - 5) more exercises")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 8)
+                Button {
+                    // Could expand to show all exercises
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("+\(workout.exercises.count - 5) more")
+                        Image(systemName: "chevron.down")
+                    }
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(theme.accent)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 8)
             }
         }
     }
@@ -638,31 +668,38 @@ private struct WorkoutCardStackContainer: View {
     @Binding var selectedWorkoutIndex: Int
     @Binding var showEquipmentSwapSheet: Bool
     let theme: AppTheme
+    let planManager: WorkoutPlanManager?
     let generateWorkout: () -> Void
 
     @State private var cardSwipeOffset: CGFloat = 0
 
     var body: some View {
         let workouts = suggestedWorkouts
-        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
+        let safeIndex = min(selectedWorkoutIndex, max(0, workouts.count - 1))
 
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Up Next")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .largeTitle)
+                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+
+                if !workouts.isEmpty {
+                    Text("\(workouts[safeIndex].exercises.count) Exercises")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
                 Button {
                     showEquipmentSwapSheet = true
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Image(systemName: "arrow.left.arrow.right")
                         Text("Swap")
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .background(.ultraThinMaterial, in: Capsule())
                 }
 
@@ -671,19 +708,13 @@ private struct WorkoutCardStackContainer: View {
                     Button("Generate New") { generateWorkout() }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 34, height: 34)
+                        .font(.caption.weight(.semibold))
+                        .frame(width: 28, height: 28)
                         .background(.ultraThinMaterial, in: Circle())
                 }
             }
 
-            if !workouts.isEmpty {
-                Text("\(workouts[safeIndex].exercises.count) Exercises")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Card stack with swipe gesture - use WorkoutHomeView.WorkoutSwipeCard
+            // Card stack with swipe gesture
             ZStack {
                 ForEach(Array(workouts.enumerated().reversed()), id: \.offset) { index, workout in
                     let isTop = index == safeIndex
@@ -695,8 +726,8 @@ private struct WorkoutCardStackContainer: View {
                         isTopCard: isTop
                     )
                     .offset(x: isTop ? cardSwipeOffset : 0)
-                    .offset(y: offset * 8)
-                    .scaleEffect(1 - abs(offset) * 0.05)
+                    .offset(y: offset * 6)
+                    .scaleEffect(1 - abs(offset) * 0.04)
                     .opacity(index >= safeIndex && index <= safeIndex + 2 ? 1 : 0)
                     .zIndex(Double(workouts.count - index))
                     .gesture(
@@ -704,17 +735,19 @@ private struct WorkoutCardStackContainer: View {
                     )
                 }
             }
-            .frame(height: 180)
+            .frame(height: 172)
 
-            // Page indicator
-            HStack(spacing: 8) {
-                ForEach(0..<min(workouts.count, 3), id: \.self) { idx in
-                    Circle()
-                        .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
-                        .frame(width: 8, height: 8)
+            // Page indicator - only show if more than 1 workout
+            if workouts.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(0..<min(workouts.count, 4), id: \.self) { idx in
+                        Circle()
+                            .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
+                            .frame(width: 6, height: 6)
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
     }
 
@@ -725,6 +758,7 @@ private struct WorkoutCardStackContainer: View {
             }
             .onEnded { value in
                 let threshold: CGFloat = 100
+                let oldIndex = selectedWorkoutIndex
 
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                     if value.translation.width < -threshold {
@@ -739,6 +773,15 @@ private struct WorkoutCardStackContainer: View {
                         }
                     }
                     cardSwipeOffset = 0
+                }
+
+                // Update plan when workout selection changes
+                if oldIndex != selectedWorkoutIndex, let manager = planManager {
+                    let newIndex = selectedWorkoutIndex
+                    if newIndex < suggestedWorkouts.count {
+                        let selectedWorkout = suggestedWorkouts[newIndex]
+                        manager.setSelectedWorkoutForToday(selectedWorkout)
+                    }
                 }
             }
     }
