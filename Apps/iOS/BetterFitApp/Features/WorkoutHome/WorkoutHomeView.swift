@@ -46,6 +46,7 @@ struct WorkoutHomeView: View {
     @State var activityByDay: [Date: Int] = [:]
 
     @State var heatmapRange: HeatmapRange = .year
+    @State var isHeatmapExpanded: Bool = false
 
     // Timer for animating elapsed time
     @State var elapsedTimeUpdateTrigger = false
