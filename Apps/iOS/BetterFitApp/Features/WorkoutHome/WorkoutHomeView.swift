@@ -42,7 +42,7 @@ struct WorkoutHomeView: View {
     @State var currentStreak = 0
     @State var longestStreak = 0
     @State var lastWorkoutDate: Date?
-    @State var username: String = "User"
+    @State var username: String = "Guest"
 
     // Activity heatmap (GitHub-style)
     @State var activityByDay: [Date: Int] = [:]
