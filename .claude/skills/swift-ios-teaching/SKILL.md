@@ -74,23 +74,30 @@ Use this skill whenever the user asks about Swift language features, SwiftUI pat
 - **Availability**: Always gate iOS 26 APIs with `@available` or `#available` checks.
 - **Materials**: Use `.ultraThinMaterial`, `.regularMaterial`, etc., for blur effects.
 
-## Project-specific context
+## Project context
 
-- SwiftPM library in `Sources/BetterFit/`.
-- iOS host app in `Apps/iOS/BetterFitApp/`.
-- watchOS app in `Apps/iOS/BetterFitWatchApp/`.
-- Uses facade pattern (`BetterFit.swift`) for orchestration.
-- Feature-based organization.
-- Custom UI primitives: `BFCard`, `LiquidGlassBackground`, etc.
+When teaching, first understand the project structure:
 
-## Build commands to reference
+- Look for SwiftPM packages (`Package.swift`)
+- Look for Xcode projects (`.xcodeproj`, `.xcworkspace`)
+- Check for iOS/watchOS/macOS targets
+- Identify the app's architecture pattern (MVC, MVVM, TCA, etc.)
+- Note any custom UI components or design systems
+
+## Common build commands
 
 ```bash
-mise run build          # swift build
-mise run test           # swift test
-mise run lint           # swiftlint
-mise run ios:open       # Open Xcode project
-mise run ios:build:dev  # Build for development
+# SwiftPM projects
+swift build
+swift test
+
+# Xcode projects
+xcodebuild -scheme <SchemeName> build
+xcodebuild -scheme <SchemeName> test
+
+# If using mise
+mise run build
+mise run test
 ```
 
 ## Example teaching response format
@@ -106,3 +113,13 @@ How would you declare a private state variable named `isToggled` that starts as 
 ```
 
 **Watch out**: Mutating `@State` triggers a view re-render. Unlike React, you can mutate the variable directly (e.g., `isToggled.toggle()`) instead of using a setter function.
+
+## Checklist
+
+When teaching a concept:
+
+- [ ] Explained the concept using standard terminology
+- [ ] Mapped to an analogous pattern from another language/framework
+- [ ] Provided scaffolded code for the user to complete
+- [ ] Highlighted Swift-specific gotchas
+- [ ] Verified user understanding before moving on

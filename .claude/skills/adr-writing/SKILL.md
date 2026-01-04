@@ -1,11 +1,20 @@
 ---
 name: adr-writing
-description: Write and maintain ADRs under docs/adrs when architecture decisions are made
+description: Write and maintain Architecture Decision Records (ADRs) when meaningful technical or architecture decisions are made. Use when introducing dependencies, changing APIs, adopting patterns, or making hard-to-reverse decisions.
 ---
 
-# ADR Writing Skill (docs/adrs)
+# ADR Writing Skill
 
 Use this skill whenever a meaningful technical/architecture decision has been made (or is being proposed) and it should be recorded for future maintainers.
+
+## When to activate this skill
+
+- User introduces or replaces a major dependency
+- User changes package/module boundaries or public API surface
+- User adopts a new pattern that should be repeated
+- User changes data models with compatibility/migration implications
+- User makes a decision that is hard to reverse or has non-obvious trade-offs
+- User asks about documenting architecture decisions
 
 ## Definition: “Architecture decision”
 
@@ -105,7 +114,11 @@ Before finishing:
 - [ ] `docs/adrs/README.md` index updated
 - [ ] References include the PR/issue link if available
 
-## Repository-specific notes
+## Project-specific notes
 
-- BetterFit is primarily a SwiftPM package (`Sources/BetterFit`) with iOS/watchOS host apps in `Apps/iOS`.
-- Prefer verifying behavior with `mise run test` (or narrower tasks) when the ADR accompanies code changes.
+This section can be customized per-project. Common patterns:
+
+- ADRs typically live in `docs/adrs/` or `docs/adr/`
+- Some projects use `doc/architecture/decisions/`
+- Verify the ADR location exists before creating new ADRs
+- Run project tests after implementing changes that accompany an ADR
