@@ -8,6 +8,7 @@ struct ActiveWorkoutView: View {
     @State private var currentWorkout: Workout
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
+    @State private var isPaused: Bool = false
 
     init(workout: Workout) {
         self.workout = workout
@@ -29,10 +30,27 @@ struct ActiveWorkoutView: View {
                     Text(currentWorkout.name)
                         .font(.headline)
 
-                    Text(timeString(from: elapsedTime))
-                        .font(.title2)
-                        .foregroundStyle(.green)
-                        .monospacedDigit()
+                    HStack(spacing: 8) {
+                        Text(timeString(from: elapsedTime))
+                            .font(.title2)
+                            .foregroundStyle(isPaused ? .orange : .green)
+                            .monospacedDigit()
+
+                        Button {
+                            isPaused.toggle()
+                        } label: {
+                            Image(systemName: isPaused ? "play.circle.fill" : "pause.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(isPaused ? .green : .orange)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if isPaused {
+                        Text("Paused")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
                 }
                 .padding(.top)
 
@@ -106,7 +124,9 @@ struct ActiveWorkoutView: View {
 
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
-            elapsedTime += 0.01
+            if !isPaused {
+                elapsedTime += 0.01
+            }
         }
     }
 

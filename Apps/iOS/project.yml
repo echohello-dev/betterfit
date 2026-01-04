@@ -50,6 +50,20 @@ targets:
     dependencies:
       - package: BetterFit
 
+  BetterFitAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: BetterFitAppUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFitAppUITests
+        SWIFT_VERSION: "5.0"
+        TEST_TARGET_NAME: BetterFitApp
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: BetterFitApp
+
   BetterFitWatch:
     type: application
     platform: watchOS
@@ -84,10 +98,15 @@ schemes:
     build:
       targets:
         BetterFitApp: all
+        BetterFitAppUITests: [test]
     run:
       config: Debug
       # Environment variables are injected by scripts/update_scheme_env.sh
       # This keeps credentials out of version control
+    test:
+      config: Debug
+      targets:
+        - BetterFitAppUITests
   BetterFitWatch:
     build:
       targets:

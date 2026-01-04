@@ -13,8 +13,14 @@ struct BetterFitApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let config: AppConfiguration
+    private let isUITesting: Bool
+    private let isDemoMode: Bool
 
     init() {
+        // Check for UI testing and demo mode
+        let args = ProcessInfo.processInfo.arguments
+        self.isUITesting = args.contains("UI_TESTING")
+        self.isDemoMode = args.contains("DEMO_MODE") || args.contains("UI_TESTING")
         // Load application configuration from environment
         let config = AppConfiguration()
         self.config = config
@@ -35,8 +41,21 @@ struct BetterFitApp: App {
             let theme = AppTheme.fromStorage(storedTheme)
 
             Group {
-                if !hasCompletedOnboarding || showSignIn {
-                    // Show sign in screen
+                if isUITesting || isDemoMode {
+                    // Skip onboarding in UI tests and demo mode
+                    if let bf = betterFit {
+                        RootTabView(
+                            betterFit: bf,
+                            theme: theme,
+                            isGuest: true,
+                            onShowSignIn: {},
+                            onLogout: nil
+                        )
+                    } else {
+                        ProgressView()
+                    }
+                } else if !hasCompletedOnboarding {
+                    // Show sign in screen for onboarding (full screen)
                     SignInView(
                         theme: theme,
                         onSignIn: { idToken, nonce in
@@ -104,6 +123,34 @@ struct BetterFitApp: App {
                     )
                     .tint(theme.accent)
                     .preferredColorScheme(theme.preferredColorScheme)
+                    .sheet(isPresented: $showSignIn) {
+                        SignInView(
+                            theme: theme,
+                            onSignIn: { idToken, nonce in
+                                guard config.isSupabaseConfigured else { return }
+                                try await authService.signInWithApple(
+                                    idToken: idToken, nonce: nonce)
+                                await migrateGuestDataIfNeeded()
+                                showSignIn = false
+                            },
+                            onEmailSignIn: { email, password in
+                                guard config.isSupabaseConfigured else { return }
+                                try await authService.signInWithEmail(
+                                    email: email, password: password)
+                                await migrateGuestDataIfNeeded()
+                                showSignIn = false
+                            },
+                            onGuestMode: {
+                                authService.continueAsGuest()
+                                showSignIn = false
+                                initializeBetterFitWithLocalPersistence()
+                            },
+                            onDismiss: {
+                                showSignIn = false
+                            }
+                        )
+                        .presentationDragIndicator(.visible)
+                    }
                     .overlay(alignment: .bottom) {
                         // Show warning banner above Start Workout button if guest mode
                         if !config.isSupabaseConfigured && showConfigWarning {
@@ -129,6 +176,14 @@ struct BetterFitApp: App {
                 }
             }
             .task {
+                // Enable demo mode for UI tests
+                if isUITesting || isDemoMode {
+                    authService.continueAsGuest()
+                    initializeBetterFitWithLocalPersistence()
+                    hasCompletedOnboarding = true
+                    return
+                }
+
                 // If Supabase is not configured, default to guest mode
                 if !config.isSupabaseConfigured {
                     authService.continueAsGuest()

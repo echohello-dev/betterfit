@@ -79,53 +79,47 @@ extension WorkoutHomeView {
     }
 
     var suggestedWorkout: Workout {
-        bf.getRecommendedWorkout() ?? defaultWorkout
+        // First check if planManager has a workout for today
+        if let planDay = planManager?.getTodayPlan(), !planDay.isRest, !planDay.exercises.isEmpty {
+            return planDay.toWorkout()
+        }
+        return bf.getRecommendedWorkout() ?? defaultWorkout
     }
 
     var suggestedWorkouts: [Workout] {
-        // Get multiple workout suggestions
+        // Get multiple workout suggestions from real data
         var workouts: [Workout] = []
 
-        if let recommended = bf.getRecommendedWorkout() {
+        // First, use today's planned workout if available from planManager
+        if let planDay = planManager?.getTodayPlan(), !planDay.isRest, !planDay.exercises.isEmpty {
+            workouts.append(planDay.toWorkout())
+        } else if let recommended = bf.getRecommendedWorkout() {
             workouts.append(recommended)
         }
 
-        // Add some variety workouts
-        workouts.append(contentsOf: [
-            Workout(
-                name: "Morning Yoga Flow",
-                exercises: [
-                    WorkoutExercise(
-                        exercise: Exercise(
-                            name: "Sun Salutations", equipmentRequired: .bodyweight,
-                            muscleGroups: [.abs, .quads]),
-                        sets: [ExerciseSet(reps: 10, weight: 0)]
-                    )
-                ]
-            ),
-            Workout(
-                name: "HIIT Blast",
-                exercises: [
-                    WorkoutExercise(
-                        exercise: Exercise(
-                            name: "Burpees", equipmentRequired: .bodyweight,
-                            muscleGroups: [.quads, .abs, .chest]),
-                        sets: [ExerciseSet(reps: 15, weight: 0)]
-                    )
-                ]
-            ),
-            Workout(
-                name: "Upper Body Strength",
-                exercises: [
-                    WorkoutExercise(
-                        exercise: Exercise(
-                            name: "Push-ups", equipmentRequired: .bodyweight,
-                            muscleGroups: [.chest, .triceps]),
-                        sets: [ExerciseSet(reps: 12, weight: 0)]
-                    )
-                ]
-            ),
-        ])
+        // Add workouts from templates if available
+        let templates = bf.templateManager.getAllTemplates()
+        for template in templates where !workouts.contains(where: { $0.name == template.name }) {
+            workouts.append(template.createWorkout())
+            if workouts.count >= 4 { break }  // Limit to 4 suggested workouts
+        }
+
+        // If we still have few workouts, add upcoming planned workouts from this week
+        if workouts.count < 4, let manager = planManager {
+            let weekDays = manager.getCurrentWeekDays()
+            for day in weekDays where !day.isRest && !day.isToday && !day.exercises.isEmpty {
+                let workout = day.toWorkout()
+                if !workouts.contains(where: { $0.name == workout.name }) {
+                    workouts.append(workout)
+                    if workouts.count >= 4 { break }
+                }
+            }
+        }
+
+        // Fallback to default workouts if we still have none
+        if workouts.isEmpty {
+            workouts.append(defaultWorkout)
+        }
 
         return workouts
     }

@@ -6,6 +6,8 @@ import SwiftUI
 struct WorkoutHomeView: View {
     let betterFit: BetterFit
     let theme: AppTheme
+    let healthKitManager: HealthKitManager?
+    let planManager: WorkoutPlanManager?
 
     let demoModeOverride: Bool?
 
@@ -53,9 +55,14 @@ struct WorkoutHomeView: View {
         Calendar.current.date(byAdding: .year, value: -3, to: Date.now) ?? Date.now
     @State var customRangeEnd: Date = Date.now
 
-    init(betterFit: BetterFit, theme: AppTheme, demoMode: Bool? = nil) {
+    init(
+        betterFit: BetterFit, theme: AppTheme, healthKitManager: HealthKitManager? = nil,
+        planManager: WorkoutPlanManager? = nil, demoMode: Bool? = nil
+    ) {
         self.betterFit = betterFit
         self.theme = theme
+        self.healthKitManager = healthKitManager
+        self.planManager = planManager
         self.demoModeOverride = demoMode
     }
 
@@ -79,6 +86,11 @@ struct WorkoutHomeView: View {
                     compactWelcomeSection
                 } else {
                     welcomeSection
+                }
+
+                // Apple Health Connection Reminder
+                if let hkManager = healthKitManager, hkManager.shouldShowConnectionPrompt {
+                    AppleHealthReminderBanner(theme: theme, healthKitManager: hkManager)
                 }
 
                 // Overview (summary + gauge) - hide when active workout

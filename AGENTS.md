@@ -133,8 +133,103 @@ For larger screens, prefer feature folders under `Apps/iOS/BetterFitApp`:
 - App state managed via `WatchAppState` observable object that wraps `BetterFit()` instance
 - See `Apps/iOS/BetterFitWatchApp/README.md` for detailed watch app documentation
 ## Tests (how behavior is verified here)
-- Tests are XCTest-based in `Tests/BetterFitTests` and run with `swift test`.
-- Integration-style expectations live in `Tests/BetterFitTests/IntegrationTests.swift` (e.g., the `startWorkout` → `completeWorkout` flow updates history and streak).
+
+### Test pyramid
+- **Unit tests** (`Tests/BetterFitTests/*.swift`) – test individual functions, models, and managers in isolation. Run with `mise run test`.
+- **Integration tests** (`Tests/BetterFitTests/IntegrationTests.swift`) – test cross-feature flows through the `BetterFit` facade (e.g., `startWorkout` → `completeWorkout` updates history, recovery, and streak).
+- **UI tests** (`Apps/iOS/BetterFitAppUITests/*.swift`) – test user-facing flows in the iOS simulator. Run with `mise run ios:test:ui`.
+- **Mobile MCP tests** – use the mobile-mcp tools to interactively test UI on simulators for exploratory testing, debugging, and verifying visual behavior.
+
+### When to write tests
+- **Unit tests**: For any new model, helper function, or manager method. Keep them fast and isolated.
+- **Integration tests**: For cross-feature flows that touch multiple managers/services (e.g., completing a workout updates streak + recovery + history).
+- **UI tests**: For regression testing of critical user journeys (navigation, sheet presentation, swipe actions, form controls). Write new UI tests when adding features that change user-facing behavior.
+- **Mobile MCP**: For exploratory testing, debugging visual issues, and verifying UI behavior that's hard to capture in XCUITest.
+
+### Running tests
+```bash
+# Unit + integration tests (SwiftPM)
+mise run test
+
+# UI tests (requires iOS simulator)
+mise run ios:test:ui
+
+# Boot simulator for manual/Mobile MCP testing
+mise run ios:sim:boot26
+```
+
+### Using Mobile MCP for UI testing
+Mobile MCP provides tools to interact with iOS simulators programmatically:
+1. **List available devices**: Use `mobile_list_available_devices` to find booted simulators.
+2. **Take screenshots**: Use `mobile_take_screenshot` to capture current screen state.
+3. **Tap elements**: Use `list_elements_on_screen` to find coordinates, then tap with screen interaction tools.
+4. **Type text**: Use `mobile_type_keys` to enter text in focused fields.
+5. **Swipe**: Use `mobile_swipe_on_screen` for scroll/swipe gestures.
+6. **Press buttons**: Use `mobile_press_button` for HOME, VOLUME, etc.
+
+**Workflow for testing with Mobile MCP**:
+1. Boot the simulator: `mise run ios:sim:boot26`
+2. Build and install the app: `mise run ios:build:dev`
+3. Use Mobile MCP tools to navigate, tap, swipe, and verify UI states
+4. Take screenshots to document expected behavior
+5. If a bug is found, write a UI test to prevent regression
+
+### UI test patterns
+UI tests live in `Apps/iOS/BetterFitAppUITests/` and use XCUITest:
+```swift
+final class ExampleUITests: XCTestCase {
+    var app: XCUIApplication!
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launchArguments = ["UI_TESTING", "DEMO_MODE"]
+        app.launch()
+    }
+
+    func testFeatureFlow() throws {
+        // Navigate to feature
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        
+        // Verify content
+        XCTAssertTrue(app.staticTexts["Expected Title"].waitForExistence(timeout: 3))
+        
+        // Interact with elements
+        app.buttons["Action Button"].tap()
+        
+        // Verify result
+        XCTAssertTrue(app.sheets.firstMatch.exists)
+    }
+}
+```
+
+### Accessibility identifiers
+Add accessibility identifiers to views for reliable UI test targeting:
+```swift
+Text("Exercise Row")
+    .accessibilityIdentifier("exercise-timeline-row")
+```
+
+### Test file organization
+```
+Tests/BetterFitTests/
+├── ModelTests.swift           # Unit tests for models
+├── EquipmentSwapTests.swift   # Unit tests for feature managers
+├── IntegrationTests.swift     # Cross-feature flow tests
+└── ...
+
+Apps/iOS/BetterFitAppUITests/
+├── AdjustSetsUITests.swift    # UI tests for adjust sets feature
+└── ...                        # Add new UI test files per feature
+```
+
+### Best practices
+- Use `DEMO_MODE` launch argument for consistent test data in UI tests.
+- Keep unit tests fast (< 1s each) – avoid network/disk I/O.
+- Use `waitForExistence(timeout:)` in UI tests for async content.
+- Add accessibility identifiers to custom components for testability.
+- Run `mise run test` before committing to catch regressions early.
+- Run `mise run ios:test:ui` after UI changes to verify user flows.
 
 ## Docs entry points
 - Repo overview: `README.md`

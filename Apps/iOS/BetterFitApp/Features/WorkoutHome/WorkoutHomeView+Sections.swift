@@ -182,7 +182,7 @@ extension WorkoutHomeView {
 
     var streakVitalsSection: some View {
         let overallRecovery = bf.bodyMapManager.getOverallRecoveryPercentage()
-        let recoveryValue = "\(Int(overallRecovery))%"
+        let _ = "\(Int(overallRecovery))%"
         let range = heatmapDateRange()
 
         return VStack(alignment: .leading, spacing: 14) {
@@ -460,16 +460,29 @@ extension WorkoutHomeView {
     }
 
     func exercisesPreviewSection(for workout: Workout) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, we in
-                if index > 0 && shouldShowSupersetDivider(at: index, in: workout) {
-                    supersetDivider(at: index, in: workout)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            UnifiedExerciseTimeline(
+                exercises: Array(workout.exercises.prefix(5)),
+                selectedIndex: nil,
+                theme: theme,
+                showHeader: true,
+                headerTitle: "Exercises",
+                onSelect: { _ in },
+                onDelete: { _ in },
+                onReplace: nil,
+                onSuperset: nil,
+                onComplete: nil,
+                onMove: nil,
+                onAdd: nil
+            )
+            .frame(height: CGFloat(min(workout.exercises.count, 5)) * 88)
 
-                ExercisePreviewRow(
-                    exercise: we,
-                    theme: theme
-                )
+            if workout.exercises.count > 5 {
+                Text("+\(workout.exercises.count - 5) more exercises")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 8)
             }
         }
     }
