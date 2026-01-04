@@ -433,52 +433,59 @@ extension WorkoutHomeView {
 
     // MARK: - Workout Preview Section
     var workoutPreviewSection: some View {
-        let workouts = suggestedWorkouts
-        guard !workouts.isEmpty else { return AnyView(EmptyView()) }
-        let safeIndex = min(selectedWorkoutIndex, workouts.count - 1)
-        let workout = workouts[safeIndex]
+        // Use planManager's today plan as single source of truth
+        let plannedExercises = planManager?.getTodayPlan()?.exercises ?? []
 
         return AnyView(
             VStack(alignment: .leading, spacing: 16) {
                 // Target Muscles first (compact)
-                compactTargetMusclesSection(for: workout)
+                compactTargetMusclesSection(for: plannedExercises)
 
-                // Exercises list (compact, non-scrollable)
-                compactExercisesSection(for: workout)
+                // Exercises list (static, non-scrollable timeline)
+                staticExercisesTimeline(for: plannedExercises)
             }
         )
     }
 
-    func compactTargetMusclesSection(for workout: Workout) -> some View {
-        let muscleGroups = workout.exercises
-            .flatMap { $0.exercise.muscleGroups }
-            .reduce(into: [MuscleGroup: Int]()) { counts, group in
+    func compactTargetMusclesSection(for exercises: [PlannedExercise]) -> some View {
+        // Aggregate muscle groups from planned exercises
+        let muscleGroupCounts =
+            exercises
+            .flatMap { $0.muscleGroups }
+            .reduce(into: [String: Int]()) { counts, group in
                 counts[group, default: 0] += 1
             }
             .sorted { $0.value > $1.value }
             .prefix(4)
 
-        let totalCount = max(1, muscleGroups.reduce(0) { $0 + $1.value })
+        let totalCount = max(1, muscleGroupCounts.reduce(0) { $0 + $1.value })
 
         return VStack(alignment: .leading, spacing: 10) {
             Text("Target Muscles")
                 .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
-            HStack(spacing: 12) {
-                ForEach(Array(muscleGroups), id: \.key) { group, count in
-                    let percent = Int((Double(count) / Double(totalCount)) * 100)
-                    CompactMuscleChip(
-                        muscle: prettifyMuscleGroup(group.rawValue),
-                        percent: percent,
-                        theme: theme
-                    )
+            if muscleGroupCounts.isEmpty {
+                Text("No exercises planned")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                HStack(spacing: 12) {
+                    ForEach(Array(muscleGroupCounts), id: \.key) { group, count in
+                        let percent = Int((Double(count) / Double(totalCount)) * 100)
+                        CompactMuscleChip(
+                            muscle: prettifyMuscleGroup(group),
+                            percent: percent,
+                            theme: theme
+                        )
+                    }
                 }
             }
         }
     }
 
-    func compactExercisesSection(for workout: Workout) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    /// Static (non-scrollable) exercise timeline using PlannedExercise from planManager
+    func staticExercisesTimeline(for exercises: [PlannedExercise]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
                 Text("Exercises")
@@ -486,7 +493,7 @@ extension WorkoutHomeView {
 
                 Spacer()
 
-                Text("\(workout.exercises.count) exercises")
+                Text("\(exercises.count) exercises")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -499,26 +506,64 @@ extension WorkoutHomeView {
                 }
             }
 
-            // Compact exercise rows (non-scrollable)
-            VStack(spacing: 8) {
-                ForEach(Array(workout.exercises.prefix(4).enumerated()), id: \.element.id) {
-                    index, exercise in
-                    CompactExerciseRow(
-                        exercise: exercise,
-                        index: index,
-                        theme: theme
-                    )
+            // Static timeline rows (non-scrollable)
+            if exercises.isEmpty {
+                emptyExercisesState
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(exercises.prefix(5).enumerated()), id: \.element.id) {
+                        index, exercise in
+                        StaticTimelineRow(
+                            exercise: exercise,
+                            index: index,
+                            isFirst: index == 0,
+                            isLast: index == min(exercises.count, 5) - 1,
+                            theme: theme
+                        )
+                    }
                 }
 
-                if workout.exercises.count > 4 {
-                    Text("+\(workout.exercises.count - 4) more")
+                if exercises.count > 5 {
+                    Button {
+                        // Could expand to show all exercises
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("+\(exercises.count - 5) more")
+                            Image(systemName: "chevron.down")
+                        }
                         .font(.caption.weight(.medium))
                         .foregroundStyle(theme.accent)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 4)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 8)
                 }
             }
         }
+    }
+
+    private var emptyExercisesState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "list.bullet.clipboard")
+                .font(.system(size: 32, weight: .semibold))
+                .foregroundStyle(theme.accent.opacity(0.5))
+
+            Text("No exercises planned")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Button {
+                showAddExerciseSheet = true
+            } label: {
+                Text("Add Exercise")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(theme.accent))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
     }
 
     func targetMusclesSection(for workout: Workout) -> some View {
@@ -970,5 +1015,174 @@ private struct PlayingCardWorkoutCard: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(.regularMaterial, in: Capsule())
+    }
+}
+
+// MARK: - Static Timeline Row
+
+/// A static (non-scrollable) timeline row for PlannedExercise
+private struct StaticTimelineRow: View {
+    let exercise: PlannedExercise
+    let index: Int
+    let isFirst: Bool
+    let isLast: Bool
+    let theme: AppTheme
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            // Timeline indicator (left side)
+            timelineIndicator
+                .frame(width: 48)
+
+            // Exercise card
+            exerciseCard
+        }
+        .frame(height: 80)
+    }
+
+    // MARK: - Timeline Indicator
+
+    private var timelineIndicator: some View {
+        VStack(spacing: 0) {
+            // Top line
+            Rectangle()
+                .fill(isFirst ? Color.clear : theme.accent.opacity(0.3))
+                .frame(width: 2)
+
+            // Circle with number
+            ZStack {
+                Circle()
+                    .fill(theme.accent.opacity(0.15))
+                    .frame(width: 28, height: 28)
+
+                Text("\(index + 1)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(theme.accent)
+            }
+            .frame(width: 32, height: 32)
+
+            // Bottom line
+            Rectangle()
+                .fill(isLast ? Color.clear : theme.accent.opacity(0.3))
+                .frame(width: 2)
+        }
+        .frame(maxHeight: .infinity)
+    }
+
+    // MARK: - Exercise Card
+
+    private var exerciseCard: some View {
+        HStack(spacing: 12) {
+            // Gradient preview thumbnail
+            exercisePreviewImage
+                .frame(width: 52, height: 52)
+
+            // Exercise info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.displayName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(exercise.displayCategory.rawValue)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            // Sets info
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(exercise.displaySetsInfo)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                if let weight = exercise.displayWeight {
+                    Text(weight)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(theme.accent)
+                }
+            }
+
+            // Category icon
+            categoryIcon
+                .frame(width: 36, height: 36)
+        }
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(theme.cardStroke, lineWidth: 1)
+                }
+        }
+        .padding(.trailing, 12)
+    }
+
+    // MARK: - Exercise Preview Image (Gradient)
+
+    private var exercisePreviewImage: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Image(systemName: categorySystemImage)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.9))
+        }
+    }
+
+    private var gradientColors: [Color] {
+        switch exercise.displayCategory {
+        case .push: return [.blue, .cyan]
+        case .pull: return [.purple, .pink]
+        case .legs: return [.orange, .yellow]
+        case .core: return [.yellow, .orange]
+        case .cardio: return [.red, .orange]
+        case .compound: return [.green, .teal]
+        case .all: return [.gray, .secondary]
+        }
+    }
+
+    private var categorySystemImage: String {
+        switch exercise.displayCategory {
+        case .push: return "arrow.up"
+        case .pull: return "arrow.down"
+        case .legs: return "figure.walk"
+        case .core: return "circle.circle"
+        case .cardio: return "heart"
+        case .compound: return "dumbbell"
+        case .all: return "figure.mixed.cardio"
+        }
+    }
+
+    private var categoryIcon: some View {
+        ZStack {
+            Circle()
+                .fill(categoryColor.opacity(0.15))
+
+            Image(systemName: categorySystemImage)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(categoryColor)
+        }
+    }
+
+    private var categoryColor: Color {
+        switch exercise.displayCategory {
+        case .push: return .blue
+        case .pull: return .purple
+        case .legs: return .orange
+        case .core: return .yellow
+        case .cardio: return .red
+        case .compound: return theme.accent
+        case .all: return .gray
+        }
     }
 }
