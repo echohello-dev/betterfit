@@ -167,17 +167,32 @@ struct BetterFitApp: App {
                         .presentationDragIndicator(.visible)
                     }
                     .overlay(alignment: .bottom) {
-                        // Show warning banner above Start Workout button if guest mode
-                        if !config.isSupabaseConfigured && showConfigWarning {
-                            configWarningBanner(
-                                icon: "info.circle.fill",
-                                message: "Running in guest mode. Cloud features are disabled.",
-                                color: .blue,
-                                theme: theme
-                            )
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 126)  // Above Start Workout button + tab bar
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        // Show appropriate banner based on Supabase configuration
+                        if authService.isGuest && showConfigWarning {
+                            if config.isSupabaseConfigured {
+                                // Supabase configured - prompt to sign in
+                                configWarningBanner(
+                                    icon: "info.circle.fill",
+                                    message: "You're in guest mode. Sign in to sync across devices.",
+                                    color: .blue,
+                                    theme: theme,
+                                    onSignIn: { showSignIn = true }
+                                )
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 126)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                            } else {
+                                // Supabase not configured - inform user
+                                configWarningBanner(
+                                    icon: "exclamationmark.triangle.fill",
+                                    message: "Running in guest mode. Cloud features are disabled.",
+                                    color: .orange,
+                                    theme: theme
+                                )
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 126)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                            }
                         }
                     }
                 } else {
@@ -313,7 +328,8 @@ struct BetterFitApp: App {
         icon: String,
         message: String,
         color: Color,
-        theme: AppTheme
+        theme: AppTheme,
+        onSignIn: (() -> Void)? = nil
     ) -> some View {
         let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
 
@@ -328,6 +344,20 @@ struct BetterFitApp: App {
                 .lineLimit(2)
 
             Spacer(minLength: 0)
+
+            if let signIn = onSignIn {
+                Button {
+                    signIn()
+                } label: {
+                    Text("Sign In")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(color))
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+            }
 
             Button {
                 withAnimation {
