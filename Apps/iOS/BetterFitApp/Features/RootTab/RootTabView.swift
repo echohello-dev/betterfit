@@ -303,7 +303,9 @@ struct RootTabView: View {
                     betterFit: betterFit,
                     theme: theme,
                     healthKitManager: healthKitManager,
-                    planManager: planManager
+                    planManager: planManager,
+                    isGuest: isGuest,
+                    onShowSignIn: onShowSignIn
                 )
             }
         case .plan:
