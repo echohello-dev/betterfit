@@ -173,7 +173,8 @@ struct BetterFitApp: App {
                                 // Supabase configured - prompt to sign in
                                 configWarningBanner(
                                     icon: "info.circle.fill",
-                                    message: "You're in guest mode. Sign in to sync across devices.",
+                                    message:
+                                        "You're in guest mode. Sign in to sync across devices.",
                                     color: .blue,
                                     theme: theme,
                                     onSignIn: { showSignIn = true }
