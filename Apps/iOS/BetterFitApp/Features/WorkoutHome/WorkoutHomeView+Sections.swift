@@ -440,13 +440,84 @@ extension WorkoutHomeView {
 
         return AnyView(
             VStack(alignment: .leading, spacing: 16) {
-                // Exercises list (placed first so it's visible)
-                exercisesPreviewSection(for: workout)
+                // Target Muscles first (compact)
+                compactTargetMusclesSection(for: workout)
 
-                // Target Muscles
-                targetMusclesSection(for: workout)
+                // Exercises list (compact, non-scrollable)
+                compactExercisesSection(for: workout)
             }
         )
+    }
+
+    func compactTargetMusclesSection(for workout: Workout) -> some View {
+        let muscleGroups = workout.exercises
+            .flatMap { $0.exercise.muscleGroups }
+            .reduce(into: [MuscleGroup: Int]()) { counts, group in
+                counts[group, default: 0] += 1
+            }
+            .sorted { $0.value > $1.value }
+            .prefix(4)
+
+        let totalCount = max(1, muscleGroups.reduce(0) { $0 + $1.value })
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Target Muscles")
+                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+
+            HStack(spacing: 12) {
+                ForEach(Array(muscleGroups), id: \.key) { group, count in
+                    let percent = Int((Double(count) / Double(totalCount)) * 100)
+                    CompactMuscleChip(
+                        muscle: prettifyMuscleGroup(group.rawValue),
+                        percent: percent,
+                        theme: theme
+                    )
+                }
+            }
+        }
+    }
+
+    func compactExercisesSection(for workout: Workout) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header
+            HStack {
+                Text("Exercises")
+                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+
+                Spacer()
+
+                Text("\(workout.exercises.count) exercises")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    showAddExerciseSheet = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(theme.accent)
+                }
+            }
+
+            // Compact exercise rows (non-scrollable)
+            VStack(spacing: 8) {
+                ForEach(Array(workout.exercises.prefix(4).enumerated()), id: \.element.id) { index, exercise in
+                    CompactExerciseRow(
+                        exercise: exercise,
+                        index: index,
+                        theme: theme
+                    )
+                }
+
+                if workout.exercises.count > 4 {
+                    Text("+\(workout.exercises.count - 4) more")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(theme.accent)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 4)
+                }
+            }
+        }
     }
 
     func targetMusclesSection(for workout: Workout) -> some View {
@@ -718,36 +789,45 @@ private struct WorkoutCardStackContainer: View {
                 }
             }
 
-            // Card stack with swipe gesture
+            // Playing card stack with offset and rotation
             ZStack {
+                // Show up to 3 cards behind the current one
                 ForEach(Array(workouts.enumerated().reversed()), id: \.offset) { index, workout in
+                    let relativeIndex = index - safeIndex
                     let isTop = index == safeIndex
-                    let offset = CGFloat(index - safeIndex)
+                    let isVisible = relativeIndex >= 0 && relativeIndex <= 2
 
-                    WorkoutHomeView.WorkoutSwipeCard(
-                        workout: workout,
-                        theme: theme,
-                        isTopCard: isTop
-                    )
-                    .offset(x: isTop ? cardSwipeOffset : 0)
-                    .offset(y: offset * 6)
-                    .scaleEffect(1 - abs(offset) * 0.04)
-                    .opacity(index >= safeIndex && index <= safeIndex + 2 ? 1 : 0)
-                    .zIndex(Double(workouts.count - index))
-                    .gesture(
-                        isTop ? swipeGesture : nil
-                    )
+                    if isVisible {
+                        PlayingCardWorkoutCard(
+                            workout: workout,
+                            theme: theme,
+                            isTopCard: isTop
+                        )
+                        .offset(x: isTop ? cardSwipeOffset : CGFloat(relativeIndex) * 8)
+                        .offset(y: CGFloat(relativeIndex) * -4)
+                        .rotationEffect(.degrees(Double(relativeIndex) * 2), anchor: .bottom)
+                        .scaleEffect(1 - Double(relativeIndex) * 0.03)
+                        .opacity(1 - Double(relativeIndex) * 0.15)
+                        .zIndex(Double(workouts.count - index))
+                        .gesture(isTop ? swipeGesture : nil)
+                    }
                 }
             }
             .frame(height: 172)
+            .padding(.top, 8)
 
             // Page indicator - only show if more than 1 workout
             if workouts.count > 1 {
                 HStack(spacing: 6) {
-                    ForEach(0..<min(workouts.count, 4), id: \.self) { idx in
+                    ForEach(0..<min(workouts.count, 5), id: \.self) { idx in
                         Circle()
                             .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
                             .frame(width: 6, height: 6)
+                    }
+                    if workouts.count > 5 {
+                        Text("+\(workouts.count - 5)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -788,5 +868,106 @@ private struct WorkoutCardStackContainer: View {
                     }
                 }
             }
+    }
+}
+
+// MARK: - Playing Card Style Workout Card
+private struct PlayingCardWorkoutCard: View {
+    let workout: Workout
+    let theme: AppTheme
+    let isTopCard: Bool
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // Workout icon/image placeholder
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(theme.accent.opacity(0.15))
+                    .frame(width: 100, height: 140)
+
+                VStack(spacing: 8) {
+                    Image(systemName: iconForWorkout)
+                        .font(.system(size: 36))
+                        .foregroundStyle(theme.accent)
+
+                    Text(workoutType)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            // Workout details
+            VStack(alignment: .leading, spacing: 8) {
+                Text(workout.name)
+                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+                    .lineLimit(2)
+
+                // Quick stats row
+                HStack(spacing: 16) {
+                    Label("1h", systemImage: "clock")
+                    Label("Equipment", systemImage: "dumbbell")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    workoutPill(workoutType)
+                    workoutPill("Intermediate")
+                }
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 172)
+        .background {
+            if #available(iOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.thickMaterial)
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+            } else {
+                let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+                shape
+                    .fill(.thickMaterial)
+                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    .shadow(
+                        color: Color.black.opacity(
+                            theme.preferredColorScheme == .dark ? 0.3 : 0.12),
+                        radius: theme.preferredColorScheme == .dark ? 16 : 12,
+                        x: 0,
+                        y: 6
+                    )
+            }
+        }
+    }
+
+    private var iconForWorkout: String {
+        let name = workout.name.lowercased()
+        if name.contains("run") { return "figure.run" }
+        if name.contains("yoga") { return "figure.yoga" }
+        if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
+        if name.contains("hiit") { return "flame.fill" }
+        if name.contains("push") { return "figure.strengthtraining.traditional" }
+        if name.contains("pull") { return "figure.rowing" }
+        if name.contains("leg") { return "figure.walk" }
+        return "figure.mixed.cardio"
+    }
+
+    private var workoutType: String {
+        let name = workout.name.lowercased()
+        if name.contains("cardio") || name.contains("run") { return "Cardio" }
+        if name.contains("yoga") { return "Flexibility" }
+        if name.contains("hiit") { return "HIIT" }
+        return "Circuit Training"
+    }
+
+    func workoutPill(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.regularMaterial, in: Capsule())
     }
 }

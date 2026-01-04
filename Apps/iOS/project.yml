@@ -37,6 +37,10 @@ targets:
             UIWindowSceneSessionRoleApplication:
               - UISceneConfigurationName: Default Configuration
                 UISceneDelegateClassName: ""
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLSchemes:
+              - betterfit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFit
