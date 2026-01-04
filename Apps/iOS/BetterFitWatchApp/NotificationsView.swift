@@ -7,8 +7,35 @@ struct NotificationsView: View {
     @State private var isReminderEnabled = false
     @State private var selectedDays: Set<Int> = []
 
+    private var isGuest: Bool {
+        // Check if Supabase is configured and user is not authenticated
+        let config = AppConfiguration()
+        return config.isSupabaseConfigured && !appState.betterFit.authService.isAuthenticated
+    }
+
     var body: some View {
         List {
+            // Guest Sign In Prompt
+            if isGuest {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.title3)
+                                .foregroundStyle(.blue)
+
+                            Text("Sign In")
+                                .font(.headline)
+                        }
+
+                        Text("Sign in on your iPhone to sync reminders across devices.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             Section {
                 Toggle("Workout Reminders", isOn: $isReminderEnabled)
                     .font(.headline)

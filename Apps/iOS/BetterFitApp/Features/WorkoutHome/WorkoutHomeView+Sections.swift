@@ -4,6 +4,43 @@ import SwiftUI
 extension WorkoutHomeView {
     // MARK: - Sections
 
+    // MARK: - Guest Sign In Card
+
+    @ViewBuilder
+    var guestSignInCard: some View {
+        if isGuest, let signIn = onShowSignIn {
+            BFCard(theme: theme) {
+                HStack(spacing: 14) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.title2)
+                        .foregroundStyle(theme.accent)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Create an Account")
+                            .font(.subheadline.weight(.semibold))
+
+                        Text("Sync workouts across devices and unlock cloud features")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        signIn()
+                    } label: {
+                        Text("Sign Up")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(theme.accent))
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
+        }
+    }
+
     var welcomeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {

@@ -8,6 +8,8 @@ struct WorkoutHomeView: View {
     let theme: AppTheme
     let healthKitManager: HealthKitManager?
     let planManager: WorkoutPlanManager?
+    let isGuest: Bool
+    let onShowSignIn: (() -> Void)?
 
     let demoModeOverride: Bool?
 
@@ -61,12 +63,15 @@ struct WorkoutHomeView: View {
 
     init(
         betterFit: BetterFit, theme: AppTheme, healthKitManager: HealthKitManager? = nil,
-        planManager: WorkoutPlanManager? = nil, demoMode: Bool? = nil
+        planManager: WorkoutPlanManager? = nil, isGuest: Bool = false,
+        onShowSignIn: (() -> Void)? = nil, demoMode: Bool? = nil
     ) {
         self.betterFit = betterFit
         self.theme = theme
         self.healthKitManager = healthKitManager
         self.planManager = planManager
+        self.isGuest = isGuest
+        self.onShowSignIn = onShowSignIn
         self.demoModeOverride = demoMode
     }
 
@@ -91,6 +96,9 @@ struct WorkoutHomeView: View {
                 } else {
                     welcomeSection
                 }
+
+                // Guest Sign In Prompt
+                guestSignInCard
 
                 // Apple Health Connection Reminder
                 if let hkManager = healthKitManager, hkManager.shouldShowConnectionPrompt {
