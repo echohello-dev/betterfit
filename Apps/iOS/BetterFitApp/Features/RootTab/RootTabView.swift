@@ -308,7 +308,7 @@ struct RootTabView: View {
             }
         case .plan:
             NavigationStack {
-                PlanView(betterFit: betterFit, theme: theme)
+                PlanView(betterFit: betterFit, theme: theme, planManager: planManager)
             }
         case .search:
             AppSearchView(

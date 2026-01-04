@@ -41,3 +41,4 @@ Don’t delete old ADRs; supersede them.
 Keep a simple list below. Add new ADRs at the bottom.
 
 - [0001: Supabase for Authentication and Data Persistence](0001-supabase-auth-and-persistence.md) – Multi-platform auth (Apple Sign In) + PostgreSQL persistence, enabling guest mode and future Android/Web expansion.
+- [0002: Consolidate Exercise Templates in Swift Library](0002-exercise-templates-in-library.md) – Single source of truth for exercise templates shared across iOS and watchOS apps.

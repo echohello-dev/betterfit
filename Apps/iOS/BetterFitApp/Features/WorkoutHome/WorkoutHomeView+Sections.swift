@@ -440,11 +440,11 @@ extension WorkoutHomeView {
 
         return AnyView(
             VStack(alignment: .leading, spacing: 16) {
+                // Exercises list (placed first so it's visible)
+                exercisesPreviewSection(for: workout)
+
                 // Target Muscles
                 targetMusclesSection(for: workout)
-
-                // Exercises list
-                exercisesPreviewSection(for: workout)
             }
         )
     }
@@ -481,7 +481,11 @@ extension WorkoutHomeView {
         let displayCount = min(workout.exercises.count, 5)
         let rowHeight: CGFloat = 88
         let headerHeight: CGFloat = 32
-        let listHeight = CGFloat(displayCount) * rowHeight + headerHeight
+        let emptyStateHeight: CGFloat = 120  // Height for empty state (icon + text + button)
+        let listHeight: CGFloat =
+            displayCount > 0
+            ? CGFloat(displayCount) * rowHeight + headerHeight
+            : headerHeight + emptyStateHeight
 
         return VStack(alignment: .leading, spacing: 0) {
             UnifiedExerciseTimeline(
@@ -496,7 +500,7 @@ extension WorkoutHomeView {
                 onSuperset: nil,
                 onComplete: nil,
                 onMove: nil,
-                onAdd: nil
+                onAdd: { showAddExerciseSheet = true }
             )
             .frame(height: listHeight)
 

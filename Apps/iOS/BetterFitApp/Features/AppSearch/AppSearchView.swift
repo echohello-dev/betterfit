@@ -229,7 +229,7 @@ struct AppSearchView: View {
             )
         #endif
 
-        let exerciseItems = allExercises.map {
+        let exerciseItems = ExerciseTemplate.allTemplates.map {
             SearchCategoryItem(
                 id: "exercise.\($0.name)",
                 title: $0.name,
@@ -267,26 +267,6 @@ struct AppSearchView: View {
         }
 
         return result
-    }
-
-    private struct SearchExercise: Hashable {
-        let name: String
-        let subtitle: String
-    }
-
-    private var allExercises: [SearchExercise] {
-        [
-            SearchExercise(name: "Bench Press", subtitle: "Chest • Triceps"),
-            SearchExercise(name: "Incline Dumbbell Press", subtitle: "Chest • Shoulders"),
-            SearchExercise(name: "Squat", subtitle: "Legs • Core"),
-            SearchExercise(name: "Romanian Deadlift", subtitle: "Hamstrings • Back"),
-            SearchExercise(name: "Deadlift", subtitle: "Back • Legs"),
-            SearchExercise(name: "Pull Up", subtitle: "Back • Arms"),
-            SearchExercise(name: "Lat Pulldown", subtitle: "Back"),
-            SearchExercise(name: "Overhead Press", subtitle: "Shoulders • Triceps"),
-            SearchExercise(name: "Barbell Row", subtitle: "Back"),
-            SearchExercise(name: "Bicep Curl", subtitle: "Arms"),
-        ]
     }
 
     private var searchResults: [SearchResult] {
@@ -342,7 +322,8 @@ struct AppSearchView: View {
         }
 
         // Exercises
-        for exercise in allExercises where exercise.name.lowercased().contains(needle) {
+        for exercise in ExerciseTemplate.allTemplates
+        where exercise.name.lowercased().contains(needle) {
             let exerciseCategory = categories.first { $0.id == "exercises" } ?? categories[0]
             results.append(
                 SearchResult(

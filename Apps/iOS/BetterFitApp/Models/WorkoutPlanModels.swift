@@ -208,7 +208,21 @@ final class WorkoutPlanManager {
         if var planDay = planDays[startOfDay] {
             planDay.exercises.append(exercise)
             planDays[startOfDay] = planDay
+        } else {
+            // Create a new plan day if one doesn't exist
+            let newDay = WorkoutPlanDay(
+                date: startOfDay,
+                workoutType: .fullBody,
+                exercises: [exercise],
+                isRest: false
+            )
+            planDays[startOfDay] = newDay
         }
+    }
+
+    /// Add exercise to today's plan
+    func addExerciseToToday(_ exercise: PlannedExercise) {
+        addExercise(exercise, to: Date.now)
     }
 
     /// Remove exercise from a date

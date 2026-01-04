@@ -7,11 +7,11 @@ import SwiftUI
 struct PlanView: View {
     let betterFit: BetterFit
     let theme: AppTheme
+    let planManager: WorkoutPlanManager
 
     @State private var map: BodyMapRecovery = .init()
     @State private var showExercisePicker = false
     @State private var selectedDayIndex: Int = 0
-    @State private var planManager = WorkoutPlanManager()
     @State private var showAdjustSetsSheet = false
     @State private var exerciseToAdjust: PlannedExercise?
 
@@ -353,6 +353,6 @@ struct PlanView: View {
 #Preview {
     UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
     return NavigationStack {
-        PlanView(betterFit: BetterFit(), theme: .forest)
+        PlanView(betterFit: BetterFit(), theme: .forest, planManager: WorkoutPlanManager())
     }
 }
