@@ -8,6 +8,7 @@ struct SignInView: View {
     let theme: AppTheme
     let onSignIn: (String, String) async throws -> Void  // Apple: idToken, nonce
     let onEmailSignIn: (String, String) async throws -> Void  // Email/Password: email, password
+    let onGoogleSignIn: () async throws -> Void  // Google OAuth
     let onGuestMode: () -> Void
     var onDismiss: (() -> Void)?  // Optional dismiss callback for sheet presentation
 
@@ -106,15 +107,7 @@ struct SignInView: View {
 
                 // Google Sign In Button
                 Button {
-                    Task {
-                        isLoading = true
-                        defer { isLoading = false }
-                        do {
-                            // In a real app, you'd handle the OAuth redirect
-                            // For now, show email sign-in as fallback
-                            showEmailSignIn = true
-                        }
-                    }
+                    handleGoogleSignIn()
                 } label: {
                     HStack {
                         Image(systemName: "g.circle.fill")
@@ -306,6 +299,24 @@ struct SignInView: View {
 
     // MARK: - Handlers
 
+    private func handleGoogleSignIn() {
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                try await onGoogleSignIn()
+                isLoading = false
+                // OAuth flow will open in browser and redirect back via betterfit:// URL
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "Google sign in failed: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
     private func handleSignInWithAppleResult(_ result: Result<ASAuthorization, Error>) {
         switch result {
         case .success(let authorization):
@@ -433,6 +444,10 @@ struct SignInView: View {
         },
         onEmailSignIn: { email, password in
             print("Sign in with email: \(email)")
+            try await Task.sleep(for: .seconds(1))
+        },
+        onGoogleSignIn: {
+            print("Sign in with Google")
             try await Task.sleep(for: .seconds(1))
         },
         onGuestMode: {

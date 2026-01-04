@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct BetterFitApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     @StateObject private var authService: AuthService
     @State private var betterFit: BetterFit?
     @State private var showSignIn = false
@@ -80,6 +82,14 @@ struct BetterFitApp: App {
                             hasCompletedOnboarding = true
                             showSignIn = false
                         },
+                        onGoogleSignIn: {
+                            guard config.isSupabaseConfigured else {
+                                // Supabase not configured - ignore sign in attempt
+                                return
+                            }
+                            try await authService.signInWithGoogle()
+                            // OAuth flow opens in browser, redirect handled by AppDelegate
+                        },
                         onGuestMode: {
                             authService.continueAsGuest()
                             hasCompletedOnboarding = true
@@ -139,6 +149,11 @@ struct BetterFitApp: App {
                                     email: email, password: password)
                                 await migrateGuestDataIfNeeded()
                                 showSignIn = false
+                            },
+                            onGoogleSignIn: {
+                                guard config.isSupabaseConfigured else { return }
+                                try await authService.signInWithGoogle()
+                                // OAuth flow opens in browser, redirect handled by AppDelegate
                             },
                             onGuestMode: {
                                 authService.continueAsGuest()

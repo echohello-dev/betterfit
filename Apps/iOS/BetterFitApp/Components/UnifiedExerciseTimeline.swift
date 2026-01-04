@@ -70,8 +70,7 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
     private var headerRow: some View {
         HStack {
             Text(headerTitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
+                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
             Spacer()
 

@@ -2,6 +2,162 @@ import BetterFit
 import SwiftUI
 
 extension WorkoutHomeView {
+    // MARK: - Compact Components
+
+    struct CompactMuscleChip: View {
+        let muscle: String
+        let percent: Int
+        let theme: AppTheme
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: muscleIcon)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+
+                Text(muscle)
+                    .font(.caption.weight(.semibold))
+
+                Text("\(percent)%")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.regularMaterial, in: Capsule())
+            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+        }
+
+        private var muscleIcon: String {
+            switch muscle.lowercased() {
+            case "back", "lats": return "figure.strengthtraining.traditional"
+            case "hamstrings", "legs", "quadriceps", "calves": return "figure.walk"
+            case "chest": return "figure.arms.open"
+            case "shoulders": return "figure.wrestling"
+            case "core", "abs": return "figure.core.training"
+            case "biceps", "triceps", "arms": return "figure.boxing"
+            default: return "figure.mixed.cardio"
+            }
+        }
+    }
+
+    struct CompactExerciseRow: View {
+        let exercise: WorkoutExercise
+        let index: Int
+        let theme: AppTheme
+
+        var body: some View {
+            HStack(spacing: 10) {
+                // Index circle
+                ZStack {
+                    Circle()
+                        .fill(theme.accent.opacity(0.15))
+                        .frame(width: 28, height: 28)
+                    Text("\(index + 1)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(theme.accent)
+                }
+
+                // Exercise icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 36, height: 36)
+
+                    Image(systemName: categoryIcon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+
+                // Name and category
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exercise.exercise.name)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+
+                    Text(categoryName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                // Sets info
+                Text(setsInfo)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                // Category icon
+                ZStack {
+                    Circle()
+                        .fill(categoryColor.opacity(0.15))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: categoryIcon)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(categoryColor)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.regularMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(theme.cardStroke, lineWidth: 1)
+                    }
+            }
+        }
+
+        private var categoryName: String {
+            let name = exercise.exercise.name.lowercased()
+            if name.contains("run") || name.contains("cardio") { return "Cardio" }
+            if name.contains("press") || name.contains("push") { return "Push" }
+            if name.contains("row") || name.contains("pull") { return "Pull" }
+            if name.contains("squat") || name.contains("leg") { return "Legs" }
+            return "Compound"
+        }
+
+        private var setsInfo: String {
+            let sets = exercise.sets.count
+            let reps = exercise.sets.first?.reps ?? 0
+            return "\(sets) sets × \(reps)"
+        }
+
+        private var gradientColors: [Color] {
+            let name = exercise.exercise.name.lowercased()
+            if name.contains("run") || name.contains("cardio") { return [.red, .orange] }
+            if name.contains("press") || name.contains("push") { return [.blue, .cyan] }
+            if name.contains("row") || name.contains("pull") { return [.purple, .pink] }
+            if name.contains("squat") || name.contains("leg") { return [.orange, .yellow] }
+            return [.green, .teal]
+        }
+
+        private var categoryIcon: String {
+            let name = exercise.exercise.name.lowercased()
+            if name.contains("run") { return "figure.run" }
+            if name.contains("press") { return "arrow.up" }
+            if name.contains("row") || name.contains("pull") { return "arrow.down" }
+            if name.contains("squat") || name.contains("leg") { return "figure.walk" }
+            return "dumbbell"
+        }
+
+        private var categoryColor: Color {
+            let name = exercise.exercise.name.lowercased()
+            if name.contains("run") || name.contains("cardio") { return .red }
+            if name.contains("press") || name.contains("push") { return .blue }
+            if name.contains("row") || name.contains("pull") { return .purple }
+            if name.contains("squat") || name.contains("leg") { return .orange }
+            return .green
+        }
+    }
+
     // MARK: - Components
 
     struct WorkoutSwipeCard: View {

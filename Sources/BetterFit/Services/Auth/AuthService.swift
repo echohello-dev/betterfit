@@ -24,6 +24,20 @@ public final class AuthService: ObservableObject {
         Task {
             await restoreSession()
         }
+
+        // Listen for OAuth callback URLs
+        NotificationCenter.default.addObserver(
+            forName: .authCallbackReceived,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self else { return }
+            guard let url = notification.userInfo?["url"] as? URL else { return }
+
+            Task {
+                await self.handleOAuthCallback(url: url)
+            }
+        }
     }
 
     // MARK: - Session Management
@@ -114,6 +128,23 @@ public final class AuthService: ObservableObject {
         )
     }
 
+    /// Handle OAuth callback from Google (or other providers)
+    /// Called when the app is opened with betterfit://auth/callback URL
+    private func handleOAuthCallback(url: URL) async {
+        do {
+            // Extract the session from the callback URL
+            try await supabaseClient.auth.session(from: url)
+
+            // Session is now stored, update our state
+            let session = try await supabaseClient.auth.session
+            self.user = session.user
+            self.isAuthenticated = true
+            self.isGuest = false
+        } catch {
+            print("Failed to handle OAuth callback: \(error)")
+        }
+    }
+
     // MARK: - Email & Password
 
     /// Sign up with email and password
@@ -169,4 +200,10 @@ public final class AuthService: ObservableObject {
     public var client: SupabaseClient {
         return supabaseClient
     }
+}
+
+// MARK: - Notification Extension
+
+extension Notification.Name {
+    static let authCallbackReceived = Notification.Name("AuthCallbackReceived")
 }
