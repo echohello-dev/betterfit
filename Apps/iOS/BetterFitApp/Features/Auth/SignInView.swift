@@ -9,6 +9,7 @@ struct SignInView: View {
     let onSignIn: (String, String) async throws -> Void  // Apple: idToken, nonce
     let onEmailSignIn: (String, String) async throws -> Void  // Email/Password: email, password
     let onGuestMode: () -> Void
+    var onDismiss: (() -> Void)?  // Optional dismiss callback for sheet presentation
 
     @State private var currentNonce: String?
     @State private var isLoading = false
@@ -45,6 +46,23 @@ struct SignInView: View {
 
     private var mainSignInContent: some View {
         VStack(spacing: 32) {
+            // Close button when dismissible
+            if let onDismiss {
+                HStack {
+                    Spacer()
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
+                    .disabled(isLoading)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+            }
+
             Spacer()
 
             // MARK: - Logo & Title

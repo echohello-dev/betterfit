@@ -134,6 +134,28 @@ else
 fi
 """
 
+[tasks."ios:test:ui"]
+run = """
+cd Apps/iOS
+xcodegen generate
+
+UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --prefer "iPhone 16 Plus" \
+  --prefer "iPhone 16 Pro Max" \
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
+
+if [ -n "$UDID" ]; then
+  xcodebuild test -project BetterFit.xcodeproj -scheme BetterFit -destination "id=$UDID" -only-testing:BetterFitAppUITests
+else
+  xcodebuild test -project BetterFit.xcodeproj -scheme BetterFit -destination 'generic/platform=iOS Simulator' -only-testing:BetterFitAppUITests
+fi
+"""
+description = "Run UI tests for adjust sets functionality"
+
 [tasks."ios:sim:boot26"]
 run = """
 set -euo pipefail

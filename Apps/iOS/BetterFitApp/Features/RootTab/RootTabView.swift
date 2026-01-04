@@ -40,6 +40,10 @@ struct RootTabView: View {
     @State private var activeWorkoutId: UUID?  // Track for button state updates
     @State private var isWorkoutPaused = false
     @State private var showStopConfirmation = false
+    @State private var healthKitManager: HealthKitManager?
+
+    // Shared workout plan manager across views
+    @State private var planManager = WorkoutPlanManager()
 
     /// Returns the tab to navigate back to when dismissing search
     private var tabToReturnTo: AppTab {
@@ -52,48 +56,55 @@ struct RootTabView: View {
     }
 
     var body: some View {
-        if #available(iOS 26.0, *) {
-            TabView(selection: $selectedTab) {
-                ForEach(AppTab.allCases, id: \.self) { tab in
-                    Tab(value: tab, role: tab == .search ? .search : nil) {
-                        tabContent(for: tab)
-                    } label: {
-                        Label(tab.title, systemImage: tab.icon)
-                    }
-                }
-            }
-            .tint(theme.accent)
-            .tabBarMinimizeBehavior(.onScrollDown)
-            .onChange(of: selectedTab) { oldTab, newTab in
-                if newTab == .search && oldTab != .search {
-                    previousTab = oldTab
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                startWorkoutButton
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 60)
-            }
-        } else {
-            TabView(selection: $selectedTab) {
-                ForEach(AppTab.allCases, id: \.self) { tab in
-                    tabContent(for: tab)
-                        .tabItem {
+        Group {
+            if #available(iOS 26.0, *) {
+                TabView(selection: $selectedTab) {
+                    ForEach(AppTab.allCases, id: \.self) { tab in
+                        Tab(value: tab, role: tab == .search ? .search : nil) {
+                            tabContent(for: tab)
+                        } label: {
                             Label(tab.title, systemImage: tab.icon)
                         }
-                        .tag(tab)
+                    }
+                }
+                .tint(theme.accent)
+                .tabBarMinimizeBehavior(.onScrollDown)
+                .onChange(of: selectedTab) { oldTab, newTab in
+                    if newTab == .search && oldTab != .search {
+                        previousTab = oldTab
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    startWorkoutButton
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 60)
+                }
+            } else {
+                TabView(selection: $selectedTab) {
+                    ForEach(AppTab.allCases, id: \.self) { tab in
+                        tabContent(for: tab)
+                            .tabItem {
+                                Label(tab.title, systemImage: tab.icon)
+                            }
+                            .tag(tab)
+                    }
+                }
+                .tint(theme.accent)
+                .onChange(of: selectedTab) { oldTab, newTab in
+                    if newTab == .search && oldTab != .search {
+                        previousTab = oldTab
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    startWorkoutButton
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 60)
                 }
             }
-            .tint(theme.accent)
-            .onChange(of: selectedTab) { oldTab, newTab in
-                if newTab == .search && oldTab != .search {
-                    previousTab = oldTab
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                startWorkoutButton
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 60)
+        }
+        .onAppear {
+            if healthKitManager == nil {
+                healthKitManager = HealthKitManager(healthKitService: betterFit.healthKitService)
             }
         }
     }
@@ -288,7 +299,12 @@ struct RootTabView: View {
         switch tab {
         case .workout:
             NavigationStack {
-                WorkoutHomeView(betterFit: betterFit, theme: theme)
+                WorkoutHomeView(
+                    betterFit: betterFit,
+                    theme: theme,
+                    healthKitManager: healthKitManager,
+                    planManager: planManager
+                )
             }
         case .plan:
             NavigationStack {
@@ -307,8 +323,12 @@ struct RootTabView: View {
         case .me:
             NavigationStack {
                 ProfileView(
-                    betterFit: betterFit, theme: theme, isGuest: isGuest,
-                    onShowSignIn: onShowSignIn, onLogout: onLogout)
+                    betterFit: betterFit,
+                    theme: theme,
+                    isGuest: isGuest,
+                    onShowSignIn: onShowSignIn,
+                    onLogout: onLogout
+                )
             }
         }
     }
