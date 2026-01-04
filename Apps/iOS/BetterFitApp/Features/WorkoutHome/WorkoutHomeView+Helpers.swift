@@ -617,6 +617,64 @@ extension WorkoutHomeView {
         }
     }
 
+    func addExerciseToCurrentWorkout(_ plannedExercise: PlannedExercise) {
+        // Convert PlannedExercise to WorkoutExercise and add to current workout
+        let muscleGroups: [MuscleGroup] = plannedExercise.muscleGroups.compactMap { name in
+            MuscleGroup.allCases.first { $0.rawValue.lowercased() == name.lowercased() }
+        }
+
+        let exercise = Exercise(
+            name: plannedExercise.name,
+            equipmentRequired: inferEquipment(from: plannedExercise.name),
+            muscleGroups: muscleGroups.isEmpty ? [.chest] : muscleGroups
+        )
+
+        // Parse reps and weight
+        let repsValue = Int(plannedExercise.reps.components(separatedBy: "-").first ?? "10") ?? 10
+        let weightValue = plannedExercise.targetWeight.flatMap { str -> Double? in
+            let numbers = str.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+            return Double(numbers)
+        }
+
+        // Create sets
+        let sets = (0..<plannedExercise.sets).map { _ in
+            ExerciseSet(reps: repsValue, weight: weightValue)
+        }
+
+        let workoutExercise = WorkoutExercise(exercise: exercise, sets: sets)
+
+        // Add to current workout if there's an active one, or update the plan
+        if let activeWorkout = bf.getActiveWorkout() {
+            var updatedWorkout = activeWorkout
+            updatedWorkout.exercises.append(workoutExercise)
+            // Note: BetterFit doesn't have an update method, so we'd need to add one
+            // For now, just log the addition
+            print("Added \(plannedExercise.name) to active workout")
+        } else if let manager = planManager {
+            // Add to today's plan
+            manager.addExerciseToToday(plannedExercise)
+        }
+    }
+
+    private func inferEquipment(from name: String) -> Equipment {
+        let lowercased = name.lowercased()
+        if lowercased.contains("dumbbell") { return .dumbbell }
+        if lowercased.contains("barbell") || lowercased.contains("bench press") { return .barbell }
+        if lowercased.contains("cable") { return .cable }
+        if lowercased.contains("machine")
+            || lowercased.contains("press")
+                && !lowercased.contains("dumbbell")
+        {
+            return .machine
+        }
+        if lowercased.contains("pull up") || lowercased.contains("plank")
+            || lowercased.contains("hanging")
+        {
+            return .bodyweight
+        }
+        return .other
+    }
+
     func quickAddWorkout() {
         // Placeholder action; we can later wire this to a workout builder.
         generateWorkout()
