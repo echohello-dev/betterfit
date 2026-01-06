@@ -1,3 +1,4 @@
+import Auth
 import BetterFit
 import SwiftUI
 
@@ -9,6 +10,7 @@ struct WorkoutHomeView: View {
     let healthKitManager: HealthKitManager?
     let planManager: WorkoutPlanManager?
     let isGuest: Bool
+    let user: Auth.User?
     let onShowSignIn: (() -> Void)?
 
     let demoModeOverride: Bool?
@@ -64,6 +66,7 @@ struct WorkoutHomeView: View {
     init(
         betterFit: BetterFit, theme: AppTheme, healthKitManager: HealthKitManager? = nil,
         planManager: WorkoutPlanManager? = nil, isGuest: Bool = false,
+        user: Auth.User? = nil,
         onShowSignIn: (() -> Void)? = nil, demoMode: Bool? = nil
     ) {
         self.betterFit = betterFit
@@ -71,6 +74,7 @@ struct WorkoutHomeView: View {
         self.healthKitManager = healthKitManager
         self.planManager = planManager
         self.isGuest = isGuest
+        self.user = user
         self.onShowSignIn = onShowSignIn
         self.demoModeOverride = demoMode
     }
@@ -89,7 +93,7 @@ struct WorkoutHomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: hasActiveWorkout ? 12 : 20) {
+            VStack(alignment: .leading, spacing: hasActiveWorkout ? 12 : 24) {
                 // Welcome Section (compact when active workout)
                 if hasActiveWorkout {
                     compactWelcomeSection

@@ -40,7 +40,23 @@ extension WorkoutHomeView {
         currentStreak = bf.socialManager.getCurrentStreak()
         longestStreak = bf.socialManager.getLongestStreak()
         lastWorkoutDate = bf.socialManager.getLastWorkoutDate()
-        username = bf.socialManager.getUserProfile().username
+
+        // Get username from authenticated user or fallback to profile
+        if let user = user {
+            // First try to get full_name from user metadata
+            if let fullName = user.userMetadata["full_name"]?.stringValue {
+                username = fullName
+            }
+            // Fall back to extracting from email (e.g., "johnny@example.com" -> "Johnny")
+            else if let email = user.email {
+                let name = email.components(separatedBy: "@").first ?? "User"
+                username = name.prefix(1).uppercased() + name.dropFirst()
+            } else {
+                username = "User"
+            }
+        } else {
+            username = bf.socialManager.getUserProfile().username
+        }
     }
 
     func refreshVitals() {

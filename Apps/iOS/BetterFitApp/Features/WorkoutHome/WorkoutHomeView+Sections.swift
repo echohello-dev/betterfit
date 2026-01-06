@@ -474,13 +474,14 @@ extension WorkoutHomeView {
         let plannedExercises = planManager?.getTodayPlan()?.exercises ?? []
 
         return AnyView(
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 24) {
                 // Target Muscles first (compact)
                 compactTargetMusclesSection(for: plannedExercises)
 
                 // Exercises list (static, non-scrollable timeline)
                 staticExercisesTimeline(for: plannedExercises)
             }
+            .padding(.top, 8)
         )
     }
 
@@ -497,7 +498,7 @@ extension WorkoutHomeView {
 
         let totalCount = max(1, muscleGroupCounts.reduce(0) { $0 + $1.value })
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Target Muscles")
                 .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
@@ -851,7 +852,7 @@ private struct WorkoutCardStackContainer: View {
         let workouts = suggestedWorkouts
         let safeIndex = min(selectedWorkoutIndex, max(0, workouts.count - 1))
 
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Up Next")
                     .bfHeading(theme: theme, size: 18, relativeTo: .headline)
@@ -902,11 +903,11 @@ private struct WorkoutCardStackContainer: View {
                             theme: theme,
                             isTopCard: isTop
                         )
-                        .offset(x: isTop ? cardSwipeOffset : CGFloat(relativeIndex) * 8)
-                        .offset(y: CGFloat(relativeIndex) * -4)
-                        .rotationEffect(.degrees(Double(relativeIndex) * 2), anchor: .bottom)
-                        .scaleEffect(1 - Double(relativeIndex) * 0.03)
-                        .opacity(1 - Double(relativeIndex) * 0.15)
+                        .offset(x: isTop ? cardSwipeOffset : CGFloat(relativeIndex) * 4)
+                        .offset(y: CGFloat(relativeIndex) * -8)
+                        .rotationEffect(.degrees(Double(relativeIndex) * 1), anchor: .bottom)
+                        .scaleEffect(1 - Double(relativeIndex) * 0.05)
+                        .opacity(1 - Double(relativeIndex) * 0.25)
                         .zIndex(Double(workouts.count - index))
                         .gesture(isTop ? swipeGesture : nil)
                     }
@@ -932,6 +933,7 @@ private struct WorkoutCardStackContainer: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .padding(.bottom, 8)
     }
 
     private var swipeGesture: some Gesture {
@@ -1022,21 +1024,35 @@ private struct PlayingCardWorkoutCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 172)
         .background {
-            if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.thickMaterial)
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+            if isTopCard {
+                if #available(iOS 26.0, *) {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(.thickMaterial)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+                } else {
+                    let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    shape
+                        .fill(.thickMaterial)
+                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                        .shadow(
+                            color: Color.black.opacity(
+                                theme.preferredColorScheme == .dark ? 0.3 : 0.12),
+                            radius: theme.preferredColorScheme == .dark ? 16 : 12,
+                            x: 0,
+                            y: 6
+                        )
+                }
             } else {
+                // Back cards: solid opaque background to prevent text bleed-through
                 let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
                 shape
-                    .fill(.thickMaterial)
-                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    .fill(Color(white: theme.preferredColorScheme == .dark ? 0.2 : 0.92))
+                    .overlay { shape.stroke(theme.cardStroke.opacity(0.5), lineWidth: 1) }
                     .shadow(
-                        color: Color.black.opacity(
-                            theme.preferredColorScheme == .dark ? 0.3 : 0.12),
-                        radius: theme.preferredColorScheme == .dark ? 16 : 12,
+                        color: Color.black.opacity(0.1),
+                        radius: 8,
                         x: 0,
-                        y: 6
+                        y: 4
                     )
             }
         }
