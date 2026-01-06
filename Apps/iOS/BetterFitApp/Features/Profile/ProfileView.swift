@@ -47,10 +47,6 @@ struct ProfileView: View {
     let onShowSignIn: () -> Void
     let onLogout: (() -> Void)?
 
-    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
-        .rawValue
-
-    @State private var showingThemePicker = false
     @State private var showLogoutConfirmation = false
     @State private var showYearlyWrapped = false
     @State private var selectedYear = Calendar.current.component(.year, from: Date())
@@ -256,13 +252,11 @@ struct ProfileView: View {
 
                 yearlyWrappedSection
 
-                // MARK: - Settings
+                // MARK: - Sign Out
 
-                settingsSection
-
-                // MARK: - Account
-
-                accountSection
+                if !isGuest {
+                    signOutSection
+                }
 
                 Spacer(minLength: 40)
             }
@@ -281,15 +275,6 @@ struct ProfileView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Are you sure you want to sign out?")
-        }
-        .sheet(isPresented: $showingThemePicker) {
-            ThemePickerView(
-                selectedTheme: Binding(
-                    get: { AppTheme.fromStorage(storedTheme) },
-                    set: { storedTheme = $0.rawValue }
-                )
-            )
-            .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showYearlyWrapped) {
             YearlyWrappedView(theme: theme, year: selectedYear)
@@ -1172,207 +1157,31 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Settings Section
+    // MARK: - Sign Out Section
 
-    private var settingsSection: some View {
+    private var signOutSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Settings")
-                .bfHeading(theme: theme, size: 20, relativeTo: .headline)
+            Button(role: .destructive) {
+                showLogoutConfirmation = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.subheadline)
 
-            BFCard(theme: theme) {
-                VStack(spacing: 0) {
-                    Button {
-                        showingThemePicker = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "paintpalette.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(theme.accent)
-                                .frame(width: 24)
+                    Text("Sign Out")
+                        .font(.subheadline.weight(.semibold))
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Theme")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
-
-                                Text(AppTheme.fromStorage(storedTheme).displayName)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(12)
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider().opacity(0.3)
-
-                    settingsRow(icon: "bell.fill", label: "Notifications", value: "On") {
-                        // Notifications settings
-                    }
-
-                    Divider().opacity(0.3)
-
-                    settingsRow(icon: "heart.fill", label: "Apple Health", value: "Connected") {
-                        // Health settings
-                    }
-
-                    Divider().opacity(0.3)
-
-                    settingsRow(icon: "ruler.fill", label: "Units", value: "Imperial") {
-                        // Units settings
-                    }
-
-                    #if DEBUG
-                        Divider()
-                            .opacity(0.3)
-
-                        Toggle(isOn: $workoutHomeDemoModeEnabled) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "testtube.2")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.purple)
-                                    .frame(width: 24)
-
-                                Text("Demo Mode")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
-
-                                Spacer(minLength: 0)
-                            }
-                            .padding(12)
-                        }
-                        .toggleStyle(.switch)
-                        .tint(theme.accent)
-                    #endif
+                    Spacer(minLength: 0)
+                }
+                .padding(14)
+                .background {
+                    let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    shape
+                        .fill(.regularMaterial)
+                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func settingsRow(
-        icon: String, label: String, value: String, action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.subheadline)
-                    .foregroundStyle(theme.accent)
-                    .frame(width: 24)
-
-                Text(label)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-
-                Spacer(minLength: 0)
-
-                Text(value)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Account Section
-
-    private var accountSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Account")
-                .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-
-            BFCard(theme: theme) {
-                VStack(spacing: 0) {
-                    settingsRow(icon: "person.fill", label: "Edit Profile", value: "") {
-                        // Edit profile
-                    }
-
-                    Divider().opacity(0.3)
-
-                    Button {
-                        // Privacy action
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "hand.raised.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.blue)
-                                .frame(width: 24)
-
-                            Text("Privacy Policy")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(12)
-                    }
-                    .buttonStyle(.plain)
-
-                    Divider()
-                        .opacity(0.3)
-
-                    Button {
-                        // Terms action
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "doc.text.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.gray)
-                                .frame(width: 24)
-
-                            Text("Terms of Service")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(12)
-                    }
-                    .buttonStyle(.plain)
-
-                    if !isGuest {
-                        Divider()
-                            .opacity(0.3)
-
-                        Button(role: .destructive) {
-                            showLogoutConfirmation = true
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .font(.subheadline)
-                                    .frame(width: 24)
-
-                                Text("Sign Out")
-                                    .font(.subheadline.weight(.semibold))
-
-                                Spacer(minLength: 0)
-                            }
-                            .padding(12)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
+            .buttonStyle(.plain)
 
             Text("BetterFit v1.0.0 (Build 1)")
                 .font(.caption)

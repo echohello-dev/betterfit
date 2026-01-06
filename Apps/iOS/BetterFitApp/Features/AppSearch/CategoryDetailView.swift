@@ -88,6 +88,10 @@ struct CategoryDetailView: View {
 
     private var categoryDescription: String {
         switch category.id {
+        case "settings":
+            return "App preferences and configuration"
+        case "account":
+            return "Manage your profile and account settings"
         case "appearance":
             return "Customize how BetterFit looks and feels"
         case "developer":
@@ -134,13 +138,30 @@ struct CategoryDetailView: View {
                         }
                     } icon: {
                         Image(systemName: item.systemImage)
-                            .foregroundStyle(theme.accent)
+                            .foregroundStyle(.purple)
                     }
                 }
                 .tint(theme.accent)
             #else
                 EmptyView()
             #endif
+
+        case "notifications", "health", "units", "editProfile", "privacy", "terms":
+            NavigationLink {
+                SettingDetailView(settingId: item.id, title: item.title, theme: theme)
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                        Text(item.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: item.systemImage)
+                        .foregroundStyle(colorForSettingItem(item.id))
+                }
+            }
 
         default:
             NavigationLink {
@@ -158,6 +179,18 @@ struct CategoryDetailView: View {
                         .foregroundStyle(theme.accent)
                 }
             }
+        }
+    }
+
+    private func colorForSettingItem(_ id: String) -> Color {
+        switch id {
+        case "notifications": return theme.accent
+        case "health": return .red
+        case "units": return theme.accent
+        case "editProfile": return theme.accent
+        case "privacy": return .blue
+        case "terms": return .gray
+        default: return .gray
         }
     }
 }

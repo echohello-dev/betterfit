@@ -47,16 +47,6 @@ struct AppSearchView: View {
             .scrollContentBackground(.hidden)
             .background(theme.backgroundGradient.ignoresSafeArea())
             .searchable(text: $query, prompt: "Search")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        onDismiss()
-                    } label: {
-                        Image(systemName: previousTabIcon)
-                    }
-                    .tint(theme.accent)
-                }
-            }
             .safeAreaInset(edge: .bottom) {
                 Color.clear
                     .frame(height: 120)
@@ -125,7 +115,7 @@ struct AppSearchView: View {
                             .foregroundStyle(.secondary)
                     }
                 } icon: {
-                    Image(systemName: "paintpalette")
+                    Image(systemName: "paintpalette.fill")
                         .foregroundStyle(theme.accent)
                 }
             }
@@ -143,7 +133,7 @@ struct AppSearchView: View {
                         }
                     } icon: {
                         Image(systemName: "testtube.2")
-                            .foregroundStyle(theme.accent)
+                            .foregroundStyle(.purple)
                     }
                 }
                 .tint(theme.accent)
@@ -151,6 +141,23 @@ struct AppSearchView: View {
             case .demoMode:
                 EmptyView()
         #endif
+
+        case .setting:
+            NavigationLink {
+                SettingDetailView(settingId: result.id, title: result.title, theme: theme)
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(result.title)
+                        Text(result.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: iconForSetting(result.id))
+                        .foregroundStyle(colorForSetting(result.id))
+                }
+            }
 
         case .exercise:
             NavigationLink {
@@ -188,24 +195,97 @@ struct AppSearchView: View {
         }
     }
 
+    private func iconForSetting(_ id: String) -> String {
+        switch id {
+        case "result.notifications": return "bell.fill"
+        case "result.health": return "heart.fill"
+        case "result.units": return "ruler.fill"
+        case "result.editProfile": return "person.fill"
+        case "result.privacy": return "hand.raised.fill"
+        case "result.terms": return "doc.text.fill"
+        default: return "gearshape.fill"
+        }
+    }
+
+    private func colorForSetting(_ id: String) -> Color {
+        switch id {
+        case "result.notifications": return theme.accent
+        case "result.health": return .red
+        case "result.units": return theme.accent
+        case "result.editProfile": return theme.accent
+        case "result.privacy": return .blue
+        case "result.terms": return .gray
+        default: return .gray
+        }
+    }
+
     // MARK: - Data
 
     private var categories: [SearchCategory] {
         var result: [SearchCategory] = []
 
+        // Settings category (consolidated from Profile settings)
         result.append(
             SearchCategory(
-                id: "appearance",
-                title: "Appearance",
-                systemImage: "paintpalette",
-                tint: theme.accent,
+                id: "settings",
+                title: "Settings",
+                systemImage: "gearshape",
+                tint: .gray,
                 items: [
                     SearchCategoryItem(
                         id: "theme",
                         title: "Theme",
                         subtitle: AppTheme.fromStorage(storedTheme).displayName,
-                        systemImage: "paintpalette"
-                    )
+                        systemImage: "paintpalette.fill"
+                    ),
+                    SearchCategoryItem(
+                        id: "notifications",
+                        title: "Notifications",
+                        subtitle: "Reminders and alerts",
+                        systemImage: "bell.fill"
+                    ),
+                    SearchCategoryItem(
+                        id: "health",
+                        title: "Apple Health",
+                        subtitle: "Sync workouts and data",
+                        systemImage: "heart.fill"
+                    ),
+                    SearchCategoryItem(
+                        id: "units",
+                        title: "Units",
+                        subtitle: "Imperial or metric",
+                        systemImage: "ruler.fill"
+                    ),
+                ]
+            )
+        )
+
+        // Account category
+        result.append(
+            SearchCategory(
+                id: "account",
+                title: "Account",
+                systemImage: "person.crop.circle",
+                tint: .blue,
+                items: [
+                    SearchCategoryItem(
+                        id: "editProfile",
+                        title: "Edit Profile",
+                        subtitle: "Update your information",
+                        systemImage: "person.fill"
+                    ),
+                    SearchCategoryItem(
+                        id: "privacy",
+                        title: "Privacy Policy",
+                        subtitle: "How we protect your data",
+                        systemImage: "hand.raised.fill"
+                    ),
+                    SearchCategoryItem(
+                        id: "terms",
+                        title: "Terms of Service",
+                        subtitle: "Usage terms and conditions",
+                        systemImage: "doc.text.fill"
+                    ),
                 ]
             )
         )
@@ -216,7 +296,7 @@ struct AppSearchView: View {
                     id: "developer",
                     title: "Developer",
                     systemImage: "testtube.2",
-                    tint: theme.accent,
+                    tint: .purple,
                     items: [
                         SearchCategoryItem(
                             id: "demoMode",
@@ -277,18 +357,96 @@ struct AppSearchView: View {
 
         var results: [SearchResult] = []
 
-        // "Settings" style shortcuts
-        if "theme".contains(needle)
+        // Settings items
+        let settingsCategory = categories.first { $0.id == "settings" } ?? categories[0]
+        let accountCategory = categories.first { $0.id == "account" } ?? categories[0]
+
+        if "theme".contains(needle) || "appearance".contains(needle)
             || AppTheme.fromStorage(storedTheme).displayName.lowercased().contains(needle)
         {
-            let appearanceCategory = categories.first { $0.id == "appearance" } ?? categories[0]
             results.append(
                 SearchResult(
                     id: "result.theme",
                     kind: .theme,
                     title: "Theme",
                     subtitle: AppTheme.fromStorage(storedTheme).displayName,
-                    category: appearanceCategory
+                    category: settingsCategory
+                )
+            )
+        }
+
+        if "notifications".contains(needle) || "reminders".contains(needle)
+            || "alerts".contains(needle)
+        {
+            results.append(
+                SearchResult(
+                    id: "result.notifications",
+                    kind: .setting,
+                    title: "Notifications",
+                    subtitle: "Reminders and alerts",
+                    category: settingsCategory
+                )
+            )
+        }
+
+        if "health".contains(needle) || "apple health".contains(needle)
+            || "sync".contains(needle)
+        {
+            results.append(
+                SearchResult(
+                    id: "result.health",
+                    kind: .setting,
+                    title: "Apple Health",
+                    subtitle: "Sync workouts and data",
+                    category: settingsCategory
+                )
+            )
+        }
+
+        if "units".contains(needle) || "imperial".contains(needle) || "metric".contains(needle) {
+            results.append(
+                SearchResult(
+                    id: "result.units",
+                    kind: .setting,
+                    title: "Units",
+                    subtitle: "Imperial or metric",
+                    category: settingsCategory
+                )
+            )
+        }
+
+        if "profile".contains(needle) || "edit profile".contains(needle) {
+            results.append(
+                SearchResult(
+                    id: "result.editProfile",
+                    kind: .setting,
+                    title: "Edit Profile",
+                    subtitle: "Update your information",
+                    category: accountCategory
+                )
+            )
+        }
+
+        if "privacy".contains(needle) {
+            results.append(
+                SearchResult(
+                    id: "result.privacy",
+                    kind: .setting,
+                    title: "Privacy Policy",
+                    subtitle: "How we protect your data",
+                    category: accountCategory
+                )
+            )
+        }
+
+        if "terms".contains(needle) || "service".contains(needle) {
+            results.append(
+                SearchResult(
+                    id: "result.terms",
+                    kind: .setting,
+                    title: "Terms of Service",
+                    subtitle: "Usage terms and conditions",
+                    category: accountCategory
                 )
             )
         }
