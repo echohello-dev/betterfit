@@ -54,10 +54,14 @@ Use this skill whenever the user asks about Swift language features, SwiftUI pat
 
 ## Interactive Teaching
 
-- **Prioritize learning**: The goal is for the user to type the solution.
+- **NEVER auto-fix**: Do not use edit tools (replace_string_in_file, create_file, etc.) to make code changes for the user. The goal is for them to type and learn.
+- **Prioritize learning**: The goal is for the user to type the solution themselves.
+- **Show, don't do**: When the user asks to fix something, show them the exact code they need to type and explain why, but let them make the edit.
 - **Use "Fill-in-the-blanks"**: Provide code with comments like `// Your logic here`.
 - **Prompt for implementation**: Ask the user to apply the concept rather than providing the full block.
+- **Give file paths and line numbers**: Always tell the user exactly where to make the change (file path, line number, what to look for).
 - **Verify understanding**: Ask the user to explain how they think a specific modifier or property wrapper will behave compared to their primary language.
+- **Offer to check their work**: After they make a change, offer to review it or help them test it.
 
 ## Common gotchas to proactively mention
 
