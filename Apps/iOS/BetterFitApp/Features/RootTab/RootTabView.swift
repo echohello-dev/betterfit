@@ -1,3 +1,4 @@
+import Auth
 import BetterFit
 import SwiftUI
 
@@ -30,6 +31,7 @@ struct RootTabView: View {
     let betterFit: BetterFit
     let theme: AppTheme
     let isGuest: Bool
+    let user: Auth.User?
     let onShowSignIn: () -> Void
     let onLogout: (() -> Void)?
 
@@ -305,6 +307,7 @@ struct RootTabView: View {
                     healthKitManager: healthKitManager,
                     planManager: planManager,
                     isGuest: isGuest,
+                    user: user,
                     onShowSignIn: onShowSignIn
                 )
             }
@@ -328,6 +331,7 @@ struct RootTabView: View {
                     betterFit: betterFit,
                     theme: theme,
                     isGuest: isGuest,
+                    user: user,
                     onShowSignIn: onShowSignIn,
                     onLogout: onLogout
                 )
@@ -341,6 +345,7 @@ struct RootTabView: View {
     let theme: AppTheme = .defaultTheme
     return RootTabView(
         betterFit: BetterFit(), theme: theme, isGuest: false,
+        user: nil,
         onShowSignIn: {
             print("Show sign in")
         },

@@ -1,3 +1,4 @@
+import Auth
 import BetterFit
 import SwiftUI
 
@@ -42,6 +43,7 @@ struct ProfileView: View {
     let betterFit: BetterFit?
     let theme: AppTheme
     let isGuest: Bool
+    let user: Auth.User?
     let onShowSignIn: () -> Void
     let onLogout: (() -> Void)?
 
@@ -59,6 +61,27 @@ struct ProfileView: View {
     @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
 
     // MARK: - Data (Real or Demo)
+
+    private var displayName: String {
+        if isGuest {
+            return "Guest"
+        }
+
+        // Get name from authenticated user
+        if let user = user {
+            // First try to get full_name from user metadata
+            if let fullName = user.userMetadata["full_name"]?.stringValue {
+                return fullName
+            }
+            // Fall back to extracting from email (e.g., "johnny@example.com" -> "Johnny")
+            if let email = user.email {
+                let name = email.components(separatedBy: "@").first ?? "User"
+                return name.prefix(1).uppercased() + name.dropFirst()
+            }
+        }
+
+        return "User"
+    }
 
     private var personalRecords: [PersonalRecord] {
         if workoutHomeDemoModeEnabled {
@@ -294,7 +317,7 @@ struct ProfileView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(isGuest ? "Guest" : "Johnny")
+                Text(displayName)
                     .bfHeading(theme: theme, size: 24, relativeTo: .title2)
 
                 if !isGuest {
@@ -1478,6 +1501,7 @@ struct YearlyWrappedView: View {
             betterFit: BetterFit(),
             theme: .sunset,
             isGuest: false,
+            user: nil,
             onShowSignIn: { print("Show sign in") },
             onLogout: { print("Logout") }
         )

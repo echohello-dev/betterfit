@@ -50,6 +50,7 @@ struct BetterFitApp: App {
                             betterFit: bf,
                             theme: theme,
                             isGuest: true,
+                            user: nil,
                             onShowSignIn: {},
                             onLogout: nil
                         )
@@ -117,6 +118,7 @@ struct BetterFitApp: App {
                     // Show main app
                     RootTabView(
                         betterFit: betterFit, theme: theme, isGuest: authService.isGuest,
+                        user: authService.user,
                         onShowSignIn: {
                             showSignIn = true
                         },
@@ -166,34 +168,34 @@ struct BetterFitApp: App {
                         )
                         .presentationDragIndicator(.visible)
                     }
-                    .overlay(alignment: .bottom) {
+                    .safeAreaInset(edge: .bottom) {
                         // Show appropriate banner based on Supabase configuration
                         if authService.isGuest && showConfigWarning {
-                            if config.isSupabaseConfigured {
-                                // Supabase configured - prompt to sign in
-                                configWarningBanner(
-                                    icon: "info.circle.fill",
-                                    message:
-                                        "You're in guest mode. Sign in to sync across devices.",
-                                    color: .blue,
-                                    theme: theme,
-                                    onSignIn: { showSignIn = true }
-                                )
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 126)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                            } else {
-                                // Supabase not configured - inform user
-                                configWarningBanner(
-                                    icon: "exclamationmark.triangle.fill",
-                                    message: "Running in guest mode. Cloud features are disabled.",
-                                    color: .orange,
-                                    theme: theme
-                                )
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 126)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                            Group {
+                                if config.isSupabaseConfigured {
+                                    // Supabase configured - prompt to sign in
+                                    configWarningBanner(
+                                        icon: "info.circle.fill",
+                                        message:
+                                            "You're in guest mode. Sign in to sync across devices.",
+                                        color: .blue,
+                                        theme: theme,
+                                        onSignIn: { showSignIn = true }
+                                    )
+                                } else {
+                                    // Supabase not configured - inform user
+                                    configWarningBanner(
+                                        icon: "exclamationmark.triangle.fill",
+                                        message:
+                                            "Running in guest mode. Cloud features are disabled.",
+                                        color: .orange,
+                                        theme: theme
+                                    )
+                                }
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
                 } else {
