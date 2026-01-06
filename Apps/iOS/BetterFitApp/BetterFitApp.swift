@@ -52,7 +52,9 @@ struct BetterFitApp: App {
                             isGuest: true,
                             user: nil,
                             onShowSignIn: {},
-                            onLogout: nil
+                            onLogout: nil,
+                            isSupabaseConfigured: config.isSupabaseConfigured,
+                            showGuestBanner: $showConfigWarning
                         )
                     } else {
                         ProgressView()
@@ -131,7 +133,9 @@ struct BetterFitApp: App {
                                     showSignIn = true
                                 }
                             }
-                        }
+                        },
+                        isSupabaseConfigured: config.isSupabaseConfigured,
+                        showGuestBanner: $showConfigWarning
                     )
                     .tint(theme.accent)
                     .preferredColorScheme(theme.preferredColorScheme)
@@ -167,36 +171,6 @@ struct BetterFitApp: App {
                             }
                         )
                         .presentationDragIndicator(.visible)
-                    }
-                    .safeAreaInset(edge: .bottom) {
-                        // Show appropriate banner based on Supabase configuration
-                        if authService.isGuest && showConfigWarning {
-                            Group {
-                                if config.isSupabaseConfigured {
-                                    // Supabase configured - prompt to sign in
-                                    configWarningBanner(
-                                        icon: "info.circle.fill",
-                                        message:
-                                            "You're in guest mode. Sign in to sync across devices.",
-                                        color: .blue,
-                                        theme: theme,
-                                        onSignIn: { showSignIn = true }
-                                    )
-                                } else {
-                                    // Supabase not configured - inform user
-                                    configWarningBanner(
-                                        icon: "exclamationmark.triangle.fill",
-                                        message:
-                                            "Running in guest mode. Cloud features are disabled.",
-                                        color: .orange,
-                                        theme: theme
-                                    )
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 8)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
                     }
                 } else {
                     // Loading state
