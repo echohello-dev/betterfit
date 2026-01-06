@@ -27,6 +27,7 @@ struct SearchResult: Identifiable, Hashable {
         case demoMode
         case category
         case exercise
+        case setting
     }
 
     let id: String
