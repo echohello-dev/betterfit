@@ -18,6 +18,52 @@
 - watchOS app (XcodeGen): `mise run watch:open` (generates then opens project with watch target)
 - CLI watchOS build: `mise run watch:build`
 
+## Local Supabase setup (check before running)
+Before running Supabase setup commands, check if local Supabase is already configured:
+
+### Check if already set up
+```bash
+# 1. Check if Supabase is running
+mise run supabase:status
+
+# 2. Check if .env exists with credentials
+cat .env | grep -E "SUPABASE_URL|SUPABASE_ANON_KEY"
+```
+
+### When Supabase setup is needed
+- **First time** on a new machine/clone
+- `.env` file is missing
+- `mise run supabase:status` shows "not running"
+- After running `git clean -fdx` (deletes `.env`)
+
+### When Supabase setup is NOT needed
+- `.env` file exists with `SUPABASE_URL` and `SUPABASE_ANON_KEY`
+- `mise run supabase:status` shows running services
+- After making code changes (credentials persist)
+- After running `mise build` / `mise test` (doesn't affect credentials)
+- After `mise run ios:open` / `mise run ios:build:dev` (auto-injects from existing `.env`)
+
+### One-time setup (if not already configured)
+```bash
+# 1. Start Supabase (if not running)
+mise run supabase:start
+
+# 2. Apply database migrations
+mise run supabase:reset
+
+# 3. Configure for iOS (creates .env + injects credentials)
+mise run supabase:configure
+```
+
+### After initial setup
+Once `.env` exists, just use normal build commands:
+```bash
+mise run ios:open       # Auto-injects credentials from .env
+mise run ios:build:dev  # Auto-injects credentials from .env
+```
+
+**Never run `xcodegen generate` directly** – always use `mise run ios:gen` or `mise run ios:open` to ensure credentials are injected from `.env`.
+
 ## Code organization (`// MARK:`)
 - Prefer grouping Swift files into navigable sections using `// MARK: - ...`.
 - Use `// MARK:` above declarations (computed properties, functions, nested types) rather than inside view builder closures.
