@@ -8,6 +8,68 @@
 - **Do NOT create progress/summary markdown files** (e.g., `SUMMARY.md`, `CHANGES.md`) to document your work—it's redundant and noisy.
 - **Use wide events for logging** – emit one comprehensive log event per request/operation with full context (user, business, infrastructure, performance) rather than scattering multiple log statements. This enables effective debugging at scale.
 
+## SwiftUI vs UIKit (when to use UIViewRepresentable)
+
+### Default: Prefer SwiftUI
+- Use SwiftUI for all standard UI (lists, navigation, forms, buttons, sheets)
+- SwiftUI provides better maintainability, less boilerplate, and automatic dark mode support
+- Most features (95%) can be built with pure SwiftUI
+
+### When to drop to UIKit (via UIViewRepresentable)
+Use UIKit when you encounter these specific limitations:
+
+1. **Complex forms with keyboard management**
+   - Multi-field forms where @FocusState causes keyboard bounce
+   - Custom return key behavior (next/done transitions)
+   - Solution: UITextField with UITextFieldDelegate
+
+2. **Performance-critical scrolling**
+   - Lists with 10,000+ items that need 120 FPS on ProMotion
+   - Memory-constrained scenarios (NavigationStack retains all views)
+   - Solution: UICollectionView with UIDiffableDataSource
+
+3. **Advanced gestures**
+   - Multi-finger taps (2-finger, 3-finger gestures)
+   - Complex gesture coordination with failure requirements
+   - Solution: UITapGestureRecognizer with numberOfTouchesRequired
+
+4. **Custom camera/scanning**
+   - Document scanning, custom camera interfaces
+   - Solution: VNDocumentCameraViewController or AVCaptureSession
+
+5. **Complex compositional layouts**
+   - Netflix-style heterogeneous sections (carousels + grids + banners)
+   - Orthogonal scrolling (horizontal within vertical)
+   - Solution: UICollectionViewCompositionalLayout
+
+6. **Pinch-to-zoom photo viewers**
+   - Photo galleries with proper content centering and insets
+   - Solution: UIScrollView with viewForZooming delegate
+
+7. **Real-time graphics/animations**
+   - Particle systems, physics animations requiring 60+ FPS
+   - Solution: CALayer with Core Animation
+
+### Pattern: UIKit interop
+When using UIViewRepresentable:
+- Keep the wrapper thin - logic should live in SwiftUI view models
+- Use @Binding to sync state between SwiftUI and UIKit
+- Prefer UIHostingConfiguration (iOS 16+) for SwiftUI cells in UICollectionView
+- Extract into reusable components (e.g., `CustomTextField`, `DocumentScanner`)
+- Consider helper libraries: IQKeyboardManager (keyboard handling), Introspect (accessing underlying UIKit views)
+
+### iOS 26+ improvements
+- **Native WebView**: iOS 26 adds native SwiftUI WebView component (no longer needs WKWebView wrapper)
+- **UIViewRepresentable improvements**: Better bindings synchronization, reduced update loops with @Observable
+- **Rich text editing**: TextEditor now supports AttributedString (bold, italic, colors)
+- **Gesture improvements**: UIGestureRecognizerRepresentable makes bridging easier
+- **Layout protocol**: Prefer custom Layout over GeometryReader for performance
+
+### Industry adoption (2025)
+- **70-75%** of professional teams use a hybrid SwiftUI + UIKit approach
+- **60%** prefer SwiftUI for new features
+- **25%** are SwiftUI-only (startups, greenfield projects)
+
 ## Fast workflows (use `mise`)
 - Install tools: `mise install`
 - After making changes, run lint first: `mise run lint` (quicker feedback before building)
