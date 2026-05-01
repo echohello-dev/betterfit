@@ -9,7 +9,6 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
     let exercises: [E]
     let selectedIndex: Int?
     let theme: AppTheme
-    let weightUnit: WeightUnit
     let showHeader: Bool
     let headerTitle: String
     let onSelect: (Int) -> Void
@@ -21,11 +20,17 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
     let onAdd: (() -> Void)?
     let onAdjustSets: ((Int) -> Void)?
 
+    @AppStorage(WeightUnitSetting.storageKey) private var unitRaw: String = WeightUnitSetting.lbs
+        .rawValue
+
+    private var unit: WeightUnitSetting {
+        WeightUnitSetting(rawValue: unitRaw) ?? .lbs
+    }
+
     init(
         exercises: [E],
         selectedIndex: Int? = nil,
         theme: AppTheme,
-        weightUnit: WeightUnit = .lbs,
         showHeader: Bool = false,
         headerTitle: String = "Exercises",
         onSelect: @escaping (Int) -> Void,
@@ -40,7 +45,6 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
         self.exercises = exercises
         self.selectedIndex = selectedIndex
         self.theme = theme
-        self.weightUnit = weightUnit
         self.showHeader = showHeader
         self.headerTitle = headerTitle
         self.onSelect = onSelect
@@ -68,7 +72,11 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
     // MARK: - Header Row
 
     private var headerRow: some View {
-        HStack {
+        let unitBinding = Binding<WeightUnitSetting>(
+            get: { unit },
+            set: { unitRaw = $0.rawValue }
+        )
+        return HStack {
             Text(headerTitle)
                 .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
@@ -79,10 +87,13 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
                 .foregroundStyle(.secondary)
 
             if let addAction = onAdd {
-                Button(action: addAction) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(theme.accent)
+                HStack(spacing: 10) {
+                    WeightUnitToggle(unit: unitBinding, theme: theme)
+                    Button(action: addAction) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(theme.accent)
+                    }
                 }
             }
         }
@@ -127,99 +138,21 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
     private var exerciseList: some View {
         List {
             ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
-                TimelineExerciseRow(
+                ExerciseTimelineItem(
                     exercise: exercise,
                     index: index,
                     isSelected: selectedIndex == index,
                     isFirst: index == 0,
                     isLast: index == exercises.count - 1,
                     theme: theme,
-                    weightUnit: weightUnit,
-                    onTap: { onSelect(index) },
-                    onComplete: onComplete.map { action in { action(index) } }
+                    unit: unit,
+                    onSelect: onSelect,
+                    onDelete: onDelete,
+                    onReplace: onReplace,
+                    onSuperset: onSuperset,
+                    onComplete: onComplete,
+                    onAdjustSets: onAdjustSets
                 )
-                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        onDelete(index)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-
-                    if let adjustSetsAction = onAdjustSets {
-                        Button {
-                            adjustSetsAction(index)
-                        } label: {
-                            Label("Adjust Sets", systemImage: "slider.horizontal.3")
-                        }
-                        .tint(.blue)
-                    }
-
-                    if let replaceAction = onReplace {
-                        Button {
-                            replaceAction(index)
-                        } label: {
-                            Label("Replace", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                        .tint(.orange)
-                    }
-
-                    if let supersetAction = onSuperset {
-                        Button {
-                            supersetAction(index)
-                        } label: {
-                            Label("Superset", systemImage: "link")
-                        }
-                        .tint(.purple)
-                    }
-                }
-                .contextMenu {
-                    if let completeAction = onComplete {
-                        Button {
-                            completeAction(index)
-                        } label: {
-                            Label(
-                                exercise.isCompleted ? "Mark Incomplete" : "Mark Complete",
-                                systemImage: exercise.isCompleted
-                                    ? "xmark.circle" : "checkmark.circle"
-                            )
-                        }
-                    }
-
-                    if let adjustSetsAction = onAdjustSets {
-                        Button {
-                            adjustSetsAction(index)
-                        } label: {
-                            Label("Adjust Sets", systemImage: "slider.horizontal.3")
-                        }
-                    }
-
-                    if let replaceAction = onReplace {
-                        Button {
-                            replaceAction(index)
-                        } label: {
-                            Label("Replace Exercise", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                    }
-
-                    if let supersetAction = onSuperset {
-                        Button {
-                            supersetAction(index)
-                        } label: {
-                            Label("Create Superset", systemImage: "link")
-                        }
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        onDelete(index)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
             }
             .onMove { indices, newOffset in
                 onMove?(indices, newOffset)
@@ -230,30 +163,117 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
     }
 }
 
-// MARK: - Weight Unit
+// MARK: - Exercise Timeline Item
 
-enum WeightUnit: String, CaseIterable {
-    case lbs = "lbs"
-    case kg = "kg"
+private struct ExerciseTimelineItem<E: ExerciseDisplayable>: View {
+    let exercise: E
+    let index: Int
+    let isSelected: Bool
+    let isFirst: Bool
+    let isLast: Bool
+    let theme: AppTheme
+    let unit: WeightUnitSetting
+    let onSelect: (Int) -> Void
+    let onDelete: (Int) -> Void
+    let onReplace: ((Int) -> Void)?
+    let onSuperset: ((Int) -> Void)?
+    let onComplete: ((Int) -> Void)?
+    let onAdjustSets: ((Int) -> Void)?
 
-    var multiplier: Double {
-        switch self {
-        case .lbs: return 1.0
-        case .kg: return 0.453592
+    var body: some View {
+        TimelineExerciseRow(
+            exercise: exercise,
+            index: index,
+            isSelected: isSelected,
+            isFirst: isFirst,
+            isLast: isLast,
+            theme: theme,
+            weight: unit,
+            onTap: { onSelect(index) },
+            onComplete: onComplete.map { action in { action(index) } }
+        )
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                onDelete(index)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+
+            if let adjustSetsAction = onAdjustSets {
+                Button {
+                    adjustSetsAction(index)
+                } label: {
+                    Label("Adjust Sets", systemImage: "slider.horizontal.3")
+                }
+                .tint(.blue)
+            }
+
+            if let replaceAction = onReplace {
+                Button {
+                    replaceAction(index)
+                } label: {
+                    Label("Replace", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .tint(.orange)
+            }
+
+            if let supersetAction = onSuperset {
+                Button {
+                    supersetAction(index)
+                } label: {
+                    Label("Superset", systemImage: "link")
+                }
+                .tint(.purple)
+            }
         }
-    }
+        .contextMenu {
+            if let completeAction = onComplete {
+                Button {
+                    completeAction(index)
+                } label: {
+                    Label(
+                        exercise.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                        systemImage: exercise.isCompleted
+                            ? "xmark.circle" : "checkmark.circle"
+                    )
+                }
+            }
 
-    func convert(_ weight: Double, from unit: WeightUnit) -> Double {
-        if self == unit { return weight }
-        switch (unit, self) {
-        case (.lbs, .kg): return weight * 0.453592
-        case (.kg, .lbs): return weight / 0.453592
-        default: return weight
+            if let adjustSetsAction = onAdjustSets {
+                Button {
+                    adjustSetsAction(index)
+                } label: {
+                    Label("Adjust Sets", systemImage: "slider.horizontal.3")
+                }
+            }
+
+            if let replaceAction = onReplace {
+                Button {
+                    replaceAction(index)
+                } label: {
+                    Label("Replace Exercise", systemImage: "arrow.triangle.2.circlepath")
+                }
+            }
+
+            if let supersetAction = onSuperset {
+                Button {
+                    supersetAction(index)
+                } label: {
+                    Label("Create Superset", systemImage: "link")
+                }
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                onDelete(index)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
         }
-    }
-
-    func format(_ weight: Double) -> String {
-        "\(Int(weight)) \(rawValue)"
     }
 }
 
@@ -266,7 +286,7 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
     let isFirst: Bool
     let isLast: Bool
     let theme: AppTheme
-    let weightUnit: WeightUnit
+    let weight: WeightUnitSetting
     let onTap: () -> Void
     let onComplete: (() -> Void)?
 
@@ -366,7 +386,7 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
                         .foregroundStyle(.primary)
 
                     if let weight = exercise.displayWeight {
-                        Text(weight)
+                        Text(convertAndFormatWeight(from: weight))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(theme.accent)
                     }
@@ -479,17 +499,24 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
             shape.stroke(theme.cardStroke, lineWidth: 1)
         }
     }
+
+    private func convertAndFormatWeight(from raw: String) -> String {
+        let number = Double(raw.components(separatedBy: " ").first ?? "") ?? 0.0
+        let sourceUnit: WeightUnitSetting = raw.lowercased().contains("kg") ? .kg : .lbs
+        let converted = weight.convert(number, from: sourceUnit)
+        return weight.format(converted)
+    }
 }
 
 // MARK: - Weight Unit Toggle
 
 struct WeightUnitToggle: View {
-    @Binding var unit: WeightUnit
+    @Binding var unit: WeightUnitSetting
     let theme: AppTheme
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(WeightUnit.allCases, id: \.self) { weightUnit in
+            ForEach(WeightUnitSetting.allCases, id: \.self) { weightUnit in
                 Button {
                     withAnimation(.spring(response: 0.2)) {
                         unit = weightUnit

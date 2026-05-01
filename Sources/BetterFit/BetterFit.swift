@@ -187,6 +187,48 @@ public class BetterFit {
         return workoutHistory
     }
 
+    // MARK: - Personal Records
+
+    /// Represents a personal record entry computed from workout history
+    public struct PersonalRecordEntry: Identifiable {
+        public let id = UUID()
+        public let exerciseName: String
+        public let maxWeight: Double
+        public let date: Date
+    }
+
+    /// Get personal records computed from workout history.
+    /// A PR is the maximum weight lifted for a given exercise name.
+    public func getPersonalRecords() -> [PersonalRecordEntry] {
+        var records: [String: (weight: Double, date: Date)] = [:]
+
+        for workout in workoutHistory {
+            for workoutExercise in workout.exercises {
+                let name = workoutExercise.exercise.name
+                for set in workoutExercise.sets where set.isCompleted {
+                    guard let weight = set.weight, weight > 0 else { continue }
+                    let date = set.timestamp ?? workout.date
+
+                    if let existing = records[name] {
+                        if weight > existing.weight {
+                            records[name] = (weight, date)
+                        }
+                    } else {
+                        records[name] = (weight, date)
+                    }
+                }
+            }
+        }
+
+        return records.map { name, record in
+            PersonalRecordEntry(
+                exerciseName: name,
+                maxWeight: record.weight,
+                date: record.date
+            )
+        }.sorted { $0.maxWeight > $1.maxWeight }
+    }
+
     // MARK: - Smart Features
 
     // MARK: - Suggested Workouts Section

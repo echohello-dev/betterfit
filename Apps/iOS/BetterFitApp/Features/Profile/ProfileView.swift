@@ -53,6 +53,8 @@ struct ProfileView: View {
     @State private var isHeatmapExpanded = false
     @State private var heatmapRange: HeatmapRange = .year
     @State private var activityByDay: [Date: Int] = [:]
+    @State private var showAllPRs = false
+    @State private var showEditTargetsAlert = false
 
     @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
 
@@ -83,9 +85,16 @@ struct ProfileView: View {
         if workoutHomeDemoModeEnabled {
             return Self.demoPersonalRecords
         }
-        // Real data from betterFit - returns empty if no PRs exist
-        // TODO: Integrate with betterFit.getPersonalRecords() when available
-        return []
+        guard let bf = betterFit else { return [] }
+        return bf.getPersonalRecords().map { entry in
+            PersonalRecord(
+                exercise: entry.exerciseName,
+                value: "\(Int(entry.maxWeight)) lbs",
+                date: entry.date,
+                improvement: nil,
+                icon: "figure.strengthtraining.traditional"
+            )
+        }
     }
 
     private var weeklyGoals: [WeeklyGoal] {
@@ -277,7 +286,10 @@ struct ProfileView: View {
             Text("Are you sure you want to sign out?")
         }
         .sheet(isPresented: $showYearlyWrapped) {
-            YearlyWrappedView(theme: theme, year: selectedYear)
+            YearlyWrappedView(betterFit: betterFit, theme: theme, year: selectedYear)
+        }
+        .sheet(isPresented: $showAllPRs) {
+            AllPRsSheet(records: personalRecords, theme: theme)
         }
     }
 
@@ -778,7 +790,7 @@ struct ProfileView: View {
 
                 if !weeklyGoals.isEmpty {
                     Button {
-                        // Edit targets
+                        showEditTargetsAlert = true
                     } label: {
                         Text("Edit")
                             .font(.caption.weight(.semibold))
@@ -810,6 +822,11 @@ struct ProfileView: View {
                     }
                 }
             }
+        }
+        .alert("Edit Weekly Targets", isPresented: $showEditTargetsAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Target editing coming soon. Complete more workouts to update your progress automatically.")
         }
     }
 
@@ -899,7 +916,7 @@ struct ProfileView: View {
 
                 if !personalRecords.isEmpty {
                     Button {
-                        // View all PRs
+                        showAllPRs = true
                     } label: {
                         Text("View All")
                             .font(.caption.weight(.semibold))
@@ -1090,11 +1107,13 @@ struct ProfileView: View {
     // MARK: - Yearly Wrapped Section
 
     private var yearlyWrappedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Your Year in Review")
                 .bfHeading(theme: theme, size: 20, relativeTo: .headline)
 
             Button {
+                selectedYear = currentYear
                 showYearlyWrapped = true
             } label: {
                 HStack(spacing: 16) {
@@ -1110,7 +1129,7 @@ struct ProfileView: View {
                             .frame(width: 70, height: 70)
 
                         VStack(spacing: 2) {
-                            Text("2024")
+                            Text("\(currentYear)")
                                 .font(.title3.weight(.bold))
                                 .foregroundStyle(.white)
 
@@ -1121,7 +1140,7 @@ struct ProfileView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("2024 Wrapped")
+                        Text("\(currentYear) Wrapped")
                             .font(.headline)
                             .foregroundStyle(.primary)
 
@@ -1192,12 +1211,156 @@ struct ProfileView: View {
     }
 }
 
+// MARK: - All PRs Sheet
+
+struct AllPRsSheet: View {
+    let records: [PersonalRecord]
+    let theme: AppTheme
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(records) { record in
+                        prRow(record)
+                    }
+                }
+                .padding(16)
+            }
+            .navigationTitle("Personal Records")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .background(theme.backgroundGradient.ignoresSafeArea())
+        }
+    }
+
+    private func prRow(_ record: PersonalRecord) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(.yellow.opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: record.icon)
+                    .font(.subheadline)
+                    .foregroundStyle(.yellow)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.exercise)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(record.date, format: .dateTime.month(.abbreviated).day())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(record.value)
+                    .font(.subheadline.weight(.bold))
+
+                if let improvement = record.improvement {
+                    Text(improvement)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+        .padding(12)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+            shape
+                .fill(.regularMaterial)
+                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+        }
+    }
+}
+
 // MARK: - Yearly Wrapped View
 
 struct YearlyWrappedView: View {
+    let betterFit: BetterFit?
     let theme: AppTheme
     let year: Int
     @Environment(\.dismiss) private var dismiss
+
+    private var yearWorkouts: [Workout] {
+        guard let bf = betterFit else { return [] }
+        let calendar = Calendar.current
+        return bf.getWorkoutHistory().filter {
+            calendar.component(.year, from: $0.date) == year
+        }
+    }
+
+    private var totalWorkouts: Int { yearWorkouts.count }
+
+    private var totalVolume: Double {
+        yearWorkouts.reduce(0.0) { total, workout in
+            total + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
+                exerciseTotal + exercise.sets.reduce(0.0) { setTotal, set in
+                    setTotal + (set.weight ?? 0) * Double(set.reps)
+                }
+            }
+        }
+    }
+
+    private var totalHours: Int {
+        Int(yearWorkouts.reduce(0.0) { total, workout in
+            total + (workout.duration ?? 0) / 3600.0
+        })
+    }
+
+    private var longestStreak: Int {
+        let calendar = Calendar.current
+        let dates = Set(yearWorkouts.map { calendar.startOfDay(for: $0.date) }).sorted()
+        guard !dates.isEmpty else { return 0 }
+        var maxStreak = 1
+        var current = 1
+        for index in 1..<dates.count {
+            if let diff = calendar.dateComponents([.day], from: dates[index-1], to: dates[index]).day, diff == 1 {
+                current += 1
+                maxStreak = max(maxStreak, current)
+            } else {
+                current = 1
+            }
+        }
+        return maxStreak
+    }
+
+    private var topExercise: (name: String, sets: Int)? {
+        var counts: [String: Int] = [:]
+        for workout in yearWorkouts {
+            for exercise in workout.exercises {
+                counts[exercise.exercise.name, default: 0] += exercise.sets.count
+            }
+        }
+        return counts.max { $0.value < $1.value }.map { (name: $0.key, sets: $0.value) }
+    }
+
+    private var mvpMonth: (name: String, workouts: Int, volume: Double)? {
+        let calendar = Calendar.current
+        var months: [Int: (workouts: Int, volume: Double)] = [:]
+        for workout in yearWorkouts {
+            let month = calendar.component(.month, from: workout.date)
+            let vol = workout.exercises.reduce(0.0) { et, ex in
+                et + ex.sets.reduce(0.0) { st, se in st + (se.weight ?? 0) * Double(se.reps) }
+            }
+            let existing = months[month] ?? (0, 0)
+            months[month] = (existing.workouts + 1, existing.volume + vol)
+        }
+        guard let best = months.max(by: { $0.value.workouts < $1.value.workouts }) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        let monthName = formatter.monthSymbols[best.key - 1] ?? ""
+        return (name: monthName, workouts: best.value.workouts, volume: best.value.volume)
+    }
 
     var body: some View {
         NavigationStack {
@@ -1221,43 +1384,56 @@ struct YearlyWrappedView: View {
                         spacing: 16
                     ) {
                         wrappedStatCard(
-                            value: "156", label: "Workouts", icon: "figure.run", color: .orange)
+                            value: "\(totalWorkouts)", label: "Workouts", icon: "figure.run", color: .orange)
                         wrappedStatCard(
-                            value: "1.2M", label: "Pounds Lifted", icon: "scalemass.fill",
+                            value: formatVolume(totalVolume), label: "Pounds Lifted", icon: "scalemass.fill",
                             color: .blue)
                         wrappedStatCard(
-                            value: "124", label: "Hours Active", icon: "clock.fill", color: .purple)
+                            value: "\(totalHours)", label: "Hours Active", icon: "clock.fill", color: .purple)
                         wrappedStatCard(
-                            value: "42", label: "Day Streak", icon: "flame.fill", color: .red)
+                            value: "\(longestStreak)", label: "Day Streak", icon: "flame.fill", color: .red)
                     }
                     .padding(.horizontal, 16)
 
                     // Top Exercise
-                    VStack(spacing: 12) {
-                        Text("Your #1 Exercise")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                    if let top = topExercise {
+                        VStack(spacing: 12) {
+                            Text("Your #1 Exercise")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
 
-                        Text("Bench Press")
-                            .bfHeading(theme: theme, size: 28, relativeTo: .title)
+                            Text(top.name)
+                                .bfHeading(theme: theme, size: 28, relativeTo: .title)
 
-                        Text("You did 248 sets this year!")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            Text("You did \(top.sets) sets this year!")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     // MVP Month
-                    VStack(spacing: 12) {
-                        Text("MVP Month")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                    if let mvp = mvpMonth {
+                        VStack(spacing: 12) {
+                            Text("MVP Month")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
 
-                        Text("October")
-                            .bfHeading(theme: theme, size: 28, relativeTo: .title)
+                            Text(mvp.name)
+                                .bfHeading(theme: theme, size: 28, relativeTo: .title)
 
-                        Text("24 workouts • 180K lbs lifted")
+                            Text("\(mvp.workouts) workouts • \(formatVolume(mvp.volume)) lbs lifted")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if totalWorkouts == 0 {
+                        Text("Complete some workouts to see your year in review!")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                            .padding(.top, 40)
                     }
 
                     Spacer(minLength: 40)
@@ -1272,6 +1448,16 @@ struct YearlyWrappedView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func formatVolume(_ volume: Double) -> String {
+        if volume >= 1_000_000 {
+            return String(format: "%.1fM", volume / 1_000_000)
+        } else if volume >= 1000 {
+            return String(format: "%.1fK", volume / 1000)
+        } else {
+            return "\(Int(volume))"
         }
     }
 
