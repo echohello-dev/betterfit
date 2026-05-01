@@ -660,12 +660,51 @@ extension WorkoutHomeView {
 
         return VStack(alignment: .leading, spacing: 0) {
             UnifiedExerciseTimeline(
-                exercises: Array(workout.exercises.prefix(5)),
+                exercises: workout.exercises,
                 selectedIndex: nil,
                 theme: theme,
                 showHeader: true,
                 headerTitle: "Exercises",
-                onSelect: { _ in },
+                onSelect: { index in
+                    guard workout.exercises.indices.contains(index) else {
+                        return
+                    }
+
+                    let we = workout.exercises[index]
+                    let name = we.exercise.name.lowercased()
+                    let category: ExerciseCategory
+                    if name.contains("run") || name.contains("cardio") {
+                        category = .cardio
+                    } else if name.contains("press") || name.contains("push") {
+                        category = .push
+                    } else if name.contains("row") || name.contains("pull") || name.contains("curl")
+                    {
+                        category = .pull
+                    } else if name.contains("squat") || name.contains("leg")
+                        || name.contains("lunge")
+                    {
+                        category = .legs
+                    } else if name.contains("plank") || name.contains("crunch")
+                        || name.contains("ab")
+                    {
+                        category = .core
+                    } else {
+                        category = .compound
+                    }
+
+                    selectedExerciseForDetail = PlannedExercise(
+                        name: we.exercise.name,
+                        category: category,
+                        sets: max(1, we.sets.count),
+                        reps: we.sets.first.map { "\($0.reps)" } ?? "N/A",
+                        targetWeight: we.sets.first.map { "\($0.weight) lbs" } ?? "N/A",
+                        muscleGroups: we.exercise.muscleGroups.map {
+                            prettifyMuscleGroup($0.rawValue)
+                        }
+                    )
+
+                    showExerciseDetailSheet = true
+                },
                 onDelete: { _ in },
                 onReplace: nil,
                 onSuperset: nil,

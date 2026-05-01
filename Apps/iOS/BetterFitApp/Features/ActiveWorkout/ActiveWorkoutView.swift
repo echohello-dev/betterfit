@@ -11,6 +11,7 @@ struct ActiveWorkoutView: View {
 
     @State private var exercises: [WorkoutExerciseState] = []
     @State private var selectedExerciseIndex: Int = 0
+    @State private var replaceExerciseIndex: Int?
     @State private var showExercisePicker = false
     @State private var showSupersetPicker = false
     @State private var supersetTargetIndex: Int?
@@ -63,7 +64,12 @@ struct ActiveWorkoutView: View {
             }
             .sheet(isPresented: $showExercisePicker) {
                 ExercisePickerView(theme: theme) { selectedExercises in
-                    addExercises(selectedExercises)
+                    if let replaceIndex = replaceExerciseIndex {
+                        replaceExercise(selectedExercises, at: replaceIndex)
+                        replaceExerciseIndex = nil
+                    } else {
+                        addExercises(selectedExercises)
+                    }
                 }
                 .presentationDetents([.large])
             }
@@ -155,7 +161,8 @@ struct ActiveWorkoutView: View {
                             showSupersetPicker = true
                         },
                         onReplace: {
-                            // TODO: Show exercise picker to replace current exercise
+                            replaceExerciseIndex = selectedExerciseIndex
+                            showExercisePicker = true
                         }
                     )
                 }
@@ -344,6 +351,29 @@ struct ActiveWorkoutView: View {
         }
 
         exercises.insert(contentsOf: newExercises, at: index + 1)
+    }
+
+    private func replaceExercise(_ selectedExercises: [SelectableExercise], at index: Int) {
+        guard index < exercises.count, let selected = selectedExercises.first else { return }
+        let replacement = WorkoutExerciseState(
+            id: UUID(),
+            exercise: ExerciseDefinition(
+                id: selected.id,
+                name: selected.name,
+                category: selected.category,
+                muscleGroups: selected.muscleGroups,
+                videoURL: nil,
+                description: "Perform this exercise with controlled movement.",
+                aliases: [],
+                relatedExercises: []
+            ),
+            sets: [
+                WorkoutSetState(id: UUID(), reps: 10, weight: 0),
+                WorkoutSetState(id: UUID(), reps: 10, weight: 0),
+                WorkoutSetState(id: UUID(), reps: 10, weight: 0),
+            ]
+        )
+        exercises[index] = replacement
     }
 
     private func removeExercise(at index: Int) {

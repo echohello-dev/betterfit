@@ -34,7 +34,7 @@ struct RootTabView: View {
     let user: Auth.User?
     let onShowSignIn: () -> Void
     let onLogout: (() -> Void)?
-    
+
     /// Whether Supabase is configured (passed from parent)
     var isSupabaseConfigured: Bool = true
     /// Binding to control banner dismissal state
@@ -51,7 +51,7 @@ struct RootTabView: View {
 
     // Shared workout plan manager across views
     @State private var planManager = WorkoutPlanManager()
-    
+
     init(
         betterFit: BetterFit,
         theme: AppTheme,
@@ -419,6 +419,16 @@ private struct BottomAccessoryStack: View {
                 startWorkoutAccessory
             }
         }
+        // The TabView provides its own glass “dock” surface. Without some internal
+        // padding, our content can look vertically clipped / malformed (especially
+        // on iPhone when the tab bar uses the larger glass style).
+        .padding(.horizontal, isCompact ? 8 : 20)
+        .padding(.top, isCompact ? 0 : 6)
+        // Keep a comfortable clearance above the tab bar's glass dock.
+        // Without this, the pill-shaped button can look vertically clipped.
+        // Leave a visible gap above the tab bar glass dock so the pill doesn't
+        // look overlapped/clipped.
+        .padding(.bottom, isCompact ? 0 : 48)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCompact)
         .confirmationDialog(
             "End Workout",

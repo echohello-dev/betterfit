@@ -1,35 +1,6 @@
 import BetterFit
 import SwiftUI
 
-// MARK: - Global Weight Unit Setting
-
-enum WeightUnitSetting: String, CaseIterable {
-    case lbs = "lbs"
-    case kg = "kg"
-
-    var multiplier: Double {
-        switch self {
-        case .lbs: return 1.0
-        case .kg: return 0.453592
-        }
-    }
-
-    func convert(_ weight: Double, from unit: WeightUnitSetting) -> Double {
-        if self == unit { return weight }
-        switch (unit, self) {
-        case (.lbs, .kg): return weight * 0.453592
-        case (.kg, .lbs): return weight / 0.453592
-        default: return weight
-        }
-    }
-
-    func format(_ weight: Double) -> String {
-        "\(Int(weight)) \(rawValue)"
-    }
-
-    static let storageKey = "betterfit.settings.weightUnit"
-}
-
 // MARK: - Exercise Detail Sheet
 
 struct ExerciseDetailSheet: View {

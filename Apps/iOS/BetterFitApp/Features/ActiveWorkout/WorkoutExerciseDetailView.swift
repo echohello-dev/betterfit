@@ -123,8 +123,6 @@ struct WorkoutExerciseDetailView: View {
         var suggestions: [WeightSuggestion] = []
 
         // Get weights from history
-        let historyWeights = Set(exerciseHistory.flatMap { $0.sets.map { $0.weight } })
-
         // Add recent weights first
         if let lastEntry = exerciseHistory.first {
             for setData in lastEntry.sets.prefix(3) {
