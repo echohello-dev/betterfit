@@ -1436,7 +1436,8 @@ struct YearlyWrappedView: View {
                             .padding(.top, 40)
                     }
 
-                    Spacer(minLength: 40)
+                // Extra bottom padding to clear the TabView accessory bar
+                Color.clear.frame(height: 100)
                 }
             }
             .background(theme.backgroundGradient.ignoresSafeArea())

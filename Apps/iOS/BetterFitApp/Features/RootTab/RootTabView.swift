@@ -83,62 +83,25 @@ struct RootTabView: View {
     }
 
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *) {
-                TabView(selection: $selectedTab) {
-                    ForEach(AppTab.allCases, id: \.self) { tab in
-                        Tab(value: tab, role: tab == .search ? .search : nil) {
-                            tabContent(for: tab)
-                        } label: {
-                            Label(tab.title, systemImage: tab.icon)
-                        }
+        TabView(selection: $selectedTab) {
+            ForEach(AppTab.allCases, id: \.self) { tab in
+                tabContent(for: tab)
+                    .tabItem {
+                        Label(tab.title, systemImage: tab.icon)
                     }
-                }
-                .tint(theme.accent)
-                .tabBarMinimizeBehavior(.onScrollDown)
-                .onChange(of: selectedTab) { oldTab, newTab in
-                    if newTab == .search && oldTab != .search {
-                        previousTab = oldTab
-                    }
-                }
-                .tabViewBottomAccessory {
-                    BottomAccessoryStack(
-                        hasActiveWorkout: hasActiveWorkout,
-                        isWorkoutPaused: $isWorkoutPaused,
-                        showStopConfirmation: $showStopConfirmation,
-                        isGuest: isGuest,
-                        showGuestBanner: $showGuestBanner,
-                        isSupabaseConfigured: isSupabaseConfigured,
-                        theme: theme,
-                        onStartOrResume: startOrResumeWorkout,
-                        onTogglePause: togglePause,
-                        onComplete: completeWorkout,
-                        onCancel: cancelWorkout,
-                        onShowSignIn: onShowSignIn
-                    )
-                }
-            } else {
-                TabView(selection: $selectedTab) {
-                    ForEach(AppTab.allCases, id: \.self) { tab in
-                        tabContent(for: tab)
-                            .tabItem {
-                                Label(tab.title, systemImage: tab.icon)
-                            }
-                            .tag(tab)
-                    }
-                }
-                .tint(theme.accent)
-                .onChange(of: selectedTab) { oldTab, newTab in
-                    if newTab == .search && oldTab != .search {
-                        previousTab = oldTab
-                    }
-                }
-                .safeAreaInset(edge: .bottom) {
-                    startWorkoutButton
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 60)
-                }
+                    .tag(tab)
             }
+        }
+        .tint(theme.accent)
+        .onChange(of: selectedTab) { oldTab, newTab in
+            if newTab == .search && oldTab != .search {
+                previousTab = oldTab
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            startWorkoutButton
+                .padding(.horizontal, 20)
+                .padding(.bottom, 60)
         }
         .onAppear {
             if healthKitManager == nil {
@@ -376,224 +339,6 @@ struct RootTabView: View {
     }
 }
 
-// MARK: - Bottom Accessory Stack (iOS 26+)
-
-/// Stacked bottom accessory containing guest banner + start workout button
-/// Adapts to placement (expanded vs inline) for proper minimize behavior
-@available(iOS 26.0, *)
-private struct BottomAccessoryStack: View {
-    @Environment(\.tabViewBottomAccessoryPlacement) var placement
-
-    let hasActiveWorkout: Bool
-    @Binding var isWorkoutPaused: Bool
-    @Binding var showStopConfirmation: Bool
-    let isGuest: Bool
-    @Binding var showGuestBanner: Bool
-    let isSupabaseConfigured: Bool
-    let theme: AppTheme
-    let onStartOrResume: () -> Void
-    let onTogglePause: () -> Void
-    let onComplete: () -> Void
-    let onCancel: () -> Void
-    let onShowSignIn: () -> Void
-
-    private var isCompact: Bool {
-        // When placement is nil (undefined) or .inline, treat as compact
-        // This handles the initial state before the tab view fully lays out
-        guard let placement else { return false }
-        return placement == .inline
-    }
-
-    var body: some View {
-        VStack(spacing: isCompact ? 6 : 10) {
-            // Guest mode banner (only show when expanded and guest)
-            if isGuest && showGuestBanner && !isCompact {
-                guestModeBanner
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
-            // Start workout button / active workout controls
-            if hasActiveWorkout {
-                activeWorkoutAccessory
-            } else {
-                startWorkoutAccessory
-            }
-        }
-        // The TabView provides its own glass “dock” surface. Without some internal
-        // padding, our content can look vertically clipped / malformed (especially
-        // on iPhone when the tab bar uses the larger glass style).
-        .padding(.horizontal, isCompact ? 8 : 20)
-        .padding(.top, isCompact ? 0 : 6)
-        // Keep a comfortable clearance above the tab bar's glass dock.
-        // Without this, the pill-shaped button can look vertically clipped.
-        // Leave a visible gap above the tab bar glass dock so the pill doesn't
-        // look overlapped/clipped.
-        .padding(.bottom, isCompact ? 0 : 48)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCompact)
-        .confirmationDialog(
-            "End Workout",
-            isPresented: $showStopConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Complete & Save") {
-                onComplete()
-            }
-            Button("Discard Workout", role: .destructive) {
-                onCancel()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Would you like to save this workout or discard it?")
-        }
-    }
-
-    // MARK: - Guest Mode Banner
-
-    @ViewBuilder
-    private var guestModeBanner: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        let bannerColor: Color = isSupabaseConfigured ? .blue : .orange
-        let icon = isSupabaseConfigured ? "info.circle.fill" : "exclamationmark.triangle.fill"
-        let message =
-            isSupabaseConfigured
-            ? "You're in guest mode. Sign in to sync across devices."
-            : "Running in guest mode. Cloud features are disabled."
-
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(bannerColor)
-                .font(.subheadline)
-
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.white)
-                .lineLimit(2)
-
-            Spacer(minLength: 0)
-
-            if isSupabaseConfigured {
-                Button {
-                    onShowSignIn()
-                } label: {
-                    Text("Sign In")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(bannerColor))
-                        .foregroundStyle(.white)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Button {
-                withAnimation {
-                    showGuestBanner = false
-                }
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.white.opacity(0.6))
-                    .font(.subheadline)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background {
-            shape
-                .fill(bannerColor.opacity(0.2))
-                .glassEffect(.regular, in: shape)
-        }
-    }
-
-    // MARK: - Start Workout Button
-
-    @ViewBuilder
-    private var startWorkoutAccessory: some View {
-        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
-
-        Button {
-            onStartOrResume()
-        } label: {
-            HStack(spacing: isCompact ? 6 : 10) {
-                Image(systemName: "play.fill")
-                    .foregroundStyle(.black)
-
-                if !isCompact {
-                    Text("Start Workout")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.black)
-
-                    Spacer(minLength: 0)
-                }
-
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.black.opacity(0.6))
-            }
-            .padding(.horizontal, isCompact ? 16 : 24)
-            .frame(height: isCompact ? 44 : 54)
-            .frame(maxWidth: isCompact ? nil : .infinity)
-            .background {
-                shape
-                    .fill(Color.yellow)
-                    .glassEffect(.regular.interactive(), in: shape)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Start Workout")
-    }
-
-    // MARK: - Active Workout Controls
-
-    @ViewBuilder
-    private var activeWorkoutAccessory: some View {
-        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
-
-        HStack(spacing: isCompact ? 8 : 12) {
-            // Pause/Resume button
-            Button {
-                onTogglePause()
-            } label: {
-                HStack(spacing: isCompact ? 4 : 8) {
-                    Image(systemName: isWorkoutPaused ? "play.fill" : "pause.fill")
-                        .font(.body.weight(.semibold))
-                    if !isCompact {
-                        Text(isWorkoutPaused ? "Resume" : "Pause")
-                            .font(.body.weight(.semibold))
-                    }
-                }
-                .foregroundStyle(.black)
-                .frame(height: isCompact ? 44 : 54)
-                .frame(maxWidth: isCompact ? nil : .infinity)
-                .padding(.horizontal, isCompact ? 12 : 0)
-                .background {
-                    shape
-                        .fill(theme.accent)
-                        .glassEffect(.regular.interactive(), in: shape)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isWorkoutPaused ? "Resume Workout" : "Pause Workout")
-
-            // Stop button
-            Button {
-                showStopConfirmation = true
-            } label: {
-                Image(systemName: "stop.fill")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: isCompact ? 44 : 54, height: isCompact ? 44 : 54)
-                    .background {
-                        Circle()
-                            .fill(Color.red.opacity(0.85))
-                            .glassEffect(.regular.interactive(), in: Circle())
-                    }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Stop Workout")
-        }
-    }
-}
 
 #Preview {
     UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
