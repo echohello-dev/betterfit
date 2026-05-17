@@ -48,9 +48,7 @@ extension WorkoutHomeView {
                     Circle()
                         .fill(theme.accent.opacity(0.22))
                         .frame(width: 48, height: 48)
-                    Image(systemName: "figure.run.circle.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(theme.accent)
+                    FitnessIcon(systemImage: "figure.run.circle.fill", size: 22, color: theme.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -77,9 +75,7 @@ extension WorkoutHomeView {
                 Circle()
                     .fill(theme.accent.opacity(0.22))
                     .frame(width: 36, height: 36)
-                Image(systemName: "figure.run.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(theme.accent)
+                FitnessIcon(systemImage: "figure.run.circle.fill", size: 16, color: theme.accent)
             }
 
             VStack(alignment: .leading, spacing: 2) {

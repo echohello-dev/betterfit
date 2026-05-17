@@ -95,9 +95,7 @@ struct ActiveWorkoutView: View {
 
     private var emptyWorkoutView: some View {
         VStack(spacing: 24) {
-            Image(systemName: "dumbbell.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(theme.accent.opacity(0.5))
+            FitnessIcon(systemImage: "dumbbell.fill", size: 48, color: theme.accent.opacity(0.5))
 
             VStack(spacing: 8) {
                 Text("No exercises yet")

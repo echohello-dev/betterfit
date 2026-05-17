@@ -143,20 +143,47 @@ struct RootTabView: View {
                 .frame(height: 54)
                 .frame(maxWidth: .infinity)
                 .background {
-                    if #available(iOS 26.0, *) {
-                        shape
-                            .fill(Color.yellow)
-                            .glassEffect(.regular.interactive(), in: shape)
-                    } else {
-                        shape
-                            .fill(Color.yellow)
-                            .overlay { shape.stroke(Color.yellow.opacity(0.3), lineWidth: 1) }
-                            .shadow(color: Color.black.opacity(0.22), radius: 14, x: 0, y: 6)
-                    }
+                    StartWorkoutGlow(shape)
                 }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Start Workout")
+        }
+    }
+
+    /// "The Finals" style shine/glow animation for the start workout button
+    private struct StartWorkoutGlow: View {
+        let shape: AnyShape
+
+        init<S: Shape>(_ s: S) {
+            self.shape = AnyShape(s)
+        }
+
+        @State private var animationProgress: CGFloat = 0
+
+        var body: some View {
+            ZStack {
+                shape.fill(Color.yellow)
+
+                shape
+                    .trim(from: 0, to: animationProgress)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.9), .white.opacity(0), .white.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 3
+                    )
+                    .blur(radius: 1)
+                    .animation(
+                        Animation.easeInOut(duration: 1.8).repeatForever(autoreverses: false),
+                        value: animationProgress
+                    )
+            }
+            .onAppear {
+                animationProgress = 1
+            }
         }
     }
 

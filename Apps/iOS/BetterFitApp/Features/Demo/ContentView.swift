@@ -64,16 +64,14 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    if #available(iOS 26.0, *) {
-                        GlassEffectContainer(spacing: 16) {
-                            HStack(spacing: 10) {
-                                BFChromeIconButton(
-                                    systemImage: "magnifyingglass",
-                                    accessibilityLabel: "Search",
-                                    theme: theme
-                                ) {
-                                    showingSearch = true
-                                }
+                    HStack(spacing: 10) {
+                        BFChromeIconButton(
+                            systemImage: "magnifyingglass",
+                            accessibilityLabel: "Search",
+                            theme: theme
+                        ) {
+                            showingSearch = true
+                        }
 
                                 BFChromeIconButton(
                                     systemImage: "paintpalette",
@@ -83,25 +81,6 @@ struct ContentView: View {
                                     showingThemePicker = true
                                 }
                             }
-                        }
-                    } else {
-                        HStack(spacing: 10) {
-                            BFChromeIconButton(
-                                systemImage: "magnifyingglass",
-                                accessibilityLabel: "Search",
-                                theme: theme
-                            ) {
-                                showingSearch = true
-                            }
-
-                            BFChromeIconButton(
-                                systemImage: "paintpalette",
-                                accessibilityLabel: "Change theme",
-                                theme: theme
-                            ) {
-                                showingThemePicker = true
-                            }
-                        }
                     }
                 }
             }
