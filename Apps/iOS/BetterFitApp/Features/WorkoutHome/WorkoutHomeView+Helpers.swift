@@ -938,6 +938,6 @@ extension WorkoutHomeView {
             }
         }
 
-        workoutEvents.forEach { bf.completeWorkout($0) }
+        workoutEvents.forEach { bf.completeWorkout($0, saveToHealthKit: false) }
     }
 }

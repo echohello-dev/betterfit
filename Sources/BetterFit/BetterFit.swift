@@ -131,7 +131,10 @@ public class BetterFit {
     }
 
     /// Complete a workout
-    public func completeWorkout(_ workout: Workout) {
+    /// - Parameters:
+    ///   - workout: The completed workout
+    ///   - saveToHealthKit: Whether to save the workout to Apple Health (default: true, set to false for demo data)
+    public func completeWorkout(_ workout: Workout, saveToHealthKit: Bool = true) {
         autoTrackingService.stopTracking()
 
         // Record in history
@@ -141,8 +144,10 @@ public class BetterFit {
         Task {
             try? await persistenceService.saveWorkout(workout)
 
-            // Save to HealthKit
-            _ = await healthKitService.saveWorkout(workout)
+            // Save to HealthKit (skip for demo data)
+            if saveToHealthKit {
+                _ = await healthKitService.saveWorkout(workout)
+            }
         }
 
         // Update recovery map
