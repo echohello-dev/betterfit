@@ -351,21 +351,15 @@ struct BetterFitApp: App {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .background {
-            if #available(iOS 26.0, *) {
-                shape
-                    .fill(color.opacity(0.2))
-                    .glassEffect(.regular.interactive(), in: shape)
-            } else {
-                shape
-                    .fill(color.opacity(0.2))
-                    .overlay { shape.stroke(color.opacity(0.3), lineWidth: 1) }
-                    .shadow(
-                        color: Color.black.opacity(0.22),
-                        radius: 14,
-                        x: 0,
-                        y: 6
-                    )
-            }
+            shape
+                .fill(color.opacity(0.2))
+                .overlay { shape.stroke(color.opacity(0.3), lineWidth: 1) }
+                .shadow(
+                    color: Color.black.opacity(0.22),
+                    radius: 14,
+                    x: 0,
+                    y: 6
+                )
         }
     }
 }

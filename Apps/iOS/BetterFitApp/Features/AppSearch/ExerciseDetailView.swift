@@ -33,9 +33,7 @@ struct ExerciseDetailView: View {
     private var heroSection: some View {
         Section {
             VStack(spacing: 16) {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 56))
-                    .foregroundStyle(theme.accent)
+                FitnessIcon(systemImage: "figure.strengthtraining.traditional", size: 56, color: theme.accent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
 

@@ -8,12 +8,12 @@ final class AppConfigurationTests: XCTestCase {
 
     /// Temporarily set an environment variable for testing
     private func setEnvVar(_ key: String, _ value: String) {
-        setenv(key.cString(using: .utf8), value.cString(using: .utf8), 1)
+        setenv(key.cString(using: .utf8)!, value.cString(using: .utf8)!, 1)
     }
 
     /// Temporarily unset an environment variable for testing
     private func unsetEnvVar(_ key: String) {
-        unsetenv(key.cString(using: .utf8))
+        unsetenv(key.cString(using: .utf8)!)
     }
 
     override func setUp() {
