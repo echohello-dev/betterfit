@@ -130,3 +130,23 @@ struct MetricPill: View {
         .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
     }
 }
+
+struct FitnessIcon: View {
+    let systemImage: String
+    let size: Double
+    let color: Color
+
+    @State private var isAnimated = false
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(color)
+            .scaleEffect(isAnimated ? 1.1 : 1.0)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: false)) {
+                    isAnimated = true
+                }
+            }
+    }
+}

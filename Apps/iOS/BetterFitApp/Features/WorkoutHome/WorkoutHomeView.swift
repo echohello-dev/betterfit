@@ -239,13 +239,7 @@ struct WorkoutHomeView: View {
 
     @ViewBuilder
     private var toolbarContent: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: 16) {
-                toolbarButtons
-            }
-        } else {
-            toolbarButtons
-        }
+        toolbarButtons
     }
 
     @ViewBuilder

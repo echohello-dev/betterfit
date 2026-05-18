@@ -2,6 +2,35 @@ import Auth
 import BetterFit
 import SwiftUI
 
+// MARK: - Animated Counter
+
+struct AnimatedCounter: View {
+    let value: Double
+    let unit: String
+    let duration: Double
+    let formatter: (Double) -> String
+
+    @State private var displayedValue: Double = 0
+
+    init(value: Double, unit: String = "", duration: Double = 1.0, formatter: ((Double) -> String)? = nil) {
+        self.value = value
+        self.unit = unit
+        self.duration = duration
+        self.formatter = formatter ?? { "\(Int($0))\(unit.isEmpty ? "" : " \(unit)")"
+        }
+    }
+
+    var body: some View {
+        Text(formatter(displayedValue))
+            .monospacedDigit()
+            .onAppear {
+                withAnimation(.easeOut(duration: duration)) {
+                    displayedValue = value
+                }
+            }
+    }
+}
+
 // MARK: - Personal Record
 
 struct PersonalRecord: Identifiable {
@@ -859,9 +888,14 @@ struct ProfileView: View {
                             .foregroundStyle(.green)
                     }
 
-                    Text(formatGoalValue(goal.current, unit: goal.unit))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(isCompleted ? .green : .primary)
+                    AnimatedCounter(
+                        value: goal.current,
+                        unit: goal.unit,
+                        duration: 0.8,
+                        formatter: { formatGoalValue($0, unit: goal.unit) }
+                    )
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isCompleted ? .green : .primary)
 
                     Text("/ \(formatGoalValue(goal.target, unit: goal.unit))")
                         .font(.caption)

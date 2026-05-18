@@ -68,10 +68,8 @@ struct SignInView: View {
 
             // MARK: - Logo & Title
 
-            VStack(spacing: 16) {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 80, weight: .bold))
-                    .foregroundStyle(theme.accent)
+                VStack(spacing: 16) {
+                FitnessIcon(systemImage: "figure.strengthtraining.traditional", size: 80, color: theme.accent)
 
                 Text("BetterFit")
                     .bfHeading(theme: theme, size: 44, relativeTo: .largeTitle)

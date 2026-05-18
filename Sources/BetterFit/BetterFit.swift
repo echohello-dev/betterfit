@@ -130,7 +130,7 @@ public class BetterFit {
         autoTrackingService.stopTracking()
     }
 
-    /// Complete a workout
+/// Complete a workout
     /// - Parameters:
     ///   - workout: The completed workout
     ///   - saveToHealthKit: Whether to save the workout to Apple Health (default: true, set to false for demo data)
