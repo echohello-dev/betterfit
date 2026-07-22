@@ -5,6 +5,7 @@ import SwiftUI
 // MARK: - Plan View
 
 struct PlanView: View {
+    @Environment(\.colorScheme) var colorScheme
     let betterFit: BetterFit
     let theme: AppTheme
     let planManager: WorkoutPlanManager
@@ -46,7 +47,7 @@ struct PlanView: View {
             }
             .padding(16)
         }
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .navigationTitle("Plan")
         .sheet(isPresented: $showExercisePicker) {
             ExercisePickerView(theme: theme) { exercises in
@@ -112,7 +113,7 @@ struct PlanView: View {
             VStack(spacing: 4) {
                 Text(day.dayOfWeek.prefix(1))
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(day.isToday ? theme.accent : .secondary)
+                    .foregroundStyle(day.isToday ? theme.accent : BFColors.textSecondary(for: colorScheme))
 
                 ZStack {
                     Circle()
@@ -132,7 +133,7 @@ struct PlanView: View {
 
                 // Workout indicator dot
                 Circle()
-                    .fill(hasWorkout ? theme.accent : theme.cardStroke)
+                    .fill(hasWorkout ? theme.accent : BFColors.border(for: colorScheme))
                     .frame(width: 5, height: 5)
             }
             .frame(maxWidth: .infinity)
@@ -148,7 +149,7 @@ struct PlanView: View {
                 .monospacedDigit()
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
     }
 
@@ -174,7 +175,7 @@ struct PlanView: View {
                     } else if selectedPlanDay?.isRest == true {
                         Text("Rest Day")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                 }
 
@@ -209,17 +210,17 @@ struct PlanView: View {
 
                 Text("Add exercises")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 Spacer(minLength: 0)
             }
             .padding(16)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(BFColors.surface(for: colorScheme))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(theme.cardStroke, style: StrokeStyle(lineWidth: 1, dash: [6]))
+                            .stroke(BFColors.border(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [6]))
                     }
             }
         }
@@ -268,8 +269,7 @@ struct PlanView: View {
         return HStack(spacing: 12) {
             // Recovery ring
             ZStack {
-                ProgressRing(progress: overall / 100.0, lineWidth: 4, theme: theme)
-                    .frame(width: 36, height: 36)
+                BFProgressRing(progress: overall / 100.0, lineWidth: 4, tint: theme.accent, size: 36)
 
                 Text("\(Int(overall))%")
                     .font(.caption2.weight(.bold))
@@ -279,7 +279,7 @@ struct PlanView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Recovery")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 Text(recoveryHeadline(overall))
                     .font(.caption.weight(.semibold))
@@ -294,19 +294,17 @@ struct PlanView: View {
                     let status =
                         map.regions[region]
                         ?? betterFit.bodyMapManager.getRecoveryStatus(for: region)
-                    Circle()
-                        .fill(statusColor(status))
-                        .frame(width: 8, height: 8)
+                    BFRecoveryDot(status: status, size: 8)
                 }
             }
         }
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.regularMaterial)
+                .fill(BFColors.surface(for: colorScheme))
                 .overlay {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(theme.cardStroke, lineWidth: 1)
+                        .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                 }
         }
     }
@@ -337,15 +335,6 @@ struct PlanView: View {
                 muscleGroups: exercise.muscleGroups
             )
             planManager.addExercise(newExercise, to: selectedDay.date)
-        }
-    }
-
-    private func statusColor(_ status: RecoveryStatus) -> Color {
-        switch status {
-        case .recovered: return theme.accent
-        case .slightlyFatigued: return .yellow
-        case .fatigued: return .orange
-        case .sore: return .red
         }
     }
 }

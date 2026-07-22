@@ -2,6 +2,7 @@ import BetterFit
 import SwiftUI
 
 struct AppSearchView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let theme: AppTheme
     let betterFit: BetterFit?
     let previousTabIcon: String
@@ -13,6 +14,9 @@ struct AppSearchView: View {
 
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
         .rawValue
+
+    @AppStorage(AppearancePreference.storageKey) private var storedAppearance: String =
+        AppearancePreference.defaultPreference.rawValue
 
     #if DEBUG
         @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
@@ -45,7 +49,7 @@ struct AppSearchView: View {
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
             .searchable(text: $query, prompt: "Search")
             .safeAreaInset(edge: .bottom) {
                 Color.clear
@@ -57,6 +61,10 @@ struct AppSearchView: View {
                 selectedTheme: Binding(
                     get: { AppTheme.fromStorage(storedTheme) },
                     set: { storedTheme = $0.rawValue }
+                ),
+                appearance: Binding(
+                    get: { AppearancePreference.fromStorage(storedAppearance) },
+                    set: { storedAppearance = $0.rawValue }
                 )
             )
             .presentationDetents([.medium, .large])
@@ -71,13 +79,13 @@ struct AppSearchView: View {
                 NavigationLink {
                     CategoryDetailView(category: category, theme: theme)
                 } label: {
-                    Label {
-                        Text(category.title)
-                    } icon: {
-                        Image(systemName: category.systemImage)
-                            .foregroundStyle(category.tint)
-                    }
+                    BFListRow(
+                        systemImage: category.systemImage,
+                        title: category.title,
+                        iconTint: category.tint
+                    )
                 }
+                .listRowBackground(BFColors.surface(for: colorScheme))
             }
         } header: {
             Text("Categories")
@@ -88,8 +96,12 @@ struct AppSearchView: View {
         Section {
             let results = searchResults
             if results.isEmpty {
-                ContentUnavailableView.search(text: query)
-                    .listRowBackground(Color.clear)
+                BFEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "No Results",
+                    message: "Nothing matched \"\(query)\". Try a different search."
+                )
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(results) { result in
                     resultRow(result)
@@ -107,36 +119,28 @@ struct AppSearchView: View {
             Button {
                 showingThemePicker = true
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Theme")
-                        Text(AppTheme.fromStorage(storedTheme).displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "paintpalette.fill")
-                        .foregroundStyle(theme.accent)
-                }
+                BFListRow(
+                    systemImage: "paintpalette.fill",
+                    title: "Theme",
+                    subtitle: AppTheme.fromStorage(storedTheme).displayName,
+                    iconTint: theme.accent
+                )
             }
             .tint(.primary)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         #if DEBUG
             case .demoMode:
                 Toggle(isOn: $workoutHomeDemoModeEnabled) {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Demo Mode")
-                            Text("Seed demo data and demo-only UI")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: "testtube.2")
-                            .foregroundStyle(.purple)
-                    }
+                    BFListRow(
+                        systemImage: "testtube.2",
+                        title: "Demo Mode",
+                        subtitle: "Seed demo data and demo-only UI",
+                        iconTint: .purple
+                    )
                 }
                 .tint(theme.accent)
+                .listRowBackground(BFColors.surface(for: colorScheme))
         #else
             case .demoMode:
                 EmptyView()
@@ -146,52 +150,40 @@ struct AppSearchView: View {
             NavigationLink {
                 SettingDetailView(settingId: result.id, title: result.title, theme: theme)
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(result.title)
-                        Text(result.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: iconForSetting(result.id))
-                        .foregroundStyle(colorForSetting(result.id))
-                }
+                BFListRow(
+                    systemImage: iconForSetting(result.id),
+                    title: result.title,
+                    subtitle: result.subtitle,
+                    iconTint: colorForSetting(result.id)
+                )
             }
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         case .exercise:
             NavigationLink {
                 ExerciseDetailView(exercise: result.title, subtitle: result.subtitle, theme: theme)
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(result.title)
-                        Text(result.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "dumbbell")
-                        .foregroundStyle(theme.accent)
-                }
+                BFListRow(
+                    systemImage: "dumbbell",
+                    title: result.title,
+                    subtitle: result.subtitle,
+                    iconTint: theme.accent
+                )
             }
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         case .category:
             NavigationLink {
                 CategoryDetailView(category: result.category, theme: theme)
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(result.category.title)
-                        Text("Category")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: result.category.systemImage)
-                        .foregroundStyle(result.category.tint)
-                }
+                BFListRow(
+                    systemImage: result.category.systemImage,
+                    title: result.category.title,
+                    subtitle: "Category",
+                    iconTint: result.category.tint
+                )
             }
+            .listRowBackground(BFColors.surface(for: colorScheme))
         }
     }
 

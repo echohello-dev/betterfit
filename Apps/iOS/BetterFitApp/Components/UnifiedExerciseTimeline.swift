@@ -6,6 +6,7 @@ import SwiftUI
 /// A unified timeline view that works across Plan, Workout, and Active Workout views
 /// Uses native SwiftUI List with swipe actions and drag-to-reorder for best UX
 struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
+    @Environment(\.colorScheme) var colorScheme
     let exercises: [E]
     let selectedIndex: Int?
     let theme: AppTheme
@@ -84,7 +85,7 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
 
             Text("\(exercises.count) exercises")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             if let addAction = onAdd {
                 HStack(spacing: 10) {
@@ -114,11 +115,11 @@ struct UnifiedExerciseTimeline<E: ExerciseDisplayable>: View {
         VStack(spacing: 12) {
             Image(systemName: "list.bullet.clipboard")
                 .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(theme.accent.opacity(0.5))
+                .foregroundStyle(BFColors.textTertiary(for: colorScheme))
 
             Text("No exercises yet")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             if let addAction = onAdd {
                 Button(action: addAction) {
@@ -280,6 +281,7 @@ private struct ExerciseTimelineItem<E: ExerciseDisplayable>: View {
 // MARK: - Timeline Exercise Row
 
 private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
+    @Environment(\.colorScheme) var colorScheme
     let exercise: E
     let index: Int
     let isSelected: Bool
@@ -299,7 +301,6 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
             // Exercise card
             exerciseCard
         }
-        .background(theme.backgroundGradient)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("exercise-timeline-row")
     }
@@ -310,26 +311,26 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
         VStack(spacing: 0) {
             // Top line
             Rectangle()
-                .fill(isFirst ? Color.clear : theme.accent.opacity(0.3))
+                .fill(isFirst ? Color.clear : BFColors.separator(for: colorScheme))
                 .frame(width: 2)
 
             // Circle with number
             ZStack {
                 // Solid background to prevent line overlap
                 Circle()
-                    .fill(Color(uiColor: .systemBackground))
+                    .fill(BFColors.background(for: colorScheme))
                     .frame(width: 32, height: 32)
 
                 if exercise.isCompleted {
                     Circle()
-                        .fill(theme.accent)
+                        .fill(BFColors.success)
                         .frame(width: 28, height: 28)
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.white)
                 } else if isSelected {
                     Circle()
-                        .fill(theme.accent.opacity(0.3))
+                        .fill(theme.accent.opacity(0.15))
                         .frame(width: 28, height: 28)
                     Text("\(index + 1)")
                         .font(.caption.weight(.bold))
@@ -339,18 +340,18 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
                         .frame(width: 32, height: 32)
                 } else {
                     Circle()
-                        .fill(theme.accent.opacity(0.15))
+                        .fill(BFColors.surfaceRaised(for: colorScheme))
                         .frame(width: 28, height: 28)
                     Text("\(index + 1)")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(theme.accent)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
             .frame(width: 32, height: 32)
 
             // Bottom line
             Rectangle()
-                .fill(isLast ? Color.clear : theme.accent.opacity(0.3))
+                .fill(isLast ? Color.clear : BFColors.separator(for: colorScheme))
                 .frame(width: 2)
         }
         .frame(maxHeight: .infinity)
@@ -374,7 +375,7 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
 
                     Text(exercise.displayCategory.rawValue)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 Spacer(minLength: 8)
@@ -489,14 +490,14 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
     private var cardBackground: some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         if isSelected {
-            shape.fill(.regularMaterial)
+            shape.fill(BFColors.surface(for: colorScheme))
             shape.stroke(theme.accent, lineWidth: 2)
         } else if exercise.isCompleted {
-            shape.fill(.regularMaterial)
-            shape.stroke(Color.green.opacity(0.5), lineWidth: 1)
+            shape.fill(BFColors.surface(for: colorScheme))
+            shape.stroke(BFColors.success.opacity(0.6), lineWidth: 1)
         } else {
-            shape.fill(.regularMaterial)
-            shape.stroke(theme.cardStroke, lineWidth: 1)
+            shape.fill(BFColors.surface(for: colorScheme))
+            shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1)
         }
     }
 
@@ -511,6 +512,7 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
 // MARK: - Weight Unit Toggle
 
 struct WeightUnitToggle: View {
+    @Environment(\.colorScheme) var colorScheme
     @Binding var unit: WeightUnitSetting
     let theme: AppTheme
 
@@ -524,7 +526,7 @@ struct WeightUnitToggle: View {
                 } label: {
                     Text(weightUnit.rawValue)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(unit == weightUnit ? .white : .secondary)
+                        .foregroundStyle(unit == weightUnit ? .white : BFColors.textSecondary(for: colorScheme))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background {
@@ -538,14 +540,15 @@ struct WeightUnitToggle: View {
             }
         }
         .padding(3)
-        .background(Capsule().fill(.regularMaterial))
-        .overlay(Capsule().stroke(theme.cardStroke, lineWidth: 1))
+        .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
+        .overlay(Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1))
     }
 }
 
 // MARK: - Superset Indicator
 
 struct SupersetIndicator: View {
+    @Environment(\.colorScheme) var colorScheme
     let exerciseCount: Int
     let roundCount: Int
     let theme: AppTheme
@@ -562,7 +565,7 @@ struct SupersetIndicator: View {
 
             Text("• \(exerciseCount) exercises • \(roundCount) rounds")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             Spacer()
 
@@ -572,7 +575,7 @@ struct SupersetIndicator: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     .padding(8)
             }
         }
@@ -612,5 +615,5 @@ struct SupersetIndicator: View {
             .padding()
         }
     }
-    .background(AppTheme.forest.backgroundGradient)
+    .background(BFColors.background(for: .dark))
 }

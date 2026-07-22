@@ -265,23 +265,6 @@ final class WorkoutPlanManager {
     func setSelectedWorkoutForToday(_ workout: Workout) {
         let today = calendar.startOfDay(for: Date.now)
 
-        // Convert workout exercises to PlannedExercise
-        let plannedExercises = workout.exercises.map { workoutExercise -> PlannedExercise in
-            let category = categorize(exercise: workoutExercise.exercise)
-            let muscleGroups = workoutExercise.exercise.muscleGroups.map { prettify($0) }
-            let weight = workoutExercise.sets.first?.weight.map { "\(Int($0)) lbs" }
-            let reps = workoutExercise.sets.first.map { "\($0.reps)" } ?? "10"
-
-            return PlannedExercise(
-                name: workoutExercise.exercise.name,
-                category: category,
-                sets: workoutExercise.sets.count,
-                reps: reps,
-                targetWeight: weight,
-                muscleGroups: muscleGroups
-            )
-        }
-
         // Determine workout type from name
         let workoutType = inferWorkoutType(from: workout.name)
 
@@ -290,30 +273,10 @@ final class WorkoutPlanManager {
             id: planDays[today]?.id ?? UUID(),
             date: today,
             workoutType: workoutType,
-            exercises: plannedExercises,
+            exercises: workout.toPlannedExercises(),
             isRest: false,
             isCompleted: planDays[today]?.isCompleted ?? false
         )
-    }
-
-    private func categorize(exercise: Exercise) -> ExerciseCategory {
-        let name = exercise.name.lowercased()
-        if name.contains("press") || name.contains("push") {
-            return .push
-        } else if name.contains("row") || name.contains("pull") || name.contains("curl") {
-            return .pull
-        } else if name.contains("squat") || name.contains("leg") || name.contains("lunge") {
-            return .legs
-        } else if name.contains("plank") || name.contains("crunch") || name.contains("ab") {
-            return .core
-        } else if name.contains("run") || name.contains("bike") || name.contains("cardio") {
-            return .cardio
-        }
-        return .compound
-    }
-
-    private func prettify(_ group: MuscleGroup) -> String {
-        group.rawValue.prefix(1).uppercased() + group.rawValue.dropFirst()
     }
 
     private func inferWorkoutType(from name: String) -> WorkoutType? {

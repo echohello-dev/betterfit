@@ -69,6 +69,7 @@ struct Achievement: Identifiable {
 // MARK: - Profile View
 
 struct ProfileView: View {
+    @Environment(\.colorScheme) var colorScheme
     let betterFit: BetterFit?
     let theme: AppTheme
     let isGuest: Bool
@@ -84,8 +85,12 @@ struct ProfileView: View {
     @State private var activityByDay: [Date: Int] = [:]
     @State private var showAllPRs = false
     @State private var showEditTargetsAlert = false
+    @State private var showingThemePicker = false
 
     @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
+    @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme.rawValue
+    @AppStorage(AppearancePreference.storageKey) private var storedAppearance: String =
+        AppearancePreference.defaultPreference.rawValue
 
     // MARK: - Data (Real or Demo)
 
@@ -290,6 +295,10 @@ struct ProfileView: View {
 
                 yearlyWrappedSection
 
+                // MARK: - Appearance
+
+                appearanceSection
+
                 // MARK: - Sign Out
 
                 if !isGuest {
@@ -300,7 +309,7 @@ struct ProfileView: View {
             }
             .padding(16)
         }
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .navigationTitle("Me")
         .confirmationDialog(
             "Sign Out",
@@ -320,6 +329,19 @@ struct ProfileView: View {
         .sheet(isPresented: $showAllPRs) {
             AllPRsSheet(records: personalRecords, theme: theme)
         }
+        .sheet(isPresented: $showingThemePicker) {
+            ThemePickerView(
+                selectedTheme: Binding(
+                    get: { AppTheme.fromStorage(storedTheme) },
+                    set: { storedTheme = $0.rawValue }
+                ),
+                appearance: Binding(
+                    get: { AppearancePreference.fromStorage(storedAppearance) },
+                    set: { storedAppearance = $0.rawValue }
+                )
+            )
+            .presentationDetents([.medium, .large])
+        }
     }
 
     // MARK: - Profile Header
@@ -328,7 +350,7 @@ struct ProfileView: View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(theme.accent.opacity(0.2))
+                    .fill(theme.accentSurface(0.2, for: colorScheme))
                     .frame(width: 80, height: 80)
 
                 if isGuest {
@@ -349,7 +371,7 @@ struct ProfileView: View {
                 if !isGuest {
                     Text("Member since Jan 2024")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     HStack(spacing: 6) {
                         Image(systemName: "crown.fill")
@@ -363,7 +385,7 @@ struct ProfileView: View {
                 } else {
                     Text("Sign in to track your progress")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
 
@@ -386,7 +408,7 @@ struct ProfileView: View {
 
                     Text("Sync your workouts, track PRs, and unlock achievements")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 Spacer(minLength: 0)
@@ -411,27 +433,20 @@ struct ProfileView: View {
         let stats = healthStats
 
         return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "heart.fill")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-
-                Text("Health Overview")
-                    .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-            }
+            BFSectionHeader(title: "Health Overview")
 
             if stats.isEmpty && !workoutHomeDemoModeEnabled {
                 BFCard(theme: theme) {
                     VStack(spacing: 8) {
                         Image(systemName: "heart.text.clipboard")
                             .font(.title2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("No health data yet")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("Complete workouts to see your stats")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -583,7 +598,7 @@ struct ProfileView: View {
 
                     Text(label)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -598,7 +613,7 @@ struct ProfileView: View {
 
                 Text(source)
                     .font(.caption2)
-                    .foregroundStyle(.secondary.opacity(0.7))
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
             }
         }
     }
@@ -639,13 +654,13 @@ struct ProfileView: View {
 
                             Text("day streak")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
 
                         if longestStreak > currentStreak {
                             Text("Best: \(longestStreak) days")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
                     }
 
@@ -654,18 +669,18 @@ struct ProfileView: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         Image(systemName: isHeatmapExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                         Text("This Week")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                         HStack(spacing: 3) {
                             ForEach(0..<7, id: \.self) { day in
                                 Circle()
                                     .fill(
                                         day < thisWeekWorkouts
-                                            ? theme.accent : theme.accent.opacity(0.2)
+                                            ? theme.accent : theme.accentSurface(0.2, for: colorScheme)
                                     )
                                     .frame(width: 8, height: 8)
                             }
@@ -676,8 +691,8 @@ struct ProfileView: View {
                 .background {
                     let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
                     shape
-                        .fill(.regularMaterial)
-                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                        .fill(BFColors.surface(for: colorScheme))
+                        .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
                 }
             }
             .buttonStyle(.plain)
@@ -698,20 +713,20 @@ struct ProfileView: View {
                                 Image(systemName: "chevron.down")
                                     .font(.caption2.weight(.semibold))
                             }
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background {
-                                Capsule().fill(theme.cardBackground)
+                                Capsule().fill(BFColors.surfaceRaised(for: colorScheme))
                             }
-                            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
                         }
 
                         Spacer()
 
                         Text("\(activityByDay.values.reduce(0, +)) workouts")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
 
                     // Heatmap
@@ -727,8 +742,8 @@ struct ProfileView: View {
                 .background {
                     let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
                     shape
-                        .fill(.regularMaterial)
-                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                        .fill(BFColors.surface(for: colorScheme))
+                        .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -811,18 +826,13 @@ struct ProfileView: View {
 
     private var weeklyTargetsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Weekly Targets")
-                    .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-
-                Spacer(minLength: 0)
-
+            BFSectionHeader(title: "Weekly Targets") {
                 if !weeklyGoals.isEmpty {
                     Button {
                         showEditTargetsAlert = true
                     } label: {
                         Text("Edit")
-                            .font(.caption.weight(.semibold))
+                            .font(BFTypography.captionEmphasis)
                             .foregroundStyle(theme.accent)
                     }
                 }
@@ -833,13 +843,13 @@ struct ProfileView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "target")
                             .font(.title2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("No activity this week")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("Start a workout to track your progress")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -899,7 +909,7 @@ struct ProfileView: View {
 
                     Text("/ \(formatGoalValue(goal.target, unit: goal.unit))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 GeometryReader { geo in
@@ -920,8 +930,8 @@ struct ProfileView: View {
         .background {
             let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
             shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 
@@ -936,24 +946,13 @@ struct ProfileView: View {
 
     private var personalRecordsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "trophy.fill")
-                        .font(.caption)
-                        .foregroundStyle(.yellow)
-
-                    Text("Personal Records")
-                        .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-                }
-
-                Spacer(minLength: 0)
-
+            BFSectionHeader(title: "Personal Records") {
                 if !personalRecords.isEmpty {
                     Button {
                         showAllPRs = true
                     } label: {
                         Text("View All")
-                            .font(.caption.weight(.semibold))
+                            .font(BFTypography.captionEmphasis)
                             .foregroundStyle(theme.accent)
                     }
                 }
@@ -964,13 +963,13 @@ struct ProfileView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "trophy")
                             .font(.title2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("No personal records yet")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("Complete workouts to set your first PRs")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -1004,7 +1003,7 @@ struct ProfileView: View {
 
                 Text(record.date, format: .dateTime.month(.abbreviated).day())
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
 
             Spacer(minLength: 0)
@@ -1024,8 +1023,8 @@ struct ProfileView: View {
         .background {
             let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
             shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 
@@ -1036,22 +1035,11 @@ struct ProfileView: View {
         let totalCount = achievements.count
 
         return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "medal.fill")
-                        .font(.caption)
-                        .foregroundStyle(theme.accent)
-
-                    Text("Achievements")
-                        .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-                }
-
-                Spacer(minLength: 0)
-
+            BFSectionHeader(title: "Achievements") {
                 if totalCount > 0 {
                     Text("\(earnedCount)/\(totalCount)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
 
@@ -1060,13 +1048,13 @@ struct ProfileView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "medal")
                             .font(.title2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("No achievements yet")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         Text("Complete workouts to unlock achievements")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -1089,7 +1077,7 @@ struct ProfileView: View {
             ZStack {
                 Circle()
                     .fill(
-                        achievement.isEarned ? theme.accent.opacity(0.2) : Color.gray.opacity(0.1)
+                        achievement.isEarned ? theme.accentSurface(0.2, for: colorScheme) : Color.gray.opacity(0.1)
                     )
                     .frame(width: 56, height: 56)
 
@@ -1119,7 +1107,7 @@ struct ProfileView: View {
                 } else if let progress = achievement.progress {
                     Text("\(Int(progress * 100))%")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
         }
@@ -1128,10 +1116,10 @@ struct ProfileView: View {
         .background {
             let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
             shape
-                .fill(.regularMaterial)
+                .fill(BFColors.surface(for: colorScheme))
                 .overlay {
                     shape.stroke(
-                        achievement.isEarned ? theme.accent.opacity(0.5) : theme.cardStroke,
+                        achievement.isEarned ? theme.accentSurface(0.5, for: colorScheme) : BFColors.border(for: colorScheme),
                         lineWidth: 1
                     )
                 }
@@ -1143,8 +1131,7 @@ struct ProfileView: View {
     private var yearlyWrappedSection: some View {
         let currentYear = Calendar.current.component(.year, from: Date())
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Your Year in Review")
-                .bfHeading(theme: theme, size: 20, relativeTo: .headline)
+            BFSectionHeader(title: "Your Year in Review")
 
             Button {
                 selectedYear = currentYear
@@ -1155,7 +1142,7 @@ struct ProfileView: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(
                                 LinearGradient(
-                                    colors: [theme.accent, theme.accent.opacity(0.6)],
+                                    colors: [theme.accent, theme.accentSurface(0.6, for: colorScheme)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -1182,7 +1169,7 @@ struct ProfileView: View {
                             "See your fitness journey highlights, top achievements, and stats from the year"
                         )
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .lineLimit(2)
 
                         HStack(spacing: 4) {
@@ -1202,11 +1189,24 @@ struct ProfileView: View {
                 .background {
                     let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
                     shape
-                        .fill(.regularMaterial)
-                        .overlay { shape.stroke(theme.accent.opacity(0.3), lineWidth: 1) }
+                        .fill(BFColors.surface(for: colorScheme))
+                        .overlay { shape.stroke(theme.accentSurface(0.3, for: colorScheme), lineWidth: 1) }
                 }
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Appearance Section
+
+    private var appearanceSection: some View {
+        BFChevronRow(
+            systemImage: "paintpalette",
+            title: "Appearance",
+            subtitle: "\(AppTheme.fromStorage(storedTheme).displayName) · \(AppearancePreference.fromStorage(storedAppearance).displayName)",
+            iconTint: theme.accent
+        ) {
+            showingThemePicker = true
         }
     }
 
@@ -1217,28 +1217,13 @@ struct ProfileView: View {
             Button(role: .destructive) {
                 showLogoutConfirmation = true
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.subheadline)
-
-                    Text("Sign Out")
-                        .font(.subheadline.weight(.semibold))
-
-                    Spacer(minLength: 0)
-                }
-                .padding(14)
-                .background {
-                    let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    shape
-                        .fill(.regularMaterial)
-                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-                }
+                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bfDestructive)
 
             Text("BetterFit v1.0.0 (Build 1)")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 .frame(maxWidth: .infinity)
                 .padding(.top, 8)
         }
@@ -1248,6 +1233,7 @@ struct ProfileView: View {
 // MARK: - All PRs Sheet
 
 struct AllPRsSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     let records: [PersonalRecord]
     let theme: AppTheme
     @Environment(\.dismiss) private var dismiss
@@ -1269,7 +1255,7 @@ struct AllPRsSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
         }
     }
 
@@ -1291,7 +1277,7 @@ struct AllPRsSheet: View {
 
                 Text(record.date, format: .dateTime.month(.abbreviated).day())
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
 
             Spacer(minLength: 0)
@@ -1311,8 +1297,8 @@ struct AllPRsSheet: View {
         .background {
             let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
             shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 }
@@ -1320,6 +1306,7 @@ struct AllPRsSheet: View {
 // MARK: - Yearly Wrapped View
 
 struct YearlyWrappedView: View {
+    @Environment(\.colorScheme) var colorScheme
     let betterFit: BetterFit?
     let theme: AppTheme
     let year: Int
@@ -1407,7 +1394,7 @@ struct YearlyWrappedView: View {
 
                         Text("What a year! Here's your fitness journey at a glance.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 24)
@@ -1434,14 +1421,14 @@ struct YearlyWrappedView: View {
                         VStack(spacing: 12) {
                             Text("Your #1 Exercise")
                                 .font(.headline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                             Text(top.name)
                                 .bfHeading(theme: theme, size: 28, relativeTo: .title)
 
                             Text("You did \(top.sets) sets this year!")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
                     }
 
@@ -1450,21 +1437,21 @@ struct YearlyWrappedView: View {
                         VStack(spacing: 12) {
                             Text("MVP Month")
                                 .font(.headline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                             Text(mvp.name)
                                 .bfHeading(theme: theme, size: 28, relativeTo: .title)
 
                             Text("\(mvp.workouts) workouts • \(formatVolume(mvp.volume)) lbs lifted")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
                     }
 
                     if totalWorkouts == 0 {
                         Text("Complete some workouts to see your year in review!")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                             .padding(.top, 40)
@@ -1474,7 +1461,7 @@ struct YearlyWrappedView: View {
                 Color.clear.frame(height: 100)
                 }
             }
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1500,27 +1487,7 @@ struct YearlyWrappedView: View {
     private func wrappedStatCard(value: String, label: String, icon: String, color: Color)
         -> some View
     {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-
-            Text(value)
-                .font(.system(size: 36, weight: .bold))
-                .monospacedDigit()
-
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-            shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-        }
+        BFStatTile(systemImage: icon, value: value, label: label, tint: color)
     }
 }
 
@@ -1630,6 +1597,8 @@ private struct ProfileContributionHeatmap: View {
         let gap: CGFloat
         let theme: AppTheme
 
+        @Environment(\.colorScheme) private var colorScheme
+
         var body: some View {
             let calendar = Calendar.current
             let monthEnd = endOfMonth(for: monthStart, calendar: calendar)
@@ -1639,7 +1608,7 @@ private struct ProfileContributionHeatmap: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(monthStart.formatted(.dateTime.month(.abbreviated)))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 HStack(alignment: .top, spacing: gap) {
                     ForEach(
@@ -1705,6 +1674,7 @@ private struct ProfileContributionHeatmap: View {
     }
 
     private struct DayCell: View {
+        @Environment(\.colorScheme) var colorScheme
         let date: Date
         let rangeStart: Date
         let rangeEnd: Date
@@ -1725,7 +1695,7 @@ private struct ProfileContributionHeatmap: View {
                         .fill(color(for: valuesByDay[day, default: 0]))
                         .overlay {
                             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .stroke(theme.cardStroke.opacity(0.7), lineWidth: 0.5)
+                                .stroke(BFColors.border(for: colorScheme).opacity(0.7), lineWidth: 0.5)
                         }
                 } else {
                     RoundedRectangle(cornerRadius: 3, style: .continuous)
@@ -1738,15 +1708,15 @@ private struct ProfileContributionHeatmap: View {
         private func color(for count: Int) -> Color {
             switch count {
             case 0:
-                return theme.accent.opacity(0)
+                return theme.accentSurface(0, for: colorScheme)
             case 1:
-                return theme.accent.opacity(0.18)
+                return theme.accentSurface(0.18, for: colorScheme)
             case 2:
-                return theme.accent.opacity(0.34)
+                return theme.accentSurface(0.34, for: colorScheme)
             case 3:
-                return theme.accent.opacity(0.52)
+                return theme.accentSurface(0.52, for: colorScheme)
             default:
-                return theme.accent.opacity(0.75)
+                return theme.accentSurface(0.75, for: colorScheme)
             }
         }
     }

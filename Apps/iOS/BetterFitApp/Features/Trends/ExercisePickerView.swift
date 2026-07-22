@@ -53,6 +53,7 @@ struct SelectableExercise: Identifiable, Equatable {
 // MARK: - Exercise Picker View
 
 struct ExercisePickerView: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
     let onAdd: ([SelectableExercise]) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -113,7 +114,7 @@ struct ExercisePickerView: View {
                     .padding(16)
                 }
             }
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Add Exercises")
             .navigationBarTitleDisplayMode(.inline)
@@ -162,7 +163,7 @@ struct ExercisePickerView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(.ultraThinMaterial)
+        .background(BFColors.surface(for: colorScheme))
     }
 
     @ViewBuilder
@@ -188,7 +189,7 @@ struct ExercisePickerView: View {
                         .fill(theme.accent)
                 } else {
                     Capsule()
-                        .fill(.regularMaterial)
+                        .fill(BFColors.surfaceRaised(for: colorScheme))
                 }
             }
             .foregroundStyle(isSelected ? .white : .primary)
@@ -210,7 +211,7 @@ struct ExercisePickerView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .stroke(
-                            isSelected ? theme.accent : Color.secondary.opacity(0.5), lineWidth: 2
+                            isSelected ? theme.accent : BFColors.border(for: colorScheme), lineWidth: 2
                         )
                         .frame(width: 24, height: 24)
 
@@ -233,14 +234,14 @@ struct ExercisePickerView: View {
                     HStack(spacing: 6) {
                         Text(exercise.muscleGroups.joined(separator: ", "))
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                         if exercise.usageCount > 0 {
                             Text("•")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             Text("\(exercise.usageCount) times")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
                     }
                 }
@@ -252,17 +253,17 @@ struct ExercisePickerView: View {
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(theme.accent.opacity(0.2)))
+                    .background(Capsule().fill(theme.accentSurface(0.2, for: colorScheme)))
                     .foregroundStyle(theme.accent)
             }
             .padding(14)
             .background {
                 let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
                 shape
-                    .fill(.regularMaterial)
+                    .fill(BFColors.surface(for: colorScheme))
                     .overlay {
                         shape.stroke(
-                            isSelected ? theme.accent : theme.cardStroke,
+                            isSelected ? theme.accent : BFColors.border(for: colorScheme),
                             lineWidth: isSelected ? 2 : 1
                         )
                     }
@@ -293,19 +294,12 @@ struct ExercisePickerView: View {
                 )
                 .font(.body.weight(.semibold))
             }
-            .foregroundStyle(selectedCount > 0 ? .black : .secondary)
+            .foregroundStyle(selectedCount > 0 ? .white : BFColors.textSecondary(for: colorScheme))
             .frame(maxWidth: .infinity)
             .frame(height: 54)
             .background {
-                if #available(iOS 26.0, *) {
-                    shape
-                        .fill(selectedCount > 0 ? theme.accent : Color.gray.opacity(0.3))
-                        .glassEffect(.regular.interactive(), in: shape)
-                } else {
-                    shape
-                        .fill(selectedCount > 0 ? theme.accent : Color.gray.opacity(0.3))
-                        .shadow(color: Color.black.opacity(0.22), radius: 14, x: 0, y: 6)
-                }
+                shape
+                    .fill(selectedCount > 0 ? theme.accent : BFColors.surfaceRaised(for: colorScheme))
             }
         }
         .buttonStyle(.plain)

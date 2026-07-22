@@ -4,6 +4,7 @@ import SwiftUI
 // MARK: - Exercise Detail Sheet
 
 struct ExerciseDetailSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     let exercise: PlannedExercise
     let theme: AppTheme
     let onDelete: () -> Void
@@ -80,7 +81,7 @@ struct ExerciseDetailSheet: View {
                 }
                 .padding(20)
             }
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
             .navigationTitle("Exercise Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -128,7 +129,7 @@ struct ExerciseDetailSheet: View {
                 .font(.caption2.weight(.bold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(.ultraThinMaterial, in: Capsule())
+                .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
                 .padding(12)
         }
     }
@@ -147,11 +148,11 @@ struct ExerciseDetailSheet: View {
 
                 if !exercise.muscleGroups.isEmpty {
                     Text("•")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     Text(exercise.muscleGroups.joined(separator: ", "))
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
         }
@@ -218,7 +219,7 @@ struct ExerciseDetailSheet: View {
 
                 Text(label)
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
             .frame(maxWidth: .infinity)
         }
@@ -245,7 +246,7 @@ struct ExerciseDetailSheet: View {
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(sets > 1 ? theme.accent : .secondary)
+                            .foregroundStyle(sets > 1 ? theme.accent : BFColors.textTertiary(for: colorScheme))
                     }
                     .disabled(sets <= 1)
 
@@ -258,7 +259,7 @@ struct ExerciseDetailSheet: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(sets < 10 ? theme.accent : .secondary)
+                            .foregroundStyle(sets < 10 ? theme.accent : BFColors.textTertiary(for: colorScheme))
                     }
                     .disabled(sets >= 10)
                 }
@@ -266,10 +267,10 @@ struct ExerciseDetailSheet: View {
             .padding(16)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(BFColors.surface(for: colorScheme))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(theme.cardStroke, lineWidth: 1)
+                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                     }
             }
 
@@ -288,20 +289,20 @@ struct ExerciseDetailSheet: View {
                     .padding(.vertical, 8)
                     .background {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(theme.cardBackground)
+                            .fill(BFColors.surfaceRaised(for: colorScheme))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(theme.cardStroke, lineWidth: 1)
+                                    .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                             }
                     }
             }
             .padding(16)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(BFColors.surface(for: colorScheme))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(theme.cardStroke, lineWidth: 1)
+                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                     }
             }
 
@@ -319,7 +320,7 @@ struct ExerciseDetailSheet: View {
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(weight > 0 ? theme.accent : .secondary)
+                            .foregroundStyle(weight > 0 ? theme.accent : BFColors.textTertiary(for: colorScheme))
                     }
                     .disabled(weight <= 0)
 
@@ -340,10 +341,10 @@ struct ExerciseDetailSheet: View {
             .padding(16)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(BFColors.surface(for: colorScheme))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(theme.cardStroke, lineWidth: 1)
+                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                     }
             }
         }
@@ -358,7 +359,7 @@ struct ExerciseDetailSheet: View {
 
             Text("This setting applies globally to all exercises")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             HStack(spacing: 0) {
                 ForEach(WeightUnitSetting.allCases, id: \.self) { unit in
@@ -373,7 +374,7 @@ struct ExerciseDetailSheet: View {
                     } label: {
                         Text(unit.rawValue.uppercased())
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(currentUnit == unit ? .white : .secondary)
+                            .foregroundStyle(currentUnit == unit ? .white : BFColors.textSecondary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background {
@@ -387,8 +388,8 @@ struct ExerciseDetailSheet: View {
                 }
             }
             .padding(4)
-            .background(Capsule().fill(.regularMaterial))
-            .overlay(Capsule().stroke(theme.cardStroke, lineWidth: 1))
+            .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
+            .overlay(Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1))
         }
     }
 

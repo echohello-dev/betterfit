@@ -1,6 +1,8 @@
+import BetterFit
 import SwiftUI
 
 struct CategoryDetailView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let category: SearchCategory
     let theme: AppTheme
 
@@ -8,6 +10,8 @@ struct CategoryDetailView: View {
     @State private var searchText = ""
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
         .rawValue
+    @AppStorage(AppearancePreference.storageKey) private var storedAppearance: String =
+        AppearancePreference.defaultPreference.rawValue
 
     #if DEBUG
         @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
@@ -28,7 +32,7 @@ struct CategoryDetailView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .searchable(text: $searchText, prompt: "Filter \(category.title.lowercased())")
         .toolbar(.visible, for: .navigationBar)
         .navigationTitle(category.title)
@@ -37,6 +41,10 @@ struct CategoryDetailView: View {
                 selectedTheme: Binding(
                     get: { AppTheme.fromStorage(storedTheme) },
                     set: { storedTheme = $0.rawValue }
+                ),
+                appearance: Binding(
+                    get: { AppearancePreference.fromStorage(storedAppearance) },
+                    set: { storedAppearance = $0.rawValue }
                 )
             )
             .presentationDetents([.medium, .large])
@@ -54,12 +62,12 @@ struct CategoryDetailView: View {
 
                 Text(categoryDescription)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     .multilineTextAlignment(.center)
 
                 Text("\(category.items.count) items")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
@@ -70,8 +78,12 @@ struct CategoryDetailView: View {
     private var itemsSection: some View {
         Section {
             if filteredItems.isEmpty {
-                ContentUnavailableView.search(text: searchText)
-                    .listRowBackground(Color.clear)
+                BFEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "No Results",
+                    message: "Nothing matched \"\(searchText)\". Try a different search."
+                )
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(filteredItems) { item in
                     row(for: item)
@@ -112,36 +124,28 @@ struct CategoryDetailView: View {
             Button {
                 showingThemePicker = true
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title)
-                        Text(AppTheme.fromStorage(storedTheme).displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: item.systemImage)
-                        .foregroundStyle(theme.accent)
-                }
+                BFListRow(
+                    systemImage: item.systemImage,
+                    title: item.title,
+                    subtitle: AppTheme.fromStorage(storedTheme).displayName,
+                    iconTint: theme.accent
+                )
             }
             .tint(.primary)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         case "demoMode":
             #if DEBUG
                 Toggle(isOn: $workoutHomeDemoModeEnabled) {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.title)
-                            Text(item.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } icon: {
-                        Image(systemName: item.systemImage)
-                            .foregroundStyle(.purple)
-                    }
+                    BFListRow(
+                        systemImage: item.systemImage,
+                        title: item.title,
+                        subtitle: item.subtitle,
+                        iconTint: .purple
+                    )
                 }
                 .tint(theme.accent)
+                .listRowBackground(BFColors.surface(for: colorScheme))
             #else
                 EmptyView()
             #endif
@@ -150,35 +154,27 @@ struct CategoryDetailView: View {
             NavigationLink {
                 SettingDetailView(settingId: item.id, title: item.title, theme: theme)
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title)
-                        Text(item.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: item.systemImage)
-                        .foregroundStyle(colorForSettingItem(item.id))
-                }
+                BFListRow(
+                    systemImage: item.systemImage,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    iconTint: colorForSettingItem(item.id)
+                )
             }
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         default:
             NavigationLink {
                 ExerciseDetailView(exercise: item.title, subtitle: item.subtitle, theme: theme)
             } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title)
-                        Text(item.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: item.systemImage)
-                        .foregroundStyle(theme.accent)
-                }
+                BFListRow(
+                    systemImage: item.systemImage,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    iconTint: theme.accent
+                )
             }
+            .listRowBackground(BFColors.surface(for: colorScheme))
         }
     }
 

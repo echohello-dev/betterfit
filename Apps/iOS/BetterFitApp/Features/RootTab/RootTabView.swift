@@ -114,129 +114,55 @@ struct RootTabView: View {
 
     @ViewBuilder
     private var startWorkoutButton: some View {
-        let shape = RoundedRectangle(cornerRadius: 27, style: .continuous)
-        let isActive = hasActiveWorkout
-
-        if isActive {
-            // Active workout: show control buttons
-            activeWorkoutControls(shape: shape)
+        if hasActiveWorkout {
+            activeWorkoutControls
         } else {
-            // No active workout: show start button
             Button {
                 startOrResumeWorkout()
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
-                        .foregroundStyle(.black)
 
                     Text("Start Workout")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.black)
 
                     Spacer(minLength: 0)
 
                     Image(systemName: "chevron.right")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.black.opacity(0.6))
+                        .opacity(0.7)
                 }
-                .padding(.horizontal, 24)
-                .frame(height: 54)
-                .frame(maxWidth: .infinity)
-                .background {
-                    StartWorkoutGlow(shape)
-                }
+                .padding(.horizontal, BFSpacing.xl)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bfPrimary)
             .accessibilityLabel("Start Workout")
         }
     }
 
-    /// "The Finals" style shine/glow animation for the start workout button
-    private struct StartWorkoutGlow: View {
-        let shape: AnyShape
-
-        init<S: Shape>(_ s: S) {
-            self.shape = AnyShape(s)
-        }
-
-        @State private var animationProgress: CGFloat = 0
-
-        var body: some View {
-            ZStack {
-                shape.fill(Color.yellow)
-
-                shape
-                    .trim(from: 0, to: animationProgress)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.white.opacity(0.9), .white.opacity(0), .white.opacity(0.7)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        lineWidth: 3
-                    )
-                    .blur(radius: 1)
-                    .animation(
-                        Animation.easeInOut(duration: 1.8).repeatForever(autoreverses: false),
-                        value: animationProgress
-                    )
-            }
-            .onAppear {
-                animationProgress = 1
-            }
-        }
-    }
-
     @ViewBuilder
-    private func activeWorkoutControls(shape: RoundedRectangle) -> some View {
-        HStack(spacing: 12) {
-            // Pause/Resume button
+    private var activeWorkoutControls: some View {
+        HStack(spacing: BFSpacing.md) {
             Button {
                 togglePause()
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: isWorkoutPaused ? "play.fill" : "pause.fill")
-                        .font(.body.weight(.semibold))
                     Text(isWorkoutPaused ? "Resume" : "Pause")
-                        .font(.body.weight(.semibold))
-                }
-                .foregroundStyle(.black)
-                .frame(height: 54)
-                .frame(maxWidth: .infinity)
-                .background {
-                    if #available(iOS 26.0, *) {
-                        shape
-                            .fill(theme.accent)
-                            .glassEffect(.regular.interactive(), in: shape)
-                    } else {
-                        shape
-                            .fill(theme.accent)
-                            .shadow(color: Color.black.opacity(0.22), radius: 14, x: 0, y: 6)
-                    }
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bfPrimary)
             .accessibilityLabel(isWorkoutPaused ? "Resume Workout" : "Pause Workout")
 
-            // Stop button
             Button {
                 showStopConfirmation = true
             } label: {
                 Image(systemName: "stop.fill")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 54, height: 54)
-                    .background {
-                        if #available(iOS 26.0, *) {
-                            Circle()
-                                .fill(Color.red.opacity(0.85))
-                                .glassEffect(.regular.interactive(), in: Circle())
-                        } else {
-                            Circle()
-                                .fill(Color.red.opacity(0.85))
-                                .shadow(color: Color.black.opacity(0.22), radius: 14, x: 0, y: 6)
-                        }
-                    }
+                    .frame(width: BFControlSize.buttonLarge, height: BFControlSize.buttonLarge)
+                    .background(
+                        RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
+                            .fill(BFColors.danger)
+                    )
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Stop Workout")
@@ -296,9 +222,11 @@ struct RootTabView: View {
             // Navigate to workout tab to show active workout
             selectedTab = .workout
         } else {
-            // Start a new workout
+            // Start a new workout — prefer today's plan so home/plan stay in sync
             var workoutToStart: Workout
-            if let recommended = betterFit.getRecommendedWorkout() {
+            if let todayPlan = planManager.getTodayPlan(), !todayPlan.exercises.isEmpty {
+                workoutToStart = todayPlan.toWorkout()
+            } else if let recommended = betterFit.getRecommendedWorkout() {
                 workoutToStart = recommended
             } else {
                 // Create a quick workout if no recommendation available
@@ -308,6 +236,8 @@ struct RootTabView: View {
                     date: Date()
                 )
             }
+            // Mirror the started workout into the plan so the home preview and Plan tab agree
+            planManager.setSelectedWorkoutForToday(workoutToStart)
             betterFit.startWorkout(workoutToStart)
 
             // Update local state and post notification
@@ -380,5 +310,5 @@ struct RootTabView: View {
             print("Logout")
         }
     )
-    .preferredColorScheme(theme.preferredColorScheme)
+    .preferredColorScheme(.dark)
 }
