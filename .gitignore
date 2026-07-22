@@ -52,3 +52,11 @@ supabase/.temp/
 tmp/
 artifacts/
 node_modules/
+
+# Exercise demo video pipeline — all generated artifacts are local cache.
+# Re-run scripts/exercise-video-pipeline/generate.sh to regenerate.
+# Keep only the .sh scripts (prompts.sh, exercises.sh, generate.sh) in
+# version control; images and videos are .gitignore'd.
+scripts/exercise-video-pipeline/anchors/
+scripts/exercise-video-pipeline/videos/
+scripts/exercise-video-pipeline/archive-*/
