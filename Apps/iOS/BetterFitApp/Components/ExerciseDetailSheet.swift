@@ -103,27 +103,11 @@ struct ExerciseDetailSheet: View {
     // MARK: - Video Placeholder
 
     private var videoPlaceholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: gradientColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(height: 200)
-
-            VStack(spacing: 12) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.white.opacity(0.9))
-
-                Text("Demo Video")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-        }
+        DemoVideoPlayer(
+            url: DemoVideoLibrary.videoURL(for: exercise.displayName),
+            height: 200,
+            fallbackGradient: gradientColors
+        )
         .overlay(alignment: .topTrailing) {
             Text("AUTO-PLAY")
                 .font(.caption2.weight(.bold))
