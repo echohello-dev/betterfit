@@ -47,6 +47,7 @@ struct RootTabView: View {
     @State private var activeWorkoutId: UUID?  // Track for button state updates
     @State private var isWorkoutPaused = false
     @State private var showStopConfirmation = false
+    @State private var showActiveSession = false
     @State private var healthKitManager: HealthKitManager?
 
     // Shared workout plan manager across views
@@ -108,6 +109,12 @@ struct RootTabView: View {
                 healthKitManager = HealthKitManager(healthKitService: betterFit.healthKitService)
             }
         }
+        .sheet(isPresented: $showActiveSession) {
+            ActiveSessionView(
+                betterFit: betterFit,
+                onEnd: { completeWorkout() }
+            )
+        }
     }
 
     // MARK: - Start Workout Button
@@ -142,7 +149,14 @@ struct RootTabView: View {
     private var activeWorkoutControls: some View {
         HStack(spacing: BFSpacing.md) {
             Button {
-                togglePause()
+                if isWorkoutPaused {
+                    togglePause()
+                } else {
+                    // Pause + open the live session sheet so the user can log sets.
+                    betterFit.pauseWorkout()
+                    isWorkoutPaused = true
+                    showActiveSession = true
+                }
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: isWorkoutPaused ? "play.fill" : "pause.fill")
