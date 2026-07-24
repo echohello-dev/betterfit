@@ -18,19 +18,32 @@ struct ActiveSessionView: View {
     @State private var weightText: [UUID: String] = [:]
     @State private var repsText: [UUID: String] = [:]
     @State private var currentSetByExercise: [UUID: Int] = [:]
-    @State private var restTimer: RestTimer? = nil
+    @State private var restTimer: RestTimerState? = nil
+    @State private var preferredRestSeconds: Int = 90
 
     private var workout: Workout? { betterFit?.getActiveWorkout() }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let workout, !workout.exercises.isEmpty {
-                    exerciseList(workout: workout)
-                } else {
-                    emptyState
+            VStack(spacing: 0) {
+                if let restTimer {
+                    RestTimerBar(
+                        state: restTimer,
+                        onSkip: { self.restTimer = nil },
+                        onAddSeconds: { self.restTimer?.addSeconds(15) }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                Group {
+                    if let workout, !workout.exercises.isEmpty {
+                        exerciseList(workout: workout)
+                    } else {
+                        emptyState
+                    }
                 }
             }
+            .animation(BFAnimation.standard, value: restTimer)
             .navigationTitle("Active Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -68,12 +81,13 @@ struct ActiveSessionView: View {
         let current = currentSetByExercise[we.id] ?? 0
         let total = we.sets.count
         let logged = setsPerExercise[we.id] ?? []
+        let nextSetLabel = nextSetLabel(we: we, current: current)
         VStack(alignment: .leading, spacing: BFSpacing.md) {
             HStack(alignment: .firstTextBaseline) {
                 Text(we.exercise.name)
                     .bfHeading(theme: .fitbod, size: 22, relativeTo: .title3)
                 Spacer()
-                Text("Set \(min(current + 1, max(total, 1))) of \(total)")
+                Text(nextSetLabel)
                     .font(BFTypography.captionEmphasis)
                     .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
@@ -210,7 +224,11 @@ struct ActiveSessionView: View {
 
         // Advance.
         currentSetByExercise[we.id] = (currentSetByExercise[we.id] ?? 0) + 1
-        restTimer = RestTimer(start: Date(), duration: 90)
+
+        // Kick off the rest timer. UIImpactFeedbackGenerator gives a small
+        // haptic so the lifter knows the set was logged.
+        restTimer = RestTimerState(start: Date(), duration: TimeInterval(preferredRestSeconds))
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func weightSuggestion(for we: WorkoutExercise) -> String {
@@ -220,6 +238,19 @@ struct ActiveSessionView: View {
 
     private func repsSuggestion(for we: WorkoutExercise) -> Int {
         we.sets.first?.reps ?? 8
+    }
+
+    private func nextSetLabel(we: WorkoutExercise, current: Int) -> String {
+        let total = we.sets.count
+        if total == 0 { return "No sets" }
+        let next = min(current + 1, total)
+        return "Set \(next) of \(total)"
+    }
+
+    private func formatted(_ weight: Double) -> String {
+        weight.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(weight))
+            : String(format: "%.1f", weight)
     }
 
     /// Stable Binding factories that resolve the dictionary at view-build time.
@@ -240,12 +271,6 @@ struct ActiveSessionView: View {
         )
     }
 
-    private func formatted(_ weight: Double) -> String {
-        weight.truncatingRemainder(dividingBy: 1) == 0
-            ? String(Int(weight))
-            : String(format: "%.1f", weight)
-    }
-
     @Environment(\.colorScheme) private var colorScheme
 }
 
@@ -258,17 +283,130 @@ struct LoggedSet: Identifiable {
     let timestamp: Date
 }
 
-/// Lightweight rest-timer placeholder; full implementation can extend this
-/// to surface a countdown bar above the keyboard. For now it just kicks
-/// off a 90-second timer so the lifter can put the phone down between sets.
-final class RestTimer: ObservableObject {
-    let start: Date
-    let duration: TimeInterval
+// MARK: - Rest Timer
 
-    init(start: Date, duration: TimeInterval) {
-        self.start = start
-        self.duration = duration
+/// Countdown state for the post-set rest period. Stays in the view as an
+/// optional so the bar disappears naturally when the timer ends or is
+/// skipped.
+struct RestTimerState: Equatable {
+    let start: Date
+    var duration: TimeInterval
+
+    /// Remaining time in seconds, clamped to zero. Negative values from
+    /// elapsed > duration are clamped so the progress / countdown never
+    /// display a negative number.
+    func remaining(at now: Date) -> TimeInterval {
+        let elapsed = now.timeIntervalSince(start)
+        return max(0, duration - elapsed)
     }
 
-    var endsAt: Date { start.addingTimeInterval(duration) }
+    func progress(at now: Date) -> Double {
+        guard duration > 0 else { return 1 }
+        return min(1, max(0, 1 - remaining(at: now) / duration))
+    }
+
+    func isFinished(at now: Date) -> Bool {
+        remaining(at: now) <= 0
+    }
+
+    /// Add extra seconds to the countdown (the '+15s' button).
+    mutating func addSeconds(_ seconds: TimeInterval) {
+        duration += seconds
+    }
+}
+
+/// Sticky bar at the top of the active session. Renders a circular ring +
+/// mm:ss countdown, a 'Skip' button, and a '+15s' quick-add. Uses
+/// TimelineView to redraw every second without a manual Timer.
+struct RestTimerBar: View {
+    let state: RestTimerState
+    let onSkip: () -> Void
+    let onAddSeconds: () -> Void
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let now = context.date
+            let remaining = state.remaining(at: now)
+            let progress = state.progress(at: now)
+            let finished = state.isFinished(at: now)
+
+            HStack(spacing: BFSpacing.md) {
+                ZStack {
+                    Circle()
+                        .stroke(BFColors.surfaceRaised(for: scheme), lineWidth: 3)
+
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(
+                            finished ? .green : BFColors.brandAccent,
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.2), value: progress)
+
+                    Text(formatted(remaining))
+                        .font(BFTypography.headline)
+                        .monospacedDigit()
+                        .foregroundStyle(BFColors.textPrimary(for: scheme))
+                }
+                .frame(width: 52, height: 52)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(finished ? "Rest done" : "Rest timer")
+                        .font(BFTypography.subheadlineEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: scheme))
+                    Text(finished ? "Ready for the next set" : "Between sets")
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: scheme))
+                }
+
+                Spacer()
+
+                Button {
+                    onAddSeconds()
+                } label: {
+                    Text("+15s")
+                        .font(BFTypography.captionEmphasis)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule().fill(BFColors.surfaceRaised(for: scheme))
+                        )
+                        .foregroundStyle(BFColors.textPrimary(for: scheme))
+                }
+                .buttonStyle(.plain)
+
+                Button(role: .destructive) {
+                    onSkip()
+                } label: {
+                    Text("Skip")
+                        .font(BFTypography.captionEmphasis)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, BFSpacing.lg)
+            .padding(.vertical, BFSpacing.md)
+            .background(BFColors.backgroundElevated(for: scheme))
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(BFColors.separator(for: scheme))
+                    .frame(height: 1)
+            }
+        }
+    }
+
+    private func formatted(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds.rounded(.up))
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
+// MARK: - Animation helper
+
+private enum BFAnimation {
+    static let standard: Animation = .easeInOut(duration: 0.25)
 }
