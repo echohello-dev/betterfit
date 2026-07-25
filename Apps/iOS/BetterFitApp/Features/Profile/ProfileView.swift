@@ -86,6 +86,7 @@ struct ProfileView: View {
     @State private var showAllPRs = false
     @State private var showEditTargetsAlert = false
     @State private var showingThemePicker = false
+    @State private var showingSettings = false
 
     @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme.rawValue
@@ -299,11 +300,9 @@ struct ProfileView: View {
 
                 appearanceSection
 
-                // MARK: - Sign Out
+                // MARK: - Settings
 
-                if !isGuest {
-                    signOutSection
-                }
+                settingsSection
 
                 Spacer(minLength: 40)
             }
@@ -341,6 +340,14 @@ struct ProfileView: View {
                 )
             )
             .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(
+                onSignOut: (isGuest || onLogout == nil)
+                    ? nil
+                    : { showLogoutConfirmation = true }
+            )
+            .presentationDetents([.large])
         }
     }
 
@@ -1210,23 +1217,18 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Sign Out Section
+    // MARK: - Settings Section
 
-    private var signOutSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button(role: .destructive) {
-                showLogoutConfirmation = true
-            } label: {
-                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-            }
-            .buttonStyle(.bfDestructive)
-
-            Text("BetterFit v1.0.0 (Build 1)")
-                .font(.caption)
-                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
+    private var settingsSection: some View {
+        BFChevronRow(
+            systemImage: "gearshape.fill",
+            title: "Settings",
+            subtitle: "Units · notifications · account",
+            iconTint: theme.accent
+        ) {
+            showingSettings = true
         }
+        .accessibilityIdentifier("profile-settings-row")
     }
 }
 
