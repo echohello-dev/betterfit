@@ -57,6 +57,30 @@ FAL_IMAGE_ENDPOINT="${FAL_IMAGE_ENDPOINT:-fal-ai/flux-2/flash}"
 FAL_VIDEO_ENDPOINT="${FAL_VIDEO_ENDPOINT:-xai/grok-imagine-video/reference-to-video}"
 FAL_DURATION="${FAL_VIDEO_DURATION:-5}"
 FAL_IMAGE_SIZE="${FAL_IMAGE_SIZE:-landscape_16_9}"
+# Per-slug video endpoint overrides. Format: "slug1:endpoint1,slug2:endpoint2".
+# Used to send curl (and any other exercise that drifts cross-angle) to a
+# higher-consistency backend (e.g. Veo 3.1 first-last-frame) while the
+# rest of the batch stays on the cheap default. Unknown slugs fall
+# through to FAL_VIDEO_ENDPOINT. Set to empty string to disable.
+FAL_VIDEO_OVERRIDES="${FAL_VIDEO_OVERRIDES:-barbell-curl:fal-ai/veo3.1/standard/image-to-video}"
+
+# Resolve the per-slug video endpoint. Looks up FAL_VIDEO_OVERRIDES
+# (comma-separated slug:endpoint pairs) and falls back to the global
+# FAL_VIDEO_ENDPOINT when no override matches.
+video_endpoint_for () {
+  local slug="$1" default="$2" entry
+  IFS=',' read -ra entries <<< "${FAL_VIDEO_OVERRIDES:-}"
+  for entry in "${entries[@]}"; do
+    entry="${entry%%#*}"   # strip trailing comments
+    entry="${entry// /}"   # strip spaces
+    [[ -z "$entry" ]] && continue
+    if [[ "$entry" == "${slug}:"* ]]; then
+      echo "${entry#${slug}:}"
+      return 0
+    fi
+  done
+  echo "$default"
+}
 
 # ---------------------------------------------------------------------------
 # Prompt builders
@@ -253,14 +277,22 @@ for entry in "${EXERCISES[@]}"; do
       continue
     fi
 
+    local effective_endpoint
+    effective_endpoint="$(video_endpoint_for "$slug" "$FAL_VIDEO_ENDPOINT")"
+    if [[ "$effective_endpoint" != "$FAL_VIDEO_ENDPOINT" ]]; then
+      echo "    override: $slug -> $effective_endpoint"
+    fi
+
     prompt="$(build_video_prompt "$slug" "$camera" "$pose" "$action")"
     echo "    generating video: $video"
-    generate_video_fal "$anchor" "$video" "$prompt" "$char_ref"
+    FAL_VIDEO_ENDPOINT="$effective_endpoint" FAL_KEY="$FAL_KEY" FAL_DURATION="$FAL_DURATION" \
+      generate_video_fal "$anchor" "$video" "$prompt" "$char_ref"
   done
 done
 
 echo "==> Done."
 echo "    image model: $FAL_IMAGE_ENDPOINT"
-echo "    video model: $FAL_VIDEO_ENDPOINT"
+echo "    video model (default): $FAL_VIDEO_ENDPOINT"
+echo "    video overrides: ${FAL_VIDEO_OVERRIDES:-<none>}"
 echo "    anchors: $ANCHORS_DIR"
 echo "    videos:  $VIDEOS_DIR"
