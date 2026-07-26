@@ -20,6 +20,8 @@ struct ActiveSessionView: View {
     @State private var currentSetByExercise: [UUID: Int] = [:]
     @State private var restTimer: RestTimerState? = nil
     @State private var preferredRestSeconds: Int = 90
+    @State private var selectedExerciseID: UUID?
+    @State private var showFinishConfirmation = false
 
     private var workout: Workout? { betterFit?.getActiveWorkout() }
 
@@ -48,15 +50,26 @@ struct ActiveSessionView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button(role: .destructive) {
-                        onEnd()
+                        showFinishConfirmation = true
                     } label: {
-                        Text("End")
+                        Text("Finish")
                     }
                 }
+            }
+            .confirmationDialog(
+                "Finish Workout?",
+                isPresented: $showFinishConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Finish & Save") {
+                    onEnd()
+                    dismiss()
+                }
+                Button("Keep Training", role: .cancel) {}
             }
         }
     }
@@ -65,14 +78,44 @@ struct ActiveSessionView: View {
 
     @ViewBuilder
     private func exerciseList(workout: Workout) -> some View {
+        let selectedExercise =
+            workout.exercises.first(where: { $0.id == selectedExerciseID })
+            ?? workout.exercises.first
+        let otherExercises = workout.exercises.filter { $0.id != selectedExercise?.id }
+
         ScrollView {
             VStack(spacing: BFSpacing.lg) {
-                ForEach(workout.exercises) { we in
-                    exerciseCard(we)
+                if let selectedExercise {
+                    Text("Current exercise")
+                        .bfSectionLabel()
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    exerciseCard(selectedExercise)
+                }
+
+                if !otherExercises.isEmpty {
+                    VStack(alignment: .leading, spacing: BFSpacing.sm) {
+                        Text("Exercises")
+                            .bfSectionLabel()
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+
+                        ForEach(otherExercises) { exercise in
+                            ActiveExercisePickerRow(exercise: exercise) {
+                                selectedExerciseID = exercise.id
+                            }
+                        }
+                    }
                 }
             }
             .padding(.horizontal, BFSpacing.lg)
             .padding(.vertical, BFSpacing.md)
+        }
+        .background(BFColors.background(for: colorScheme))
+        .onAppear {
+            if selectedExerciseID == nil {
+                selectedExerciseID = workout.exercises.first?.id
+            }
         }
     }
 
@@ -85,7 +128,7 @@ struct ActiveSessionView: View {
         VStack(alignment: .leading, spacing: BFSpacing.md) {
             HStack(alignment: .firstTextBaseline) {
                 Text(we.exercise.name)
-                    .bfHeading(theme: .fitbod, size: 22, relativeTo: .title3)
+                    .font(BFTypography.title2)
                 Spacer()
                 Text(nextSetLabel)
                     .font(BFTypography.captionEmphasis)
@@ -100,12 +143,12 @@ struct ActiveSessionView: View {
                             .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     } else {
                         HStack(spacing: BFSpacing.md) {
-                            stepperField(
+                            ActiveSessionField(
                                 label: "Weight",
                                 unit: "lbs",
                                 binding: weightBinding(for: we.id, default: weightSuggestion(for: we))
                             )
-                            stepperField(
+                            ActiveSessionField(
                                 label: "Reps",
                                 unit: "reps",
                                 binding: repsBinding(for: we.id, default: "\(repsSuggestion(for: we))")
@@ -144,38 +187,6 @@ struct ActiveSessionView: View {
             }
         }
         .padding(.bottom, BFSpacing.sm)
-    }
-
-    // MARK: - Subviews
-
-    @ViewBuilder
-    private func stepperField(
-        label: String,
-        unit: String,
-        binding: Binding<String>
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(BFTypography.captionEmphasis)
-                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-            HStack(spacing: 6) {
-                TextField(unit, text: binding)
-                    .keyboardType(.decimalPad)
-                    .font(BFTypography.headline)
-                    .multilineTextAlignment(.center)
-                    .frame(minWidth: 48)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: BFRadius.small, style: .continuous)
-                            .fill(BFColors.surfaceRaised(for: colorScheme))
-                    )
-                Text(unit)
-                    .font(BFTypography.caption)
-                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var emptyState: some View {
@@ -223,7 +234,11 @@ struct ActiveSessionView: View {
         }
 
         // Advance.
-        currentSetByExercise[we.id] = (currentSetByExercise[we.id] ?? 0) + 1
+        let nextSet = (currentSetByExercise[we.id] ?? 0) + 1
+        currentSetByExercise[we.id] = nextSet
+        if nextSet >= we.sets.count {
+            selectNextExercise(after: we.id)
+        }
 
         // Kick off the rest timer. UIImpactFeedbackGenerator gives a small
         // haptic so the lifter knows the set was logged.
@@ -232,7 +247,7 @@ struct ActiveSessionView: View {
     }
 
     private func weightSuggestion(for we: WorkoutExercise) -> String {
-        if let w = we.sets.first?.weight { return String(Int(w)) }
+        if let weight = we.sets.first?.weight { return String(Int(weight)) }
         return "0"
     }
 
@@ -243,8 +258,19 @@ struct ActiveSessionView: View {
     private func nextSetLabel(we: WorkoutExercise, current: Int) -> String {
         let total = we.sets.count
         if total == 0 { return "No sets" }
+        if current >= total { return "Complete" }
         let next = min(current + 1, total)
         return "Set \(next) of \(total)"
+    }
+
+    private func selectNextExercise(after exerciseID: UUID) {
+        guard let workout,
+            let index = workout.exercises.firstIndex(where: { $0.id == exerciseID }),
+            workout.exercises.indices.contains(index + 1)
+        else {
+            return
+        }
+        selectedExerciseID = workout.exercises[index + 1].id
     }
 
     private func formatted(_ weight: Double) -> String {
@@ -272,6 +298,85 @@ struct ActiveSessionView: View {
     }
 
     @Environment(\.colorScheme) private var colorScheme
+}
+
+// MARK: - Subviews
+
+private struct ActiveExercisePickerRow: View {
+    let exercise: WorkoutExercise
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: BFSpacing.md) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(BFColors.brandAccent)
+                    .frame(width: BFControlSize.minTapTarget, height: BFControlSize.minTapTarget)
+                    .background(Circle().fill(BFColors.brandAccent.opacity(0.15)))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exercise.exercise.name)
+                        .font(BFTypography.subheadlineEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                    Text("\(exercise.sets.count) sets")
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+            .padding(BFSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                    .fill(BFColors.surface(for: colorScheme))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                    .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct ActiveSessionField: View {
+    let label: String
+    let unit: String
+    @Binding var binding: String
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(BFTypography.captionEmphasis)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+            HStack(spacing: 6) {
+                TextField(unit, text: $binding)
+                    .keyboardType(.decimalPad)
+                    .font(BFTypography.headline)
+                    .multilineTextAlignment(.center)
+                    .frame(minWidth: 48)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: BFRadius.small, style: .continuous)
+                            .fill(BFColors.surfaceRaised(for: colorScheme))
+                    )
+                Text(unit)
+                    .font(BFTypography.caption)
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
 // MARK: - Local types

@@ -100,9 +100,11 @@ struct RootTabView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            startWorkoutButton
-                .padding(.horizontal, 20)
-                .padding(.bottom, 60)
+            if selectedTab == .workout {
+                startWorkoutButton
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 60)
+            }
         }
         .onAppear {
             if healthKitManager == nil {
@@ -277,8 +279,7 @@ struct RootTabView: View {
                     healthKitManager: healthKitManager,
                     planManager: planManager,
                     isGuest: isGuest,
-                    user: user,
-                    onShowSignIn: onShowSignIn
+                    user: user
                 )
             }
         case .plan:

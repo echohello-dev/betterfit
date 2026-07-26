@@ -51,10 +51,6 @@ struct AppSearchView: View {
             .scrollContentBackground(.hidden)
             .bfPageBackground()
             .searchable(text: $query, prompt: "Search")
-            .safeAreaInset(edge: .bottom) {
-                Color.clear
-                    .frame(height: 120)
-            }
         }
         .sheet(isPresented: $showingThemePicker) {
             ThemePickerView(
@@ -338,7 +334,11 @@ struct AppSearchView: View {
             )
         }
 
-        return result
+        let categoryOrder = ["exercises", "recommended", "settings", "account", "developer"]
+        return result.sorted {
+            (categoryOrder.firstIndex(of: $0.id) ?? categoryOrder.count)
+                < (categoryOrder.firstIndex(of: $1.id) ?? categoryOrder.count)
+        }
     }
 
     private var searchResults: [SearchResult] {

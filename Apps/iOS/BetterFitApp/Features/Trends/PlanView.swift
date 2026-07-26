@@ -43,7 +43,7 @@ struct PlanView: View {
                 // Compact recovery row
                 compactRecoveryRow
 
-                Spacer(minLength: 100)
+                Spacer(minLength: BFSpacing.xxl)
             }
             .padding(16)
         }

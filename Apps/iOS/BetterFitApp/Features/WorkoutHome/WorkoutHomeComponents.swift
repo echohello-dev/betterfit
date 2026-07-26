@@ -240,7 +240,7 @@ extension WorkoutHomeView {
             if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
             if name.contains("hiit") { return "flame.fill" }
             if name.contains("push") { return "figure.strengthtraining.traditional" }
-            if name.contains("pull") { return "figure.rowing" }
+            if name.contains("pull") { return "dumbbell.fill" }
             if name.contains("leg") { return "figure.walk" }
             return "figure.mixed.cardio"
         }
@@ -362,7 +362,7 @@ extension WorkoutHomeView {
 
         private var exerciseIcon: String {
             let name = exercise.exercise.name.lowercased()
-            if name.contains("row") { return "figure.rowing" }
+            if name.contains("row") { return "dumbbell.fill" }
             if name.contains("curl") { return "dumbbell.fill" }
             if name.contains("press") { return "figure.strengthtraining.traditional" }
             if name.contains("squat") { return "figure.walk" }
