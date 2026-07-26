@@ -43,7 +43,20 @@ echo "   Credentials are loaded from .env (not committed to git)"
 description = "Full setup: populate .env, regenerate project, inject credentials into scheme"
 
 [tasks.test]
-run = "swift test"
+run = """
+bash scripts/exercise-video-pipeline/test_pipeline.sh
+echo ""
+echo '==> Swift tests'
+swift test
+"""
+
+[tasks."pipeline:test"]
+run = "bash scripts/exercise-video-pipeline/test_pipeline.sh"
+description = "Smoke test the video pipeline scripts (syntax, override resolver, equipment spec coverage, prompt content, archive hygiene). Runs anywhere without FAL_KEY."
+
+[tasks."pipeline:regen"]
+run = "bash scripts/exercise-video-pipeline/generate.sh"
+description = "Re-render all anchors and videos in scripts/exercise-video-pipeline/ using the current FAL_VIDEO_ENDPOINT (or FAL_VIDEO_OVERRIDES for per-slug routing). Skips already-rendered outputs."
 
 [tasks.build]
 run = "swift build"

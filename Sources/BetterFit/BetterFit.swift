@@ -297,4 +297,10 @@ public class BetterFit {
     public func getActiveWorkout() -> Workout? {
         return autoTrackingService.getCurrentWorkout()
     }
+
+    /// Update the active workout mid-session (add/remove/edit exercises).
+    /// No-op when no workout is active.
+    public func updateActiveWorkout(_ workout: Workout) {
+        autoTrackingService.updateCurrentWorkout(workout)
+    }
 }

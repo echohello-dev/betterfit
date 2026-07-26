@@ -2,6 +2,7 @@ import Charts
 import SwiftUI
 
 struct TrendsView: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
 
     // MARK: - Mock Data
@@ -55,7 +56,7 @@ struct TrendsView: View {
                         Text("PR Tracking")
                             .bfHeading(theme: theme, size: 18, relativeTo: .headline)
                         Text("Personal records for your main lifts will appear here soon.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                 }
 
@@ -63,7 +64,7 @@ struct TrendsView: View {
             }
             .padding(16)
         }
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
     }
 
     private var volumeSection: some View {
@@ -111,7 +112,7 @@ struct TrendsView: View {
                             y: .value("Recovery", data.percentage)
                         )
                         .interpolationMethod(.catmullRom)
-                        .foregroundStyle(theme.accent.opacity(0.1).gradient)
+                        .foregroundStyle(theme.accentSurface(0.1, for: colorScheme).gradient)
                     }
                 }
                 .frame(height: 200)

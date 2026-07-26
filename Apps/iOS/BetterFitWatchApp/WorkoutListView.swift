@@ -11,6 +11,8 @@ struct WorkoutListView: View {
             recommendedWorkoutSection
             allWorkoutsSection
         }
+        .scrollContentBackground(.hidden)
+        .background(WatchTheme.background.ignoresSafeArea())
         .navigationTitle("Workouts")
     }
 
@@ -26,6 +28,7 @@ struct WorkoutListView: View {
         } header: {
             Text("Recommended")
                 .font(.caption)
+                .foregroundStyle(WatchTheme.textSecondary)
         }
     }
 
@@ -41,6 +44,7 @@ struct WorkoutListView: View {
         } header: {
             Text("All Workouts")
                 .font(.caption)
+                .foregroundStyle(WatchTheme.textSecondary)
         }
     }
 
@@ -65,23 +69,32 @@ struct WorkoutRowButton: View {
                 HStack {
                     Text(workout.name)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(WatchTheme.textPrimary)
 
                     if isRecommended {
                         Image(systemName: "star.fill")
                             .font(.caption)
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(WatchTheme.accent)
                     }
                 }
 
                 Text("\(workout.exercises.count) exercises")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WatchTheme.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(WatchTheme.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(WatchTheme.border, lineWidth: 1)
+                )
+        )
     }
 }

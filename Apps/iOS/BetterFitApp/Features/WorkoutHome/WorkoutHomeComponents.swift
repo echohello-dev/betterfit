@@ -5,6 +5,7 @@ extension WorkoutHomeView {
     // MARK: - Compact Components
 
     struct CompactMuscleChip: View {
+        @Environment(\.colorScheme) var colorScheme
         let muscle: String
         let percent: Int
         let theme: AppTheme
@@ -12,25 +13,27 @@ extension WorkoutHomeView {
         var body: some View {
             HStack(spacing: 4) {
                 Image(systemName: muscleIcon)
-                    .font(.caption.weight(.semibold))
+                    .font(BFTypography.captionEmphasis)
                     .foregroundStyle(theme.accent)
                     .frame(width: 14)
 
                 Text(muscle)
-                    .font(.caption.weight(.semibold))
+                    .font(BFTypography.captionEmphasis)
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .layoutPriority(-1)
 
                 Text("\(percent)%")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(BFTypography.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     .fixedSize()
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(.regularMaterial, in: Capsule())
-            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+            .background(BFColors.surfaceRaised(for: colorScheme), in: Capsule())
+            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
 
         private var muscleIcon: String {
@@ -47,6 +50,7 @@ extension WorkoutHomeView {
     }
 
     struct CompactExerciseRow: View {
+        @Environment(\.colorScheme) var colorScheme
         let exercise: WorkoutExercise
         let index: Int
         let theme: AppTheme
@@ -56,10 +60,11 @@ extension WorkoutHomeView {
                 // Index circle
                 ZStack {
                     Circle()
-                        .fill(theme.accent.opacity(0.15))
+                        .fill(theme.accentSurface(0.15, for: colorScheme))
                         .frame(width: 28, height: 28)
                     Text("\(index + 1)")
-                        .font(.caption.weight(.bold))
+                        .font(BFTypography.captionEmphasis)
+                        .monospacedDigit()
                         .foregroundStyle(theme.accent)
                 }
 
@@ -83,20 +88,22 @@ extension WorkoutHomeView {
                 // Name and category
                 VStack(alignment: .leading, spacing: 2) {
                     Text(exercise.exercise.name)
-                        .font(.subheadline.weight(.semibold))
+                        .font(BFTypography.subheadlineEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                         .lineLimit(1)
 
                     Text(categoryName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 Spacer()
 
                 // Sets info
                 Text(setsInfo)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(BFTypography.captionEmphasis)
+                    .monospacedDigit()
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 // Category icon
                 ZStack {
@@ -104,7 +111,7 @@ extension WorkoutHomeView {
                         .fill(categoryColor.opacity(0.15))
                         .frame(width: 28, height: 28)
                     Image(systemName: categoryIcon)
-                        .font(.caption.weight(.semibold))
+                        .font(BFTypography.captionEmphasis)
                         .foregroundStyle(categoryColor)
                 }
             }
@@ -112,10 +119,10 @@ extension WorkoutHomeView {
             .padding(.vertical, 8)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(BFColors.surface(for: colorScheme))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(theme.cardStroke, lineWidth: 1)
+                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                     }
             }
         }
@@ -166,6 +173,7 @@ extension WorkoutHomeView {
     // MARK: - Components
 
     struct WorkoutSwipeCard: View {
+        @Environment(\.colorScheme) var colorScheme
         let workout: Workout
         let theme: AppTheme
         let isTopCard: Bool
@@ -175,7 +183,7 @@ extension WorkoutHomeView {
                 // Workout icon/image placeholder
                 ZStack {
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(theme.accent.opacity(0.15))
+                        .fill(theme.accentSurface(0.15, for: colorScheme))
                         .frame(width: 100, height: 140)
 
                     VStack(spacing: 8) {
@@ -184,7 +192,7 @@ extension WorkoutHomeView {
                             .foregroundStyle(theme.accent)
 
                         Text(workoutType)
-                            .font(.caption.weight(.semibold))
+                            .font(BFTypography.captionEmphasis)
                             .foregroundStyle(.white)
                     }
                 }
@@ -200,8 +208,8 @@ extension WorkoutHomeView {
                         Label("1h", systemImage: "clock")
                         Label("Equipment", systemImage: "dumbbell")
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(BFTypography.caption)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     HStack(spacing: 8) {
                         workoutPill(workoutType)
@@ -216,23 +224,12 @@ extension WorkoutHomeView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 172)
             .background {
-                if #available(iOS 26.0, *) {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.thickMaterial)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
-                } else {
-                    let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    shape
-                        .fill(.thickMaterial)
-                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-                        .shadow(
-                            color: Color.black.opacity(
-                                theme.preferredColorScheme == .dark ? 0.3 : 0.12),
-                            radius: theme.preferredColorScheme == .dark ? 16 : 12,
-                            x: 0,
-                            y: 6
-                        )
-                }
+                RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                    .fill(BFColors.surface(for: colorScheme))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                    }
             }
         }
 
@@ -243,7 +240,7 @@ extension WorkoutHomeView {
             if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
             if name.contains("hiit") { return "flame.fill" }
             if name.contains("push") { return "figure.strengthtraining.traditional" }
-            if name.contains("pull") { return "figure.rowing" }
+            if name.contains("pull") { return "dumbbell.fill" }
             if name.contains("leg") { return "figure.walk" }
             return "figure.mixed.cardio"
         }
@@ -258,14 +255,17 @@ extension WorkoutHomeView {
 
         func workoutPill(_ text: String) -> some View {
             Text(text)
-                .font(.caption.weight(.medium))
+                .font(BFTypography.captionEmphasis)
+                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(.regularMaterial, in: Capsule())
+                .background(BFColors.surfaceRaised(for: colorScheme), in: Capsule())
+                .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 
     struct TargetMuscleView: View {
+        @Environment(\.colorScheme) var colorScheme
         let muscle: String
         let percent: Int
         let theme: AppTheme
@@ -275,7 +275,7 @@ extension WorkoutHomeView {
                 // Body silhouette placeholder
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(theme.accent.opacity(0.12))
+                        .fill(theme.accentSurface(0.12, for: colorScheme))
                         .frame(width: 60, height: 70)
 
                     Image(systemName: muscleIcon)
@@ -285,14 +285,16 @@ extension WorkoutHomeView {
 
                 VStack(spacing: 2) {
                     Text(muscle)
-                        .font(.caption.weight(.semibold))
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
                     Text("\(percent)%")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(.regularMaterial, in: Capsule())
+                        .background(BFColors.surfaceRaised(for: colorScheme), in: Capsule())
                 }
             }
         }
@@ -311,6 +313,7 @@ extension WorkoutHomeView {
     }
 
     struct ExercisePreviewRow: View {
+        @Environment(\.colorScheme) var colorScheme
         let exercise: WorkoutExercise
         let theme: AppTheme
 
@@ -319,7 +322,7 @@ extension WorkoutHomeView {
                 // Exercise image placeholder
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(theme.accent.opacity(0.12))
+                        .fill(theme.accentSurface(0.12, for: colorScheme))
                         .frame(width: 64, height: 64)
 
                     Image(systemName: exerciseIcon)
@@ -329,11 +332,12 @@ extension WorkoutHomeView {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(exercise.exercise.name)
-                        .font(.subheadline.weight(.semibold))
+                        .font(BFTypography.subheadlineEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
                     Text(exerciseDetails)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 Spacer()
@@ -343,7 +347,7 @@ extension WorkoutHomeView {
                     Button("Adjust Sets") {}
                 } label: {
                     Image(systemName: "ellipsis")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .frame(width: 30, height: 30)
                 }
             }
@@ -351,14 +355,14 @@ extension WorkoutHomeView {
             .background {
                 let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
                 shape
-                    .fill(.regularMaterial)
-                    .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    .fill(BFColors.surface(for: colorScheme))
+                    .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
             }
         }
 
         private var exerciseIcon: String {
             let name = exercise.exercise.name.lowercased()
-            if name.contains("row") { return "figure.rowing" }
+            if name.contains("row") { return "dumbbell.fill" }
             if name.contains("curl") { return "dumbbell.fill" }
             if name.contains("press") { return "figure.strengthtraining.traditional" }
             if name.contains("squat") { return "figure.walk" }
@@ -380,6 +384,7 @@ extension WorkoutHomeView {
     }
 
     struct SemiCircularGauge: View {
+        @Environment(\.colorScheme) var colorScheme
         let value: Double
         let theme: AppTheme
 
@@ -390,7 +395,7 @@ extension WorkoutHomeView {
                 Circle()
                     .trim(from: 0, to: 0.5)
                     .stroke(
-                        theme.cardStroke.opacity(0.5),
+                        BFColors.border(for: colorScheme).opacity(0.5),
                         style: StrokeStyle(lineWidth: 10, lineCap: .round)
                     )
 
@@ -402,15 +407,15 @@ extension WorkoutHomeView {
                     )
 
                 Rectangle()
-                    .fill(theme.accent.opacity(0.9))
+                    .fill(theme.accentSurface(0.9, for: colorScheme))
                     .frame(width: 44, height: 2)
                     .offset(x: 22)
                     .rotationEffect(.degrees(180 * clamped))
 
                 Circle()
-                    .fill(theme.cardBackground)
+                    .fill(BFColors.surface(for: colorScheme))
                     .frame(width: 10, height: 10)
-                    .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+                    .overlay { Circle().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
             }
             .padding(.top, 2)
             .padding(.horizontal, 2)
@@ -418,6 +423,7 @@ extension WorkoutHomeView {
     }
 
     struct OverviewStat: View {
+        @Environment(\.colorScheme) var colorScheme
         let title: String
         let value: String
         let systemImage: String
@@ -426,23 +432,24 @@ extension WorkoutHomeView {
         var body: some View {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
-                    .font(.caption.weight(.semibold))
+                    .font(BFTypography.captionEmphasis)
                     .foregroundStyle(theme.accent)
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text(value)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                         .monospacedDigit()
                     Text(title)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
         }
     }
 
     struct CategoryLegendDot: View {
+        @Environment(\.colorScheme) var colorScheme
         let label: String
         let percent: Int
         let color: Color
@@ -454,8 +461,8 @@ extension WorkoutHomeView {
                     .fill(color)
                     .frame(width: 7, height: 7)
                 Text("\(label) \(percent)%")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(BFTypography.caption)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     .monospacedDigit()
             }
         }
@@ -469,15 +476,16 @@ extension WorkoutHomeView {
         var body: some View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.caption)
+                    .font(BFTypography.caption)
                 Text(value)
-                    .font(.body.weight(.semibold))
+                    .font(BFTypography.headline)
             }
             .foregroundStyle(.white)
         }
     }
 
     struct WorkoutSuggestionCard: View {
+        @Environment(\.colorScheme) var colorScheme
         let workout: Workout
         let theme: AppTheme
         let action: () -> Void
@@ -488,7 +496,7 @@ extension WorkoutHomeView {
                     // Preview image placeholder
                     ZStack {
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(theme.accent.opacity(0.3))
+                            .fill(theme.accentSurface(0.3, for: colorScheme))
                             .frame(height: 140)
 
                         Image(systemName: iconForWorkout)
@@ -498,8 +506,8 @@ extension WorkoutHomeView {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(workout.name)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .font(BFTypography.headline)
+                            .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                             .lineLimit(2)
 
                         HStack(spacing: 12) {
@@ -507,8 +515,8 @@ extension WorkoutHomeView {
                                 "\(workout.exercises.count) exercises", systemImage: "list.bullet")
                             Label("30min", systemImage: "clock")
                         }
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
 
                     Spacer()
@@ -516,23 +524,12 @@ extension WorkoutHomeView {
                 .frame(width: 200)
                 .padding(12)
                 .background {
-                    if #available(iOS 26.0, *) {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
-                    } else {
-                        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        shape
-                            .fill(.ultraThinMaterial)
-                            .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-                            .shadow(
-                                color: Color.black.opacity(
-                                    theme.preferredColorScheme == .dark ? 0.22 : 0.08),
-                                radius: theme.preferredColorScheme == .dark ? 14 : 10,
-                                x: 0,
-                                y: 6
-                            )
-                    }
+                    RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                        .fill(BFColors.surface(for: colorScheme))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                                .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                        }
                 }
             }
             .buttonStyle(.plain)
@@ -561,7 +558,7 @@ extension WorkoutHomeView {
                     .frame(width: 40)
 
                 Text(title)
-                    .font(.body.weight(.semibold))
+                    .font(BFTypography.headline)
 
                 Spacer()
             }
@@ -572,6 +569,7 @@ extension WorkoutHomeView {
     struct SubscriptionView: View {
         let theme: AppTheme
         @Environment(\.dismiss) private var dismiss
+        @Environment(\.colorScheme) var colorScheme
 
         var body: some View {
             NavigationStack {
@@ -595,9 +593,9 @@ extension WorkoutHomeView {
                         Text(
                             "First week free, then just $19.99/year\nLess than your monthly coffee habit!"
                         )
-                        .font(.headline)
+                        .font(BFTypography.headline)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                         VStack(spacing: 16) {
                             FeatureRow(icon: "sparkles", title: "AI-Powered Workouts", theme: theme)
@@ -615,7 +613,7 @@ extension WorkoutHomeView {
                             dismiss()
                         } label: {
                             Text("Start Free Trial")
-                                .font(.headline.weight(.bold))
+                                .font(BFTypography.headline)
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
@@ -627,12 +625,12 @@ extension WorkoutHomeView {
                         Button("Maybe Later") {
                             dismiss()
                         }
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.subheadline)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                     .padding()
                 }
-                .background(theme.backgroundGradient.ignoresSafeArea())
+                .bfBackground(theme: theme)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -674,7 +672,7 @@ extension WorkoutHomeView {
                     }
                 }
                 .scrollContentBackground(.hidden)
-                .background(theme.backgroundGradient.ignoresSafeArea())
+                .bfBackground(theme: theme)
                 .navigationTitle("Custom Range")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -689,7 +687,7 @@ extension WorkoutHomeView {
                             end = draftEnd
                             dismiss()
                         }
-                        .font(.headline)
+                        .font(BFTypography.headline)
                     }
                 }
             }
@@ -795,6 +793,7 @@ extension WorkoutHomeView {
         }
 
         private struct MonthBlock: View {
+            @Environment(\.colorScheme) var colorScheme
             let monthStart: Date
             let rangeStart: Date
             let rangeEnd: Date
@@ -811,8 +810,8 @@ extension WorkoutHomeView {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(monthStart.formatted(.dateTime.month(.abbreviated)))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     HStack(alignment: .top, spacing: gap) {
                         ForEach(
@@ -878,6 +877,7 @@ extension WorkoutHomeView {
         }
 
         private struct DayCell: View {
+            @Environment(\.colorScheme) var colorScheme
             let date: Date
             let rangeStart: Date
             let rangeEnd: Date
@@ -898,7 +898,7 @@ extension WorkoutHomeView {
                             .fill(color(for: valuesByDay[day, default: 0]))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                    .stroke(theme.cardStroke.opacity(0.7), lineWidth: 0.5)
+                                    .stroke(BFColors.border(for: colorScheme).opacity(0.7), lineWidth: 0.5)
                             }
                             .accessibilityLabel(
                                 accessibilityText(day: day, count: valuesByDay[day, default: 0]))
@@ -913,15 +913,15 @@ extension WorkoutHomeView {
             private func color(for count: Int) -> Color {
                 switch count {
                 case 0:
-                    return theme.accent.opacity(0)
+                    return theme.accentSurface(0, for: colorScheme)
                 case 1:
-                    return theme.accent.opacity(0.18)
+                    return theme.accentSurface(0.18, for: colorScheme)
                 case 2:
-                    return theme.accent.opacity(0.34)
+                    return theme.accentSurface(0.34, for: colorScheme)
                 case 3:
-                    return theme.accent.opacity(0.52)
+                    return theme.accentSurface(0.52, for: colorScheme)
                 default:
-                    return theme.accent.opacity(0.75)
+                    return theme.accentSurface(0.75, for: colorScheme)
                 }
             }
 
@@ -944,6 +944,7 @@ extension WorkoutHomeView {
         let onApply: () -> Void
 
         @Environment(\.dismiss) private var dismiss
+        @Environment(\.colorScheme) var colorScheme
 
         // Gym location presets
         private let gymPresets: [(name: String, icon: String, equipment: Set<Equipment>)] = [
@@ -981,7 +982,7 @@ extension WorkoutHomeView {
                         // Location presets
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Quick Select")
-                                .font(.headline)
+                                .font(BFTypography.headline)
 
                             LazyVGrid(
                                 columns: [
@@ -1005,12 +1006,12 @@ extension WorkoutHomeView {
                             }
                         }
 
-                        Divider()
+                        BFDivider()
 
                         // Individual equipment toggles
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Available Equipment")
-                                .font(.headline)
+                                .font(BFTypography.headline)
 
                             ForEach(Equipment.allCases, id: \.self) { equipment in
                                 EquipmentToggleRow(
@@ -1033,13 +1034,13 @@ extension WorkoutHomeView {
                         Text(
                             "Exercises will be automatically swapped to alternatives based on your available equipment."
                         )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(BFTypography.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .padding(.top, 8)
                     }
                     .padding()
                 }
-                .background(theme.backgroundGradient.ignoresSafeArea())
+                .bfBackground(theme: theme)
                 .navigationTitle("Swap Equipment")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -1053,7 +1054,7 @@ extension WorkoutHomeView {
                             onApply()
                             dismiss()
                         }
-                        .font(.headline)
+                        .font(BFTypography.headline)
                     }
                 }
             }
@@ -1061,6 +1062,7 @@ extension WorkoutHomeView {
     }
 
     struct GymPresetButton: View {
+        @Environment(\.colorScheme) var colorScheme
         let name: String
         let icon: String
         let isSelected: Bool
@@ -1072,11 +1074,15 @@ extension WorkoutHomeView {
                 VStack(spacing: 8) {
                     Image(systemName: icon)
                         .font(.title2)
-                        .foregroundStyle(isSelected ? theme.accent : .secondary)
+                        .foregroundStyle(
+                            isSelected ? theme.accent : BFColors.textSecondary(for: colorScheme))
 
                     Text(name)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(isSelected ? .primary : .secondary)
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(
+                            isSelected
+                                ? BFColors.textPrimary(for: colorScheme)
+                                : BFColors.textSecondary(for: colorScheme))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
@@ -1084,15 +1090,15 @@ extension WorkoutHomeView {
                     let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
                     if isSelected {
                         shape
-                            .fill(theme.accent.opacity(0.15))
+                            .fill(theme.accentSurface(0.15, for: colorScheme))
                             .overlay {
                                 shape.stroke(theme.accent, lineWidth: 2)
                             }
                     } else {
                         shape
-                            .fill(.regularMaterial)
+                            .fill(BFColors.surface(for: colorScheme))
                             .overlay {
-                                shape.stroke(theme.cardStroke, lineWidth: 1)
+                                shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                             }
                     }
                 }
@@ -1102,6 +1108,7 @@ extension WorkoutHomeView {
     }
 
     struct EquipmentToggleRow: View {
+        @Environment(\.colorScheme) var colorScheme
         let equipment: Equipment
         let isSelected: Bool
         let theme: AppTheme
@@ -1112,27 +1119,32 @@ extension WorkoutHomeView {
                 HStack(spacing: 14) {
                     Image(systemName: iconForEquipment)
                         .font(.title3)
-                        .foregroundStyle(isSelected ? theme.accent : .secondary)
+                        .foregroundStyle(
+                            isSelected ? theme.accent : BFColors.textSecondary(for: colorScheme))
                         .frame(width: 32)
 
                     Text(equipment.rawValue.capitalized)
-                        .font(.body)
+                        .font(BFTypography.body)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
                     Spacer()
 
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .font(.title2)
-                        .foregroundStyle(isSelected ? theme.accent : Color.secondary.opacity(0.5))
+                        .foregroundStyle(
+                            isSelected
+                                ? theme.accent
+                                : BFColors.textTertiary(for: colorScheme).opacity(0.5))
                 }
                 .padding(.vertical, 10)
                 .padding(.horizontal, 14)
                 .background {
                     let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
                     shape
-                        .fill(.regularMaterial)
+                        .fill(BFColors.surface(for: colorScheme))
                         .overlay {
                             shape.stroke(
-                                isSelected ? theme.accent.opacity(0.5) : theme.cardStroke,
+                                isSelected ? theme.accentSurface(0.5, for: colorScheme) : BFColors.border(for: colorScheme),
                                 lineWidth: 1
                             )
                         }

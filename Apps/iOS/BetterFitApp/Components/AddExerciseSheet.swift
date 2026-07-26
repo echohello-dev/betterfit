@@ -5,6 +5,7 @@ import SwiftUI
 
 /// A sheet for adding a new exercise to a workout
 struct AddExerciseSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
     let onAdd: (PlannedExercise) -> Void
 
@@ -19,7 +20,7 @@ struct AddExerciseSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                theme.backgroundGradient.ignoresSafeArea()
+                BFColors.backgroundElevated(for: colorScheme).ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     if selectedExercise == nil {
@@ -36,10 +37,9 @@ struct AddExerciseSheet: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .searchable(
+            .searchableIfNeeded(
                 text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search exercises"
+                isSearchable: selectedExercise == nil
             )
         }
     }
@@ -51,7 +51,7 @@ struct AddExerciseSheet: View {
             ForEach(ExerciseTemplateCategory.allCases, id: \.self) { category in
                 let exercises = filteredExercises(for: category)
                 if !exercises.isEmpty {
-                    Section(header: Text(category.rawValue).foregroundStyle(.secondary)) {
+                    Section(header: Text(category.rawValue).foregroundStyle(BFColors.textSecondary(for: colorScheme))) {
                         ForEach(exercises) { exercise in
                             exerciseRow(exercise)
                         }
@@ -95,14 +95,24 @@ struct AddExerciseSheet: View {
 
                     Text(exercise.subtitle)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                    .fill(BFColors.surface(for: colorScheme))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                    }
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
@@ -114,7 +124,7 @@ struct AddExerciseSheet: View {
     // MARK: - Exercise Config View
 
     private var exerciseConfigView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             // Back button
             HStack {
                 Button {
@@ -135,44 +145,47 @@ struct AddExerciseSheet: View {
             .padding(.horizontal)
             .padding(.top)
 
-            if let exercise = selectedExercise {
-                // Exercise header
-                VStack(spacing: 8) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: gradientColors(for: exercise.category),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 72, height: 72)
+            ScrollView {
+                if let exercise = selectedExercise {
+                    VStack(spacing: 24) {
+                        // Exercise header
+                        VStack(spacing: 8) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: gradientColors(for: exercise.category),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 72, height: 72)
 
-                        Image(systemName: categoryIcon(for: exercise.category))
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
+                                Image(systemName: categoryIcon(for: exercise.category))
+                                    .font(.system(size: 28, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.9))
+                            }
+
+                            Text(exercise.name)
+                                .font(.title2.weight(.bold))
+
+                            Text(exercise.subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                        }
+                        .padding(.bottom)
+
+                        // Configuration
+                        VStack(spacing: 20) {
+                            setsSection
+                            repsSection
+                            weightSection
+                        }
                     }
-
-                    Text(exercise.name)
-                        .font(.title2.weight(.bold))
-
-                    Text(exercise.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                 }
-                .padding(.bottom)
-
-                // Configuration
-                VStack(spacing: 20) {
-                    setsSection
-                    repsSection
-                    weightSection
-                }
-                .padding(.horizontal)
             }
-
-            Spacer()
 
             // Add button
             Button {
@@ -182,12 +195,8 @@ struct AddExerciseSheet: View {
                     Image(systemName: "plus.circle.fill")
                     Text("Add Exercise")
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Capsule().fill(theme.accent))
-                .foregroundStyle(.white)
             }
+            .buttonStyle(.bfPrimary)
             .padding(.horizontal)
             .padding(.bottom)
         }
@@ -199,7 +208,7 @@ struct AddExerciseSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Sets")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             HStack(spacing: 16) {
                 Button {
@@ -207,7 +216,7 @@ struct AddExerciseSheet: View {
                 } label: {
                     Image(systemName: "minus.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(sets > 1 ? theme.accent : .secondary)
+                        .foregroundStyle(sets > 1 ? theme.accent : BFColors.textTertiary(for: colorScheme))
                 }
                 .disabled(sets <= 1)
 
@@ -221,7 +230,7 @@ struct AddExerciseSheet: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(sets < 10 ? theme.accent : .secondary)
+                        .foregroundStyle(sets < 10 ? theme.accent : BFColors.textTertiary(for: colorScheme))
                 }
                 .disabled(sets >= 10)
 
@@ -229,41 +238,62 @@ struct AddExerciseSheet: View {
             }
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                }
+        }
     }
 
     private var repsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reps")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             TextField("e.g., 8-10", text: $reps)
                 .font(.title3.weight(.semibold))
                 .keyboardType(.numbersAndPunctuation)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 10).fill(theme.cardBackground))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.cardStroke, lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(BFColors.surfaceRaised(for: colorScheme)))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(BFColors.border(for: colorScheme), lineWidth: 1))
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                }
+        }
     }
 
     private var weightSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Target Weight (optional)")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             TextField("e.g., 135 lbs", text: $targetWeight)
                 .font(.title3.weight(.semibold))
                 .keyboardType(.numbersAndPunctuation)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 10).fill(theme.cardBackground))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.cardStroke, lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(BFColors.surfaceRaised(for: colorScheme)))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(BFColors.border(for: colorScheme), lineWidth: 1))
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 14).fill(.regularMaterial))
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                }
+        }
     }
 
     // MARK: - Actions
@@ -328,6 +358,25 @@ struct AddExerciseSheet: View {
         case .arms: return "figure.strengthtraining.traditional"
         case .legs: return "figure.walk"
         case .core: return "circle.circle"
+        }
+    }
+}
+
+// MARK: - Conditional Searchable
+
+private extension View {
+    /// Only applies `.searchable` when the exercise list is shown —
+    /// keeps the Configure view free of the always-visible search bar.
+    @ViewBuilder
+    func searchableIfNeeded(text: Binding<String>, isSearchable: Bool) -> some View {
+        if isSearchable {
+            self.searchable(
+                text: text,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search exercises"
+            )
+        } else {
+            self
         }
     }
 }

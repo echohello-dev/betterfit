@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ExerciseDetailView: View {
+    @Environment(\.colorScheme) var colorScheme
     let exercise: String
     let subtitle: String
     let theme: AppTheme
@@ -22,7 +23,7 @@ struct ExerciseDetailView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .toolbar(.visible, for: .navigationBar)
         .navigationTitle(exercise)
         .navigationBarTitleDisplayMode(.inline)
@@ -47,7 +48,7 @@ struct ExerciseDetailView: View {
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(theme.accent.opacity(0.15), in: Capsule())
+                            .background(theme.accentSurface(0.15, for: colorScheme), in: Capsule())
                             .foregroundStyle(theme.accent)
                     }
                 }
@@ -60,8 +61,11 @@ struct ExerciseDetailView: View {
     private var overviewSection: some View {
         Section {
             LabeledContent("Equipment", value: exerciseInfo.equipment)
+                .listRowBackground(BFColors.surface(for: colorScheme))
             LabeledContent("Difficulty", value: exerciseInfo.difficulty)
+                .listRowBackground(BFColors.surface(for: colorScheme))
             LabeledContent("Type", value: exerciseInfo.type)
+                .listRowBackground(BFColors.surface(for: colorScheme))
         } header: {
             Text("Overview")
         }
@@ -80,6 +84,7 @@ struct ExerciseDetailView: View {
                         .frame(width: 22, height: 22)
                         .background(theme.accent, in: Circle())
                 }
+                .listRowBackground(BFColors.surface(for: colorScheme))
             }
         } header: {
             Text("How to Perform")
@@ -95,6 +100,7 @@ struct ExerciseDetailView: View {
                     Image(systemName: "lightbulb")
                         .foregroundStyle(.yellow)
                 }
+                .listRowBackground(BFColors.surface(for: colorScheme))
             }
         } header: {
             Text("Tips")

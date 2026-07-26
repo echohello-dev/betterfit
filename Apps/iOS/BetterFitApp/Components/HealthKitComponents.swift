@@ -96,6 +96,7 @@ final class HealthKitManager {
 // MARK: - Apple Health Connection Card
 
 struct AppleHealthConnectionCard: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
     let healthKitManager: HealthKitManager
     let showDismiss: Bool
@@ -113,12 +114,12 @@ struct AppleHealthConnectionCard: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(.red.opacity(0.15))
+                        .fill(theme.accent.opacity(0.15))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "heart.fill")
                         .font(.title3)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(theme.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -127,7 +128,7 @@ struct AppleHealthConnectionCard: View {
 
                     Text("Sync workouts, track steps, and monitor heart rate")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .lineLimit(2)
                 }
 
@@ -137,16 +138,10 @@ struct AppleHealthConnectionCard: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button {
+                    Button("Connect") {
                         connect()
-                    } label: {
-                        Text("Connect")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Capsule().fill(.red))
-                            .foregroundStyle(.white)
                     }
+                    .buttonStyle(BFPrimaryButtonStyle(isFullWidth: false))
                 }
             }
 
@@ -158,7 +153,7 @@ struct AppleHealthConnectionCard: View {
                     } label: {
                         Text("Not now")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                 }
                 .padding(.top, 4)
@@ -178,25 +173,26 @@ struct AppleHealthConnectionCard: View {
 // MARK: - Apple Health Connected Badge
 
 struct AppleHealthConnectedBadge: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "heart.fill")
                 .font(.caption2)
-                .foregroundStyle(.red)
+                .foregroundStyle(BFColors.success)
 
             Text("Apple Health Connected")
                 .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background {
-            Capsule().fill(theme.cardBackground.opacity(0.5))
+            Capsule().fill(BFColors.surfaceRaised(for: colorScheme))
         }
         .overlay {
-            Capsule().stroke(theme.cardStroke, lineWidth: 1)
+            Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1)
         }
     }
 }
@@ -204,6 +200,7 @@ struct AppleHealthConnectedBadge: View {
 // MARK: - Health Stats Row (for Profile)
 
 struct HealthStatsFromAppleHealth: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
     let summary: HealthKitService.HealthSummary
 
@@ -360,7 +357,7 @@ struct HealthStatsFromAppleHealth: View {
 
                     Text(label)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -377,7 +374,7 @@ struct HealthStatsFromAppleHealth: View {
 
                 Text(source)
                     .font(.caption2)
-                    .foregroundStyle(.secondary.opacity(0.7))
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
             }
         }
     }
@@ -451,6 +448,7 @@ struct HealthStatsFromAppleHealth: View {
 // MARK: - Notification Center Reminder
 
 struct AppleHealthReminderBanner: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
     let healthKitManager: HealthKitManager
 
@@ -460,7 +458,7 @@ struct AppleHealthReminderBanner: View {
         HStack(spacing: 12) {
             Image(systemName: "heart.circle.fill")
                 .font(.title2)
-                .foregroundStyle(.red)
+                .foregroundStyle(theme.accent)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Sync with Apple Health")
@@ -468,7 +466,7 @@ struct AppleHealthReminderBanner: View {
 
                 Text("Track your workouts automatically")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
 
             Spacer(minLength: 0)
@@ -482,7 +480,7 @@ struct AppleHealthReminderBanner: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(theme.accent)
                 }
             }
 
@@ -491,14 +489,14 @@ struct AppleHealthReminderBanner: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
         }
         .padding(12)
         .background {
             let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-            shape.fill(.red.opacity(0.1))
-                .overlay { shape.stroke(.red.opacity(0.3), lineWidth: 1) }
+            shape.fill(BFColors.surface(for: colorScheme))
+                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 

@@ -2,6 +2,7 @@ import BetterFit
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let betterFit: BetterFit
 
     let theme: AppTheme
@@ -11,6 +12,8 @@ struct ContentView: View {
 
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
         .rawValue
+    @AppStorage(AppearancePreference.storageKey) private var storedAppearance: String =
+        AppearancePreference.defaultPreference.rawValue
 
     @State private var showingThemePicker = false
 
@@ -38,7 +41,7 @@ struct ContentView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Last event")
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                                     Text(lastEvent)
                                         .font(.body.weight(.semibold))
                                 }
@@ -54,13 +57,13 @@ struct ContentView: View {
                             Text(
                                 "Next, we can add per-muscle recovery, a weekly load trend, and a real workout log. This dashboard is designed to scale as features land."
                             )
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
                     }
                 }
                 .padding(16)
             }
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -73,14 +76,13 @@ struct ContentView: View {
                             showingSearch = true
                         }
 
-                                BFChromeIconButton(
-                                    systemImage: "paintpalette",
-                                    accessibilityLabel: "Change theme",
-                                    theme: theme
-                                ) {
-                                    showingThemePicker = true
-                                }
-                            }
+                        BFChromeIconButton(
+                            systemImage: "paintpalette",
+                            accessibilityLabel: "Change theme",
+                            theme: theme
+                        ) {
+                            showingThemePicker = true
+                        }
                     }
                 }
             }
@@ -93,6 +95,10 @@ struct ContentView: View {
                     selectedTheme: Binding(
                         get: { AppTheme.fromStorage(storedTheme) },
                         set: { storedTheme = $0.rawValue }
+                    ),
+                    appearance: Binding(
+                        get: { AppearancePreference.fromStorage(storedAppearance) },
+                        set: { storedAppearance = $0.rawValue }
                     )
                 )
                 .presentationDetents([.medium, .large])
@@ -110,7 +116,7 @@ struct ContentView: View {
                     .bfHeading(theme: theme, size: 36, relativeTo: .largeTitle)
                 Text("Recovery dashboard")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
 
             Spacer(minLength: 0)
@@ -137,7 +143,7 @@ struct ContentView: View {
                             .monospacedDigit()
                         Text("Recovery")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                 }
 
@@ -145,7 +151,7 @@ struct ContentView: View {
                     Text("Overall recovery")
                         .bfHeading(theme: theme, size: 18, relativeTo: .headline)
                     Text(recoveryDescription)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
 
                 Spacer(minLength: 0)
@@ -186,7 +192,7 @@ struct ContentView: View {
                     )
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bfPrimary)
 
                 Button {
                     lastEvent = ""
@@ -194,7 +200,7 @@ struct ContentView: View {
                     Label("Clear last event", systemImage: "xmark.circle")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.bfSecondary)
             }
         }
     }

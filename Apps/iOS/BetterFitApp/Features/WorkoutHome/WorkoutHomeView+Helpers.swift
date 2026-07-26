@@ -156,12 +156,14 @@ extension WorkoutHomeView {
 
     func startWorkout() {
         let workout = suggestedWorkout
+        planManager?.setSelectedWorkoutForToday(workout)
         bf.startWorkout(workout)
         activeWorkoutId = workout.id
         NotificationCenter.default.post(name: .workoutStarted, object: workout.id)
     }
 
     func selectWorkout(_ workout: Workout) {
+        planManager?.setSelectedWorkoutForToday(workout)
         bf.startWorkout(workout)
         activeWorkoutId = workout.id
         NotificationCenter.default.post(name: .workoutStarted, object: workout.id)
@@ -368,10 +370,10 @@ extension WorkoutHomeView {
     func recapExerciseThumb(_ exercise: Exercise) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(theme.accent.opacity(0.10))
+                .fill(theme.accentSurface(0.10, for: colorScheme))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(
-                        theme.cardStroke, lineWidth: 1)
+                        theme.cardStroke(for: colorScheme), lineWidth: 1)
                 }
 
             Image(systemName: thumbIcon(for: exercise))
@@ -386,7 +388,7 @@ extension WorkoutHomeView {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(theme.accent.opacity(0.12))
+                    .fill(theme.accentSurface(0.12, for: colorScheme))
                     .frame(width: 44, height: 44)
                 Image(systemName: thumbIcon(for: workoutExercise.exercise))
                     .font(.subheadline.weight(.semibold))
@@ -410,10 +412,10 @@ extension WorkoutHomeView {
             let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
             shape
                 .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                .overlay { shape.stroke(theme.cardStroke(for: colorScheme), lineWidth: 1) }
                 .shadow(
-                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
-                    radius: theme.preferredColorScheme == .dark ? 14 : 10,
+                    color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08),
+                    radius: colorScheme == .dark ? 14 : 10,
                     x: 0,
                     y: 6
                 )
@@ -499,8 +501,8 @@ extension WorkoutHomeView {
         let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
         let isInStreak = isDateInCurrentStreak(date)
 
-        let selectedFill: Color = theme.preferredColorScheme == .dark ? .white : .black
-        let selectedText: Color = theme.preferredColorScheme == .dark ? .black : .white
+        let selectedFill: Color = colorScheme == .dark ? .white : .black
+        let selectedText: Color = colorScheme == .dark ? .black : .white
 
         return Button {
             selectedDate = date
@@ -527,14 +529,14 @@ extension WorkoutHomeView {
                 if isSelected {
                     shape.fill(selectedFill)
                 } else {
-                    shape.fill(theme.cardBackground)
-                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
+                    shape.fill(theme.cardBackground(for: colorScheme))
+                        .overlay { shape.stroke(theme.cardStroke(for: colorScheme), lineWidth: 1) }
                 }
             }
             .overlay {
                 if isToday, !isSelected {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(theme.accent.opacity(0.45), lineWidth: 1)
+                        .stroke(theme.accentSurface(0.45, for: colorScheme), lineWidth: 1)
                 }
             }
             .overlay(alignment: .topTrailing) {
@@ -564,9 +566,9 @@ extension WorkoutHomeView {
     func dayBackground(for date: Date) -> AnyShapeStyle {
         let calendar = Calendar.current
         if calendar.isDate(date, inSameDayAs: selectedDate) {
-            return AnyShapeStyle(theme.accent.opacity(0.25))
+            return AnyShapeStyle(theme.accentSurface(0.25, for: colorScheme))
         }
-        return AnyShapeStyle(theme.cardBackground)
+        return AnyShapeStyle(theme.cardBackground(for: colorScheme))
     }
 
     func isDateInCurrentStreak(_ date: Date) -> Bool {
@@ -633,6 +635,38 @@ extension WorkoutHomeView {
         }
     }
 
+    /// Remove an exercise from the active workout (or today's plan when no session is running).
+    func deletePlannedExercise(_ exercise: PlannedExercise) {
+        if var active = bf.getActiveWorkout() {
+            guard let index = active.exercises.firstIndex(where: { $0.exercise.name == exercise.name })
+            else { return }
+            active.exercises.remove(at: index)
+            bf.updateActiveWorkout(active)
+            planManager?.setSelectedWorkoutForToday(active)
+        } else if let manager = planManager, let plan = manager.getTodayPlan() {
+            guard let index = plan.exercises.firstIndex(where: {
+                $0.id == exercise.id || $0.name == exercise.name
+            }) else { return }
+            manager.removeExercise(at: index, from: Date.now)
+        }
+    }
+
+    /// Apply edits (sets/reps/weight) to an exercise in the active workout or today's plan.
+    func updatePlannedExercise(_ updated: PlannedExercise) {
+        if var active = bf.getActiveWorkout() {
+            guard let index = active.exercises.firstIndex(where: { $0.exercise.name == updated.name })
+            else { return }
+            active.exercises[index] = updated.toWorkoutExercise()
+            bf.updateActiveWorkout(active)
+            planManager?.setSelectedWorkoutForToday(active)
+        } else if let manager = planManager, let plan = manager.getTodayPlan() {
+            guard let index = plan.exercises.firstIndex(where: {
+                $0.id == updated.id || $0.name == updated.name
+            }) else { return }
+            manager.replaceExercise(at: index, with: updated, on: Date.now)
+        }
+    }
+
     func addExerciseToCurrentWorkout(_ plannedExercise: PlannedExercise) {
         // Convert PlannedExercise to WorkoutExercise and add to current workout
         let muscleGroups: [MuscleGroup] = plannedExercise.muscleGroups.compactMap { name in
@@ -659,13 +693,11 @@ extension WorkoutHomeView {
 
         let workoutExercise = WorkoutExercise(exercise: exercise, sets: sets)
 
-        // Add to current workout if there's an active one, or update the plan
         if let activeWorkout = bf.getActiveWorkout() {
             var updatedWorkout = activeWorkout
             updatedWorkout.exercises.append(workoutExercise)
-            // Note: BetterFit doesn't have an update method, so we'd need to add one
-            // For now, just log the addition
-            print("Added \(plannedExercise.name) to active workout")
+            bf.updateActiveWorkout(updatedWorkout)
+            planManager?.setSelectedWorkoutForToday(updatedWorkout)
         } else if let manager = planManager {
             // Add to today's plan
             manager.addExerciseToToday(plannedExercise)
@@ -732,9 +764,9 @@ extension WorkoutHomeView {
         guard isDemoMode else { return }
         guard !didSeedDemoData else { return }
 
-        let seeded = BetterFit()
-        seedDemoData(into: seeded)
-        demoBetterFit = seeded
+        // Seed into the same BetterFit instance shared with RootTabView so
+        // Start Workout and home preview see one consistent source of truth.
+        seedDemoData(into: betterFit)
         didSeedDemoData = true
     }
 

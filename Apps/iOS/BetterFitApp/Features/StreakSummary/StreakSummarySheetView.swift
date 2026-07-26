@@ -3,6 +3,7 @@ import HealthKit
 import SwiftUI
 
 struct StreakSummarySheetView: View {
+    @Environment(\.colorScheme) var colorScheme
     let betterFit: BetterFit
     @Binding var selectedDate: Date
     let theme: AppTheme
@@ -21,22 +22,25 @@ struct StreakSummarySheetView: View {
                             .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
                         HStack(spacing: 12) {
-                            summaryPill(
-                                title: "BetterFit",
+                            BFStatTile(
+                                systemImage: "figure.strengthtraining.traditional",
                                 value: "\(betterFitWorkouts.count)",
-                                systemImage: "figure.strengthtraining.traditional"
+                                label: "BetterFit",
+                                tint: theme.accent
                             )
 
-                            summaryPill(
-                                title: "Apple Health",
+                            BFStatTile(
+                                systemImage: "heart.text.square",
                                 value: appleHealthCountText,
-                                systemImage: "heart.text.square"
+                                label: "Apple Health",
+                                tint: theme.accent
                             )
 
-                            summaryPill(
-                                title: "Time",
+                            BFStatTile(
+                                systemImage: "clock",
                                 value: totalTimeText,
-                                systemImage: "clock"
+                                label: "Time",
+                                tint: theme.accent
                             )
                         }
                     }
@@ -46,7 +50,7 @@ struct StreakSummarySheetView: View {
                 Section("Workouts Done") {
                     if betterFitWorkouts.isEmpty {
                         Text("No BetterFit workouts in this week.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     } else {
                         ForEach(betterFitWorkouts) { workout in
                             VStack(alignment: .leading, spacing: 4) {
@@ -55,7 +59,7 @@ struct StreakSummarySheetView: View {
 
                                 Text(betterFitWorkoutSubtitle(workout))
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             }
                             .padding(.vertical, 4)
                         }
@@ -75,7 +79,7 @@ struct StreakSummarySheetView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(theme.backgroundGradient.ignoresSafeArea())
+            .bfPageBackground()
             .navigationTitle("Streak Summary")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -206,12 +210,12 @@ struct StreakSummarySheetView: View {
         switch viewModel.accessState {
         case .unavailable:
             Text("Apple Health isn’t available on this device.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
         case .notDetermined:
             VStack(alignment: .leading, spacing: 10) {
                 Text("Connect Apple Health to show captured workout times and durations.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 Button {
                     Task { await viewModel.requestAccessAndRefresh(range: weekRange) }
@@ -226,12 +230,12 @@ struct StreakSummarySheetView: View {
                 Text(
                     "Apple Health access is denied. Enable it in Settings → Privacy & Security → Health."
                 )
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 if let msg = viewModel.lastErrorMessage {
                     Text(msg)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 }
             }
             .padding(.vertical, 4)
@@ -239,7 +243,7 @@ struct StreakSummarySheetView: View {
         case .authorized:
             if viewModel.workouts.isEmpty {
                 Text("No Apple Health workouts found for this week.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             } else {
                 ForEach(viewModel.workouts) { workout in
                     VStack(alignment: .leading, spacing: 4) {
@@ -248,41 +252,11 @@ struct StreakSummarySheetView: View {
 
                         Text(workout.timeRangeText)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                     .padding(.vertical, 4)
                 }
             }
-        }
-    }
-
-    // MARK: - UI
-
-    private func summaryPill(title: String, value: String, systemImage: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .foregroundStyle(theme.accent)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text(value)
-                    .font(.subheadline.weight(.semibold))
-                    .monospacedDigit()
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.regularMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(theme.cardStroke, lineWidth: 1)
-                }
         }
     }
 

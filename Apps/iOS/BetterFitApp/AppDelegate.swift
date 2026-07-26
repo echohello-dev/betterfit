@@ -24,9 +24,3 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         return true
     }
 }
-
-// MARK: - Notification Extension
-
-extension Notification.Name {
-    static let authCallbackReceived = Notification.Name("AuthCallbackReceived")
-}

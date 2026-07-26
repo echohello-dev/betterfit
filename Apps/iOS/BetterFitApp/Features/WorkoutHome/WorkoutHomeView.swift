@@ -5,13 +5,13 @@ import SwiftUI
 // swiftlint:disable file_length type_body_length identifier_name
 
 struct WorkoutHomeView: View {
+    @Environment(\.colorScheme) var colorScheme
     let betterFit: BetterFit
     let theme: AppTheme
     let healthKitManager: HealthKitManager?
     let planManager: WorkoutPlanManager?
     let isGuest: Bool
     let user: Auth.User?
-    let onShowSignIn: (() -> Void)?
 
     let demoModeOverride: Bool?
 
@@ -21,7 +21,6 @@ struct WorkoutHomeView: View {
         var demoModeEnabled: Bool { false }
     #endif
 
-    @State var demoBetterFit: BetterFit = BetterFit()
     @State var didSeedDemoData = false
 
     @State var selectedRegion: BodyRegion = .core
@@ -61,13 +60,11 @@ struct WorkoutHomeView: View {
     @State var customRangeEnd: Date = Date.now
     @State var showAddExerciseSheet = false
     @State var selectedExerciseForDetail: PlannedExercise?
-    @State var showExerciseDetailSheet = false
 
     init(
         betterFit: BetterFit, theme: AppTheme, healthKitManager: HealthKitManager? = nil,
         planManager: WorkoutPlanManager? = nil, isGuest: Bool = false,
-        user: Auth.User? = nil,
-        onShowSignIn: (() -> Void)? = nil, demoMode: Bool? = nil
+        user: Auth.User? = nil, demoMode: Bool? = nil
     ) {
         self.betterFit = betterFit
         self.theme = theme
@@ -75,7 +72,6 @@ struct WorkoutHomeView: View {
         self.planManager = planManager
         self.isGuest = isGuest
         self.user = user
-        self.onShowSignIn = onShowSignIn
         self.demoModeOverride = demoMode
     }
 
@@ -84,7 +80,7 @@ struct WorkoutHomeView: View {
     }
 
     var bf: BetterFit {
-        isDemoMode ? demoBetterFit : betterFit
+        betterFit
     }
 
     var hasActiveWorkout: Bool {
@@ -100,9 +96,6 @@ struct WorkoutHomeView: View {
                 } else {
                     welcomeSection
                 }
-
-                // Guest Sign In Prompt
-                guestSignInCard
 
                 // Apple Health Connection Reminder
                 if let hkManager = healthKitManager, hkManager.shouldShowConnectionPrompt {
@@ -132,7 +125,7 @@ struct WorkoutHomeView: View {
             .padding(.top, 8)
             .padding(.bottom, 100)  // Space for floating nav bar
         }
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .sheet(isPresented: $showCalendar) {
             CalendarSheetView(selectedDate: $selectedDate, theme: theme)
                 .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
@@ -171,26 +164,24 @@ struct WorkoutHomeView: View {
             )
             .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
         }
-        .sheet(isPresented: $showExerciseDetailSheet) {
-            if let exercise = selectedExerciseForDetail {
-                ExerciseDetailSheet(
-                    exercise: exercise,
-                    theme: theme,
-                    onDelete: {
-                        // Handle delete
-                    },
-                    onReplace: {
-                        // Handle replace
-                    },
-                    onSuperset: {
-                        // Handle superset
-                    },
-                    onUpdate: { updated in
-                        // Handle exercise update
-                    }
-                )
-                .presentationDetents([PresentationDetent.large])
-            }
+        .sheet(item: $selectedExerciseForDetail) { exercise in
+            ExerciseDetailSheet(
+                exercise: exercise,
+                theme: theme,
+                onDelete: {
+                    deletePlannedExercise(exercise)
+                },
+                onReplace: {
+                    // Handle replace
+                },
+                onSuperset: {
+                    // Handle superset
+                },
+                onUpdate: { updated in
+                    updatePlannedExercise(updated)
+                }
+            )
+            .presentationDetents([PresentationDetent.large])
         }
         .onAppear {
             ensureDemoSeededIfNeeded()
@@ -257,10 +248,10 @@ struct WorkoutHomeView: View {
                             .foregroundStyle(isDemoMode ? theme.accent : .secondary)
                             .frame(width: 34, height: 34)
                             .background {
-                                Circle().fill(theme.cardBackground)
+                                Circle().fill(theme.cardBackground(for: colorScheme))
                             }
                             .overlay {
-                                Circle().stroke(theme.cardStroke, lineWidth: 1)
+                                Circle().stroke(theme.cardStroke(for: colorScheme), lineWidth: 1)
                             }
                     }
                 }

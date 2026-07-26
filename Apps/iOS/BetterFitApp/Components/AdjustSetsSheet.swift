@@ -4,6 +4,7 @@ import SwiftUI
 
 /// A sheet for adjusting the number of sets and reps for an exercise
 struct AdjustSetsSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     let theme: AppTheme
     let exercise: PlannedExercise
     let onSave: (PlannedExercise) -> Void
@@ -26,7 +27,7 @@ struct AdjustSetsSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                theme.backgroundGradient.ignoresSafeArea()
+                BFColors.backgroundElevated(for: colorScheme).ignoresSafeArea()
 
                 VStack(spacing: 24) {
                     // Exercise name header
@@ -50,12 +51,8 @@ struct AdjustSetsSheet: View {
                         save()
                     } label: {
                         Text("Save Changes")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Capsule().fill(theme.accent))
-                            .foregroundStyle(.white)
                     }
+                    .buttonStyle(.bfPrimary)
                 }
                 .padding()
             }
@@ -75,7 +72,7 @@ struct AdjustSetsSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Sets")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             HStack(spacing: 16) {
                 Button {
@@ -83,13 +80,12 @@ struct AdjustSetsSheet: View {
                 } label: {
                     Image(systemName: "minus.circle.fill")
                         .font(.title)
-                        .foregroundStyle(sets > 1 ? theme.accent : theme.cardStroke)
+                        .foregroundStyle(sets > 1 ? theme.accent : BFColors.border(for: colorScheme))
                 }
                 .disabled(sets <= 1)
 
                 Text("\(sets)")
-                    .font(.title.weight(.bold))
-                    .monospacedDigit()
+                    .font(BFTypography.statLarge)
                     .frame(width: 50)
 
                 Button {
@@ -97,7 +93,7 @@ struct AdjustSetsSheet: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title)
-                        .foregroundStyle(sets < 10 ? theme.accent : theme.cardStroke)
+                        .foregroundStyle(sets < 10 ? theme.accent : BFColors.border(for: colorScheme))
                 }
                 .disabled(sets >= 10)
             }
@@ -113,7 +109,7 @@ struct AdjustSetsSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reps")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             TextField("e.g., 8-12", text: $reps)
                 .font(.title3.weight(.semibold))
@@ -128,7 +124,7 @@ struct AdjustSetsSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Target Weight")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             TextField("e.g., 135 lbs", text: $targetWeight)
                 .font(.title3.weight(.semibold))
@@ -140,9 +136,9 @@ struct AdjustSetsSheet: View {
     @ViewBuilder
     private var inputBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(.regularMaterial)
+            .fill(BFColors.surfaceRaised(for: colorScheme))
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .stroke(theme.cardStroke, lineWidth: 1)
+            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
     }
 
     // MARK: - Actions

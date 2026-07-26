@@ -4,49 +4,12 @@ import SwiftUI
 extension WorkoutHomeView {
     // MARK: - Sections
 
-    // MARK: - Guest Sign In Card
-
-    @ViewBuilder
-    var guestSignInCard: some View {
-        if isGuest, let signIn = onShowSignIn {
-            BFCard(theme: theme) {
-                HStack(spacing: 14) {
-                    Image(systemName: "person.badge.plus")
-                        .font(.title2)
-                        .foregroundStyle(theme.accent)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Create an Account")
-                            .font(.subheadline.weight(.semibold))
-
-                        Text("Sync workouts across devices and unlock cloud features")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        signIn()
-                    } label: {
-                        Text("Sign Up")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Capsule().fill(theme.accent))
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
-        }
-    }
-
     var welcomeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(theme.accent.opacity(0.22))
+                        .fill(theme.accentSurface(0.22, for: colorScheme))
                         .frame(width: 48, height: 48)
                     FitnessIcon(systemImage: "figure.run.circle.fill", size: 22, color: theme.accent)
                 }
@@ -73,7 +36,7 @@ extension WorkoutHomeView {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(theme.accent.opacity(0.22))
+                    .fill(theme.accentSurface(0.22, for: colorScheme))
                     .frame(width: 36, height: 36)
                 FitnessIcon(systemImage: "figure.run.circle.fill", size: 16, color: theme.accent)
             }
@@ -153,12 +116,12 @@ extension WorkoutHomeView {
                         Spacer(minLength: 0)
 
                         Text("Weekly \(weekCount)/\(weeklyGoalTarget)")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .font(BFTypography.captionEmphasis)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background { Capsule().fill(theme.cardBackground.opacity(0.35)) }
-                            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                            .background { Capsule().fill(BFColors.surfaceRaised(for: colorScheme)) }
+                            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
                     }
 
                     Text(overviewSummaryText(weeklyWorkouts: weekCount, recovery: recoveryValue))
@@ -196,10 +159,10 @@ extension WorkoutHomeView {
                 )
                 CategoryLegendDot(
                     label: "Strength", percent: split.strengthPercent,
-                    color: theme.accent.opacity(0.65), theme: theme)
+                    color: theme.accentSurface(0.65, for: colorScheme), theme: theme)
                 CategoryLegendDot(
                     label: "Lifting", percent: split.liftingPercent,
-                    color: theme.accent.opacity(0.40), theme: theme)
+                    color: theme.accentSurface(0.40, for: colorScheme), theme: theme)
 
                 Spacer(minLength: 0)
 
@@ -310,17 +273,17 @@ extension WorkoutHomeView {
                         } label: {
                             HStack(spacing: 6) {
                                 Text(heatmapRangeLabel())
-                                    .font(.caption.weight(.semibold))
+                                    .font(BFTypography.captionEmphasis)
                                 Image(systemName: "chevron.down")
                                     .font(.caption2.weight(.semibold))
                             }
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background {
-                                Capsule().fill(theme.cardBackground)
+                                Capsule().fill(BFColors.surfaceRaised(for: colorScheme))
                             }
-                            .overlay { Capsule().stroke(theme.cardStroke, lineWidth: 1) }
+                            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
                         }
 
                         Spacer()
@@ -466,8 +429,13 @@ extension WorkoutHomeView {
 
     // MARK: - Workout Preview Section
     var workoutPreviewSection: some View {
-        // Use planManager's today plan as single source of truth
-        let plannedExercises = planManager?.getTodayPlan()?.exercises ?? []
+        // Active workout is the source of truth during a session; otherwise today's plan
+        let plannedExercises: [PlannedExercise]
+        if let active = bf.getActiveWorkout() {
+            plannedExercises = active.toPlannedExercises()
+        } else {
+            plannedExercises = planManager?.getTodayPlan()?.exercises ?? []
+        }
 
         return AnyView(
             VStack(alignment: .leading, spacing: 24) {
@@ -495,8 +463,7 @@ extension WorkoutHomeView {
         let totalCount = max(1, muscleGroupCounts.reduce(0) { $0 + $1.value })
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Target Muscles")
-                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+            BFSectionHeader(title: "Target Muscles")
 
             if muscleGroupCounts.isEmpty {
                 Text("No exercises planned")
@@ -521,22 +488,21 @@ extension WorkoutHomeView {
     func staticExercisesTimeline(for exercises: [PlannedExercise]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
-            HStack {
-                Text("Exercises")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+            BFSectionHeader(title: "Exercises") {
+                HStack(spacing: 10) {
+                    Text("\(exercises.count)")
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+                        .monospacedDigit()
 
-                Spacer()
-
-                Text("\(exercises.count) exercises")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    showAddExerciseSheet = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(theme.accent)
+                    Button {
+                        showAddExerciseSheet = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(theme.accent)
+                    }
+                    .accessibilityLabel("Add exercise")
                 }
             }
 
@@ -555,7 +521,6 @@ extension WorkoutHomeView {
                             theme: theme,
                             onTap: { tappedExercise in
                                 selectedExerciseForDetail = tappedExercise
-                                showExerciseDetailSheet = true
                             },
                             onDelete: { _ in
                                 // Handle delete
@@ -595,7 +560,7 @@ extension WorkoutHomeView {
         VStack(spacing: 12) {
             Image(systemName: "list.bullet.clipboard")
                 .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(theme.accent.opacity(0.5))
+                .foregroundStyle(theme.accentSurface(0.5, for: colorScheme))
 
             Text("No exercises planned")
                 .font(.subheadline.weight(.semibold))
@@ -628,8 +593,7 @@ extension WorkoutHomeView {
         let totalCount = max(1, muscleGroups.reduce(0) { $0 + $1.value })
 
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Target Muscles")
-                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
+            BFSectionHeader(title: "Target Muscles")
 
             HStack(spacing: 20) {
                 ForEach(Array(muscleGroups), id: \.key) { group, count in
@@ -698,8 +662,6 @@ extension WorkoutHomeView {
                             prettifyMuscleGroup($0.rawValue)
                         }
                     )
-
-                    showExerciseDetailSheet = true
                 },
                 onDelete: { _ in },
                 onReplace: nil,
@@ -843,7 +805,7 @@ extension WorkoutHomeView {
                                 .frame(width: 34, height: 34)
                                 .background(dayBackground(for: date))
                                 .clipShape(Circle())
-                                .overlay { Circle().stroke(theme.cardStroke, lineWidth: 1) }
+                                .overlay { Circle().stroke(theme.cardStroke(for: colorScheme), lineWidth: 1) }
                         }
                     }
                 }
@@ -874,6 +836,7 @@ private struct ElapsedTimeDisplay: View {
 // MARK: - Isolated Workout Card Stack Container
 /// Separate view component to prevent cardSwipeOffset from triggering re-renders of target muscles
 private struct WorkoutCardStackContainer: View {
+    @Environment(\.colorScheme) var colorScheme
     let suggestedWorkouts: [Workout]
     @Binding var selectedWorkoutIndex: Int
     @Binding var showEquipmentSwapSheet: Bool
@@ -888,39 +851,41 @@ private struct WorkoutCardStackContainer: View {
         let safeIndex = min(selectedWorkoutIndex, max(0, workouts.count - 1))
 
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Up Next")
-                    .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-                if !workouts.isEmpty {
-                    Text("\(workouts[safeIndex].exercises.count) Exercises")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Button {
-                    showEquipmentSwapSheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.left.arrow.right")
-                        Text("Swap")
+            BFSectionHeader(title: "Up Next") {
+                HStack(spacing: 10) {
+                    if !workouts.isEmpty {
+                        Text("\(workouts[safeIndex].exercises.count) exercises")
+                            .font(BFTypography.captionEmphasis)
+                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                     }
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
-                }
 
-                Menu {
-                    Button("Customize") {}
-                    Button("Generate New") { generateWorkout() }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.caption.weight(.semibold))
-                        .frame(width: 28, height: 28)
-                        .background(.ultraThinMaterial, in: Circle())
+                    Button {
+                        showEquipmentSwapSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.left.arrow.right")
+                            Text("Swap")
+                        }
+                        .font(BFTypography.captionEmphasis)
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
+                        .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
+                    }
+                    .buttonStyle(.plain)
+
+                    Menu {
+                        Button("Customize") {}
+                        Button("Generate New") { generateWorkout() }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(BFColors.surfaceRaised(for: colorScheme)))
+                            .overlay { Circle().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
+                    }
                 }
             }
 
@@ -956,7 +921,7 @@ private struct WorkoutCardStackContainer: View {
                 HStack(spacing: 6) {
                     ForEach(0..<min(workouts.count, 5), id: \.self) { idx in
                         Circle()
-                            .fill(idx == safeIndex ? theme.accent : theme.cardStroke)
+                            .fill(idx == safeIndex ? theme.accent : theme.cardStroke(for: colorScheme))
                             .frame(width: 6, height: 6)
                     }
                     if workouts.count > 5 {
@@ -1009,6 +974,7 @@ private struct WorkoutCardStackContainer: View {
 
 // MARK: - Playing Card Style Workout Card
 private struct PlayingCardWorkoutCard: View {
+    @Environment(\.colorScheme) var colorScheme
     let workout: Workout
     let theme: AppTheme
     let isTopCard: Bool
@@ -1018,7 +984,7 @@ private struct PlayingCardWorkoutCard: View {
             // Workout icon/image placeholder
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.accent.opacity(0.15))
+                    .fill(theme.accentSurface(0.15, for: colorScheme))
                     .frame(width: 100, height: 140)
 
                 VStack(spacing: 8) {
@@ -1059,37 +1025,14 @@ private struct PlayingCardWorkoutCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 172)
         .background {
-            if isTopCard {
-                if #available(iOS 26.0, *) {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.thickMaterial)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
-                } else {
-                    let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    shape
-                        .fill(.thickMaterial)
-                        .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-                        .shadow(
-                            color: Color.black.opacity(
-                                theme.preferredColorScheme == .dark ? 0.3 : 0.12),
-                            radius: theme.preferredColorScheme == .dark ? 16 : 12,
-                            x: 0,
-                            y: 6
-                        )
-                }
-            } else {
-                // Back cards: solid opaque background to prevent text bleed-through
-                let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-                shape
-                    .fill(Color(white: theme.preferredColorScheme == .dark ? 0.2 : 0.92))
-                    .overlay { shape.stroke(theme.cardStroke.opacity(0.5), lineWidth: 1) }
-                    .shadow(
-                        color: Color.black.opacity(0.1),
-                        radius: 8,
-                        x: 0,
-                        y: 4
-                    )
-            }
+            let shape = RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+            shape
+                .fill(
+                    isTopCard
+                        ? BFColors.surface(for: colorScheme)
+                        : BFColors.surfaceRaised(for: colorScheme)
+                )
+                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 
@@ -1100,7 +1043,7 @@ private struct PlayingCardWorkoutCard: View {
         if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
         if name.contains("hiit") { return "flame.fill" }
         if name.contains("push") { return "figure.strengthtraining.traditional" }
-        if name.contains("pull") { return "figure.rowing" }
+        if name.contains("pull") { return "dumbbell.fill" }
         if name.contains("leg") { return "figure.walk" }
         return "figure.mixed.cardio"
     }
@@ -1115,10 +1058,11 @@ private struct PlayingCardWorkoutCard: View {
 
     func workoutPill(_ text: String) -> some View {
         Text(text)
-            .font(.caption.weight(.medium))
+            .font(BFTypography.captionEmphasis)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(.regularMaterial, in: Capsule())
+            .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
+            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
     }
 }
 
@@ -1126,6 +1070,7 @@ private struct PlayingCardWorkoutCard: View {
 
 /// A static (non-scrollable) timeline row for PlannedExercise
 private struct StaticTimelineRow: View {
+    @Environment(\.colorScheme) var colorScheme
     let exercise: PlannedExercise
     let index: Int
     let isFirst: Bool
@@ -1146,7 +1091,6 @@ private struct StaticTimelineRow: View {
             // Exercise card
             exerciseCard
         }
-        .frame(height: 80)
         .contentShape(Rectangle())
         .onTapGesture {
             onTap?(exercise)
@@ -1184,15 +1128,16 @@ private struct StaticTimelineRow: View {
 
     private var timelineIndicator: some View {
         VStack(spacing: 0) {
-            // Top line
+            // Top connecting line — stretches to fill available height
             Rectangle()
-                .fill(isFirst ? Color.clear : theme.accent.opacity(0.3))
+                .fill(isFirst ? Color.clear : theme.accentSurface(0.3, for: colorScheme))
                 .frame(width: 2)
+                .frame(maxHeight: .infinity)
 
             // Circle with number
             ZStack {
                 Circle()
-                    .fill(theme.accent.opacity(0.15))
+                    .fill(theme.accentSurface(0.15, for: colorScheme))
                     .frame(width: 28, height: 28)
 
                 Text("\(index + 1)")
@@ -1201,12 +1146,13 @@ private struct StaticTimelineRow: View {
             }
             .frame(width: 32, height: 32)
 
-            // Bottom line
+            // Bottom connecting line
             Rectangle()
-                .fill(isLast ? Color.clear : theme.accent.opacity(0.3))
+                .fill(isLast ? Color.clear : theme.accentSurface(0.3, for: colorScheme))
                 .frame(width: 2)
+                .frame(maxHeight: .infinity)
         }
-        .frame(maxHeight: .infinity)
+        .frame(width: 48)
     }
 
     // MARK: - Exercise Card
@@ -1223,41 +1169,32 @@ private struct StaticTimelineRow: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
 
                 Text(exercise.displayCategory.rawValue)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: 8)
-
-            // Sets info
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(exercise.displaySetsInfo)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-
-                if let weight = exercise.displayWeight {
-                    Text(weight)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(theme.accent)
-                }
-            }
-
-            // Category icon
-            categoryIcon
-                .frame(width: 36, height: 36)
+            // Sets info — single line keeps the row compact and gives the name room to breathe.
+            // Weight lives in the detail sheet, not the row (Fitbod convention).
+            Text(exercise.displaySetsInfo)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .fixedSize()
         }
-        .padding(10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
         .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.regularMaterial)
+            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                .fill(BFColors.surface(for: colorScheme))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(theme.cardStroke, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                        .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                 }
         }
-        .padding(.trailing, 12)
     }
 
     // MARK: - Exercise Preview Image (Gradient)
@@ -1300,17 +1237,6 @@ private struct StaticTimelineRow: View {
         case .cardio: return "heart"
         case .compound: return "dumbbell"
         case .all: return "figure.mixed.cardio"
-        }
-    }
-
-    private var categoryIcon: some View {
-        ZStack {
-            Circle()
-                .fill(categoryColor.opacity(0.15))
-
-            Image(systemName: categorySystemImage)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(categoryColor)
         }
     }
 

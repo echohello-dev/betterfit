@@ -22,23 +22,44 @@ struct NotificationsView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "person.badge.plus")
                                 .font(.title3)
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(WatchTheme.accent)
 
                             Text("Sign In")
                                 .font(.headline)
+                                .foregroundStyle(WatchTheme.textPrimary)
                         }
 
                         Text("Sign in on your iPhone to sync reminders across devices.")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(WatchTheme.textSecondary)
                     }
                     .padding(.vertical, 4)
                 }
+                .listRowSeparator(.hidden)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(WatchTheme.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(WatchTheme.border, lineWidth: 1)
+                        )
+                )
             }
 
             Section {
                 Toggle("Workout Reminders", isOn: $isReminderEnabled)
                     .font(.headline)
+                    .foregroundStyle(WatchTheme.textPrimary)
+                    .tint(WatchTheme.accent)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(WatchTheme.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(WatchTheme.border, lineWidth: 1)
+                            )
+                    )
             }
 
             if isReminderEnabled {
@@ -48,9 +69,20 @@ struct NotificationsView: View {
                         selection: $reminderTime,
                         displayedComponents: .hourAndMinute
                     )
+                    .tint(WatchTheme.accent)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(WatchTheme.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(WatchTheme.border, lineWidth: 1)
+                            )
+                    )
                 } header: {
                     Text("Reminder Time")
                         .font(.caption)
+                        .foregroundStyle(WatchTheme.textSecondary)
                 }
 
                 Section {
@@ -69,6 +101,7 @@ struct NotificationsView: View {
                 } header: {
                     Text("Repeat On")
                         .font(.caption)
+                        .foregroundStyle(WatchTheme.textSecondary)
                 }
 
                 Section {
@@ -80,6 +113,7 @@ struct NotificationsView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(WatchTheme.accent)
                 }
             }
 
@@ -87,16 +121,18 @@ struct NotificationsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Smart Reminders")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WatchTheme.textSecondary)
 
                     Text(
                         "BetterFit will suggest the best times to work out based on your history and recovery status."
                     )
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WatchTheme.textSecondary)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(WatchTheme.background.ignoresSafeArea())
         .navigationTitle("Reminders")
     }
 
@@ -127,14 +163,23 @@ struct DayToggleRow: View {
         } label: {
             HStack {
                 Text(day)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(WatchTheme.textPrimary)
 
                 Spacer()
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? .green : .secondary)
+                    .foregroundStyle(isSelected ? WatchTheme.accent : WatchTheme.textSecondary)
             }
         }
         .buttonStyle(.plain)
+        .listRowSeparator(.hidden)
+        .listRowBackground(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(WatchTheme.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(WatchTheme.border, lineWidth: 1)
+                )
+        )
     }
 }
