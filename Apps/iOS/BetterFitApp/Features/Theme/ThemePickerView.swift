@@ -1,7 +1,10 @@
+import BetterFit
 import SwiftUI
 
 struct ThemePickerView: View {
     @Binding var selectedTheme: AppTheme
+    @Binding var appearance: AppearancePreference
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         NavigationStack {
@@ -19,6 +22,7 @@ struct ThemePickerView: View {
 
                                 Text(theme.displayName)
                                     .font(.body.weight(.semibold))
+                                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
                                 Spacer()
 
@@ -28,9 +32,75 @@ struct ThemePickerView: View {
                                         .foregroundStyle(theme.accent)
                                 }
                             }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background {
+                                let shape = RoundedRectangle(
+                                    cornerRadius: BFRadius.medium, style: .continuous)
+                                shape
+                                    .fill(BFColors.surface(for: colorScheme))
+                                    .overlay {
+                                        shape.stroke(
+                                            theme == selectedTheme
+                                                ? theme.accent : BFColors.border(for: colorScheme),
+                                            lineWidth: theme == selectedTheme ? 1.5 : 1
+                                        )
+                                    }
+                            }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    }
+                }
+
+                Section("Appearance") {
+                    ForEach(AppearancePreference.allCases) { mode in
+                        Button {
+                            withAnimation(.snappy) {
+                                appearance = mode
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: mode.systemImage)
+                                    .font(.body)
+                                    .frame(width: 28)
+                                    .foregroundStyle(selectedTheme.accent)
+
+                                Text(mode.displayName)
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+
+                                Spacer()
+
+                                if mode == appearance {
+                                    Image(systemName: "checkmark")
+                                        .font(.body.weight(.bold))
+                                        .foregroundStyle(selectedTheme.accent)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background {
+                                let shape = RoundedRectangle(
+                                    cornerRadius: BFRadius.medium, style: .continuous)
+                                shape
+                                    .fill(BFColors.surface(for: colorScheme))
+                                    .overlay {
+                                        shape.stroke(
+                                            mode == appearance
+                                                ? selectedTheme.accent
+                                                : BFColors.border(for: colorScheme),
+                                            lineWidth: mode == appearance ? 1.5 : 1
+                                        )
+                                    }
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                 }
 
@@ -38,9 +108,12 @@ struct ThemePickerView: View {
                     Text(
                         "Pick a theme that matches your training vibe. You can change this anytime."
                     )
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                    .listRowBackground(Color.clear)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .bfPageBackground()
             .navigationTitle("Appearance")
         }
     }
@@ -48,13 +121,14 @@ struct ThemePickerView: View {
 
 private struct ThemeSwatch: View {
     let theme: AppTheme
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(theme.backgroundGradient)
+            .fill(theme.backgroundGradient(for: colorScheme))
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(theme.cardStroke, lineWidth: 1)
+                    .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
             }
             .overlay(alignment: .bottomTrailing) {
                 Circle()
@@ -67,5 +141,6 @@ private struct ThemeSwatch: View {
 
 #Preview {
     @Previewable @State var theme: AppTheme = .midnight
-    ThemePickerView(selectedTheme: $theme)
+    @Previewable @State var appearance: AppearancePreference = .system
+    ThemePickerView(selectedTheme: $theme, appearance: $appearance)
 }

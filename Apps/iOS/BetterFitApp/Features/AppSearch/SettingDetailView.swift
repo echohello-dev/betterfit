@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingDetailView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let settingId: String
     let title: String
     let theme: AppTheme
@@ -15,7 +16,7 @@ struct SettingDetailView: View {
 
                     Text(descriptionForSetting)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
@@ -39,13 +40,14 @@ struct SettingDetailView: View {
                     termsContent
                 default:
                     Text("Setting not found")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                        .listRowBackground(BFColors.surface(for: colorScheme))
                 }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .navigationTitle(title)
     }
 
@@ -55,15 +57,19 @@ struct SettingDetailView: View {
     private var notificationsContent: some View {
         Toggle("Workout Reminders", isOn: .constant(true))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         Toggle("Rest Day Suggestions", isOn: .constant(true))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         Toggle("Achievement Alerts", isOn: .constant(true))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         Toggle("Weekly Summary", isOn: .constant(false))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
     }
 
     @ViewBuilder
@@ -72,17 +78,21 @@ struct SettingDetailView: View {
             Text("Status")
             Spacer()
             Text("Connected")
-                .foregroundStyle(.green)
+                .foregroundStyle(BFColors.success)
         }
+        .listRowBackground(BFColors.surface(for: colorScheme))
 
         Toggle("Sync Workouts", isOn: .constant(true))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         Toggle("Sync Heart Rate", isOn: .constant(true))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
 
         Toggle("Sync Calories", isOn: .constant(true))
             .tint(theme.accent)
+            .listRowBackground(BFColors.surface(for: colorScheme))
     }
 
     @ViewBuilder
@@ -91,22 +101,25 @@ struct SettingDetailView: View {
             Text("Weight")
             Spacer()
             Text("lbs")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
+        .listRowBackground(BFColors.surface(for: colorScheme))
 
         HStack {
             Text("Distance")
             Spacer()
             Text("miles")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
+        .listRowBackground(BFColors.surface(for: colorScheme))
 
         HStack {
             Text("Height")
             Spacer()
             Text("ft/in")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
+        .listRowBackground(BFColors.surface(for: colorScheme))
     }
 
     @ViewBuilder
@@ -115,20 +128,23 @@ struct SettingDetailView: View {
             Text("Display Name")
             Spacer()
             Text("Johnny")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
+        .listRowBackground(BFColors.surface(for: colorScheme))
 
         HStack {
             Text("Email")
             Spacer()
             Text("johnny@example.com")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
         }
+        .listRowBackground(BFColors.surface(for: colorScheme))
 
         Button("Change Password") {
             // Change password action
         }
         .foregroundStyle(theme.accent)
+        .listRowBackground(BFColors.surface(for: colorScheme))
     }
 
     @ViewBuilder
@@ -141,7 +157,7 @@ struct SettingDetailView: View {
                 "We collect only the data necessary to provide you with a personalized fitness experience. Your workout data is stored securely and never shared with third parties without your consent."
             )
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             Link(
                 "Read Full Privacy Policy",
@@ -151,6 +167,7 @@ struct SettingDetailView: View {
             .foregroundStyle(theme.accent)
         }
         .padding(.vertical, 4)
+        .listRowBackground(BFColors.surface(for: colorScheme))
     }
 
     @ViewBuilder
@@ -163,7 +180,7 @@ struct SettingDetailView: View {
                 "These terms govern your use of the app and outline your rights and responsibilities as a user."
             )
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
             Link(
                 "Read Full Terms of Service",
@@ -173,6 +190,7 @@ struct SettingDetailView: View {
             .foregroundStyle(theme.accent)
         }
         .padding(.vertical, 4)
+        .listRowBackground(BFColors.surface(for: colorScheme))
     }
 
     // MARK: - Helpers

@@ -22,6 +22,9 @@ targets:
       - path: BetterFitApp/Fonts
         excludes:
           - "**/*.md"
+      - path: BetterFitApp/Resources
+        excludes:
+          - "**/*.md"
     info:
       path: BetterFitApp/Info.plist
       properties:

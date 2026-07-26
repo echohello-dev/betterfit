@@ -12,6 +12,8 @@ struct BetterFitApp: App {
 
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme
         .rawValue
+    @AppStorage(AppearancePreference.storageKey) private var storedAppearance: String =
+        AppearancePreference.defaultPreference.rawValue
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let config: AppConfiguration
@@ -41,6 +43,7 @@ struct BetterFitApp: App {
     var body: some Scene {
         WindowGroup {
             let theme = AppTheme.fromStorage(storedTheme)
+            let appearance = AppearancePreference.fromStorage(storedAppearance)
 
             Group {
                 if isUITesting || isDemoMode {
@@ -138,7 +141,7 @@ struct BetterFitApp: App {
                         showGuestBanner: $showConfigWarning
                     )
                     .tint(theme.accent)
-                    .preferredColorScheme(theme.preferredColorScheme)
+                    .preferredColorScheme(appearance.resolvedColorScheme)
                     .sheet(isPresented: $showSignIn) {
                         SignInView(
                             theme: theme,
@@ -175,11 +178,11 @@ struct BetterFitApp: App {
                 } else {
                     // Loading state
                     ZStack {
-                        theme.backgroundGradient.ignoresSafeArea()
                         ProgressView()
                             .tint(theme.accent)
                             .scaleEffect(1.5)
                     }
+                    .bfBackground(theme: theme)
                 }
             }
             .task {

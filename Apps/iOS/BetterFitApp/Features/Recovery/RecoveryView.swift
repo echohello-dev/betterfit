@@ -2,6 +2,7 @@ import BetterFit
 import SwiftUI
 
 struct RecoveryView: View {
+    @Environment(\.colorScheme) var colorScheme
     let betterFit: BetterFit
     let theme: AppTheme
 
@@ -32,7 +33,7 @@ struct RecoveryView: View {
             }
             .padding(16)
         }
-        .background(theme.backgroundGradient.ignoresSafeArea())
+        .bfPageBackground()
         .onAppear {
             refresh()
         }
@@ -45,8 +46,7 @@ struct RecoveryView: View {
         return BFCard(theme: theme) {
             HStack(spacing: 16) {
                 ZStack {
-                    ProgressRing(progress: progress, lineWidth: 10, theme: theme)
-                        .frame(width: 86, height: 86)
+                    BFProgressRing(progress: progress, lineWidth: 10, tint: theme.accent, size: 86)
 
                     Text("\(Int(overall))%")
                         .font(.title3.weight(.bold))
@@ -56,14 +56,14 @@ struct RecoveryView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Overall")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     Text(overallHeadline(overall))
                         .bfHeading(theme: theme, size: 20, relativeTo: .headline)
 
                     Text("Fresh muscle groups are good to push; sore groups need rest.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -81,13 +81,11 @@ struct RecoveryView: View {
                 .font(.subheadline.weight(.semibold))
 
             HStack(spacing: 8) {
-                Circle()
-                    .fill(statusColor(status))
-                    .frame(width: 10, height: 10)
+                BFRecoveryDot(status: status)
 
-                Text(statusText(status))
+                Text(status.bfLabel)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(statusColor(status))
+                    .foregroundStyle(status.bfColor)
 
                 Spacer(minLength: 0)
             }
@@ -97,14 +95,8 @@ struct RecoveryView: View {
         .background {
             let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
             shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke, lineWidth: 1) }
-                .shadow(
-                    color: Color.black.opacity(theme.preferredColorScheme == .dark ? 0.22 : 0.08),
-                    radius: theme.preferredColorScheme == .dark ? 14 : 10,
-                    x: 0,
-                    y: 6
-                )
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 
@@ -146,24 +138,6 @@ struct RecoveryView: View {
         case .core: return "Core"
         case .legs: return "Legs"
         case .other: return "Other"
-        }
-    }
-
-    private func statusText(_ status: RecoveryStatus) -> String {
-        switch status {
-        case .recovered: return "Recovered"
-        case .slightlyFatigued: return "Slightly fatigued"
-        case .fatigued: return "Fatigued"
-        case .sore: return "Sore"
-        }
-    }
-
-    private func statusColor(_ status: RecoveryStatus) -> Color {
-        switch status {
-        case .recovered: return theme.accent
-        case .slightlyFatigued: return .yellow
-        case .fatigued: return .orange
-        case .sore: return .red
         }
     }
 }

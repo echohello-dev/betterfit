@@ -29,11 +29,12 @@ struct ActiveWorkoutView: View {
                 VStack(spacing: 4) {
                     Text(currentWorkout.name)
                         .font(.headline)
+                        .foregroundStyle(WatchTheme.textPrimary)
 
                     HStack(spacing: 8) {
                         Text(timeString(from: elapsedTime))
                             .font(.title2)
-                            .foregroundStyle(isPaused ? .orange : .green)
+                            .foregroundStyle(isPaused ? WatchTheme.accent : WatchTheme.success)
                             .monospacedDigit()
 
                         Button {
@@ -41,7 +42,7 @@ struct ActiveWorkoutView: View {
                         } label: {
                             Image(systemName: isPaused ? "play.circle.fill" : "pause.circle.fill")
                                 .font(.title2)
-                                .foregroundStyle(isPaused ? .green : .orange)
+                                .foregroundStyle(isPaused ? WatchTheme.success : WatchTheme.accent)
                         }
                         .buttonStyle(.plain)
                     }
@@ -49,7 +50,7 @@ struct ActiveWorkoutView: View {
                     if isPaused {
                         Text("Paused")
                             .font(.caption2)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(WatchTheme.accent)
                     }
                 }
                 .padding(.top)
@@ -89,6 +90,7 @@ struct ActiveWorkoutView: View {
                                 .font(.headline)
                         }
                         .buttonStyle(.borderedProminent)
+                        .tint(WatchTheme.accent)
                         .frame(maxWidth: .infinity)
                     } else {
                         Button {
@@ -98,7 +100,7 @@ struct ActiveWorkoutView: View {
                                 .font(.headline)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.green)
+                        .tint(WatchTheme.success)
                         .frame(maxWidth: .infinity)
                     }
                 }
@@ -110,10 +112,12 @@ struct ActiveWorkoutView: View {
                 } label: {
                     Text("End Workout")
                         .font(.caption)
+                        .foregroundStyle(WatchTheme.danger)
                 }
                 .padding(.bottom)
             }
         }
+        .background(WatchTheme.background.ignoresSafeArea())
         .onAppear {
             startTimer()
         }
@@ -162,11 +166,12 @@ struct ExerciseTracker: View {
             Text(currentExercise.exercise.name)
                 .font(.title3)
                 .bold()
+                .foregroundStyle(WatchTheme.textPrimary)
 
             // Set progress
             Text("Set \(currentSetIndex + 1) of \(currentExercise.sets.count)")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WatchTheme.textSecondary)
 
             if let set = currentSet {
                 VStack(spacing: 16) {
@@ -174,7 +179,7 @@ struct ExerciseTracker: View {
                     VStack(spacing: 4) {
                         Text("Reps")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(WatchTheme.textSecondary)
 
                         HStack(spacing: 16) {
                             Button {
@@ -184,11 +189,12 @@ struct ExerciseTracker: View {
                                     .font(.title)
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(WatchTheme.accent)
 
                             Text("\(set.reps)")
                                 .font(.system(size: 48, weight: .bold))
                                 .monospacedDigit()
+                                .foregroundStyle(WatchTheme.textPrimary)
                                 .frame(minWidth: 60)
 
                             Button {
@@ -198,7 +204,7 @@ struct ExerciseTracker: View {
                                     .font(.title)
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(WatchTheme.accent)
                         }
                     }
 
@@ -207,7 +213,7 @@ struct ExerciseTracker: View {
                         VStack(spacing: 4) {
                             Text("Weight (lbs)")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(WatchTheme.textSecondary)
 
                             HStack(spacing: 16) {
                                 Button {
@@ -217,11 +223,12 @@ struct ExerciseTracker: View {
                                         .font(.title2)
                                 }
                                 .buttonStyle(.plain)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(WatchTheme.accent)
 
                                 Text("\(Int(weight))")
                                     .font(.system(size: 32, weight: .bold))
                                     .monospacedDigit()
+                                    .foregroundStyle(WatchTheme.textPrimary)
                                     .frame(minWidth: 60)
 
                                 Button {
@@ -231,7 +238,7 @@ struct ExerciseTracker: View {
                                         .font(.title2)
                                 }
                                 .buttonStyle(.plain)
-                                .foregroundStyle(.green)
+                                .foregroundStyle(WatchTheme.accent)
                             }
                         }
                     }
@@ -250,11 +257,17 @@ struct ExerciseTracker: View {
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(set.isCompleted ? .green : .blue)
+                    .tint(set.isCompleted ? WatchTheme.success : WatchTheme.accent)
                 }
                 .padding()
-                .background(Color.gray.opacity(0.15))
-                .cornerRadius(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(WatchTheme.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(WatchTheme.border, lineWidth: 1)
+                        )
+                )
             }
         }
         .padding(.horizontal)
@@ -297,15 +310,16 @@ struct CompleteWorkoutView: View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 60))
-                .foregroundStyle(.green)
+                .foregroundStyle(WatchTheme.success)
 
             Text("All Done!")
                 .font(.title2)
                 .bold()
+                .foregroundStyle(WatchTheme.textPrimary)
 
             Text("Great work on completing your workout!")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WatchTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding()

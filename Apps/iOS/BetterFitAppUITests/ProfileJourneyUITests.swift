@@ -227,12 +227,39 @@ final class ProfileJourneyUITests: XCTestCase {
             sleep(1)
         }
 
-        // Should reach bottom content (Yearly Wrapped or Sign Out)
+        // Should reach bottom content (Yearly Wrapped or Settings)
         let yearlyWrapped = app.staticTexts["Your Year in Review"]
-        let signOut = app.buttons["Sign Out"]
+        let settings = app.descendants(matching: .any)["profile-settings-row"]
 
         XCTAssertTrue(
-            yearlyWrapped.exists || signOut.exists,
+            yearlyWrapped.exists || settings.exists || app.staticTexts["Settings"].exists,
             "Should be able to scroll to bottom of Profile")
+    }
+
+    // MARK: - Settings
+
+    func testSettingsRowOpensSheet() throws {
+        navigateToProfile()
+
+        for _ in 0..<5 {
+            app.swipeUp()
+        }
+
+        let settingsRow = app.descendants(matching: .any)["profile-settings-row"]
+        XCTAssertTrue(
+            settingsRow.waitForExistence(timeout: 3) || app.staticTexts["Settings"].waitForExistence(timeout: 2),
+            "Settings row should be visible on Profile")
+
+        if settingsRow.exists {
+            settingsRow.tap()
+        } else {
+            app.staticTexts["Settings"].tap()
+        }
+
+        XCTAssertTrue(
+            app.navigationBars["Settings"].waitForExistence(timeout: 3)
+                || app.staticTexts["Units"].waitForExistence(timeout: 2)
+                || app.staticTexts["Pounds (lb)"].waitForExistence(timeout: 2),
+            "Settings sheet should open with units section")
     }
 }

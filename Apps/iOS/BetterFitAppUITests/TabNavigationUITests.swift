@@ -59,21 +59,26 @@ final class TabNavigationUITests: XCTestCase {
         }
     }
 
-    func testStartWorkoutButtonVisibleOnAllTabs() throws {
+    func testStartWorkoutButtonOnlyVisibleOnWorkoutTab() throws {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 5))
 
         let tabs = tabBar.buttons.allElementsBoundByIndex
 
-        for tab in tabs {
+        for (index, tab) in tabs.enumerated() {
             tab.tap()
             sleep(1)
 
-            // Start Workout button should be visible on every tab when no active workout
             let startButton = app.buttons["Start Workout"]
-            XCTAssertTrue(
-                startButton.waitForExistence(timeout: 2),
-                "Start Workout button should be visible on \(tab.label) tab")
+            if index == 0 {
+                XCTAssertTrue(
+                    startButton.waitForExistence(timeout: 2),
+                    "Start Workout should be visible on the Workout tab")
+            } else {
+                XCTAssertFalse(
+                    startButton.exists,
+                    "Start Workout should not cover content on the \(tab.label) tab")
+            }
         }
     }
 
@@ -83,12 +88,13 @@ final class TabNavigationUITests: XCTestCase {
         tabs[3].tap() // Me tab
 
         XCTAssertTrue(app.staticTexts["Me"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Start Workout"].exists)
 
-        // Verify key sections exist and are tappable (not obscured by button)
+        // Verify key sections exist and are tappable.
         let weeklyTargets = app.staticTexts["Weekly Targets"]
         if weeklyTargets.waitForExistence(timeout: 2) {
             // If visible, it should be hittable (not covered by button)
-            XCTAssertTrue(weeklyTargets.isHittable, "Weekly Targets should not be obscured by Start Workout button")
+            XCTAssertTrue(weeklyTargets.isHittable, "Weekly Targets should be accessible")
         }
 
         // Scroll down and verify bottom content is accessible

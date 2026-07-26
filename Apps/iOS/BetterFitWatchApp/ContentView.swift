@@ -20,7 +20,9 @@ struct ContentView: View {
                             Label("Reminders", systemImage: "bell.fill")
                         }
                 }
+                .tint(WatchTheme.accent)
             }
+            .background(WatchTheme.background.ignoresSafeArea())
         }
     }
 }

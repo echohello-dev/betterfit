@@ -19,10 +19,11 @@ struct SignInView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSignUp = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
-            theme.backgroundGradient.ignoresSafeArea()
+            BFColors.background(for: colorScheme).ignoresSafeArea()
 
             if showEmailSignIn {
                 emailSignInContent
@@ -40,7 +41,6 @@ struct SignInView: View {
                     .scaleEffect(1.5)
             }
         }
-        .preferredColorScheme(theme.preferredColorScheme)
     }
 
     // MARK: - Main Sign In Content
@@ -56,7 +56,7 @@ struct SignInView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     }
                     .disabled(isLoading)
                 }
@@ -77,7 +77,7 @@ struct SignInView: View {
 
                 Text("Your strength training coach")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
 
             Spacer()
@@ -100,7 +100,7 @@ struct SignInView: View {
                 )
                 .signInWithAppleButtonStyle(.white)
                 .frame(height: 50)
-                .cornerRadius(12)
+                .cornerRadius(BFRadius.medium)
                 .disabled(isLoading)
 
                 // Google Sign In Button
@@ -110,14 +110,9 @@ struct SignInView: View {
                     HStack {
                         Image(systemName: "g.circle.fill")
                         Text("Sign in with Google")
-                            .font(.headline)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.white.opacity(0.15))
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
                 }
+                .buttonStyle(.bfSecondary)
                 .disabled(isLoading)
 
                 // Email & Password Button
@@ -131,14 +126,9 @@ struct SignInView: View {
                     HStack {
                         Image(systemName: "envelope.fill")
                         Text("Sign in with Email")
-                            .font(.headline)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.white.opacity(0.15))
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
                 }
+                .buttonStyle(.bfSecondary)
                 .disabled(isLoading)
 
                 // Guest Mode Button
@@ -148,21 +138,16 @@ struct SignInView: View {
                     HStack {
                         Image(systemName: "person.fill.questionmark")
                         Text("Continue as Guest")
-                            .font(.headline)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.white.opacity(0.1))
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
                 }
+                .buttonStyle(.bfSecondary)
                 .disabled(isLoading)
 
                 // Error message
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(BFColors.danger)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -174,7 +159,7 @@ struct SignInView: View {
 
             Text("We value your privacy. Guest mode stores data locally only.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 20)
@@ -219,34 +204,46 @@ struct SignInView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     TextField("your@email.com", text: $email)
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
                         .padding(12)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                                .fill(BFColors.surfaceRaised(for: colorScheme))
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                                .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                        }
                 }
 
                 // Password Input
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Password")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     SecureField("Password", text: $password)
                         .textContentType(isSignUp ? .newPassword : .password)
                         .padding(12)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                                .fill(BFColors.surfaceRaised(for: colorScheme))
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                                .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                        }
                 }
 
                 if isSignUp {
                     Text("Minimum 6 characters")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                 }
 
                 // Sign In / Sign Up Button
@@ -254,20 +251,15 @@ struct SignInView: View {
                     handleEmailSignIn()
                 } label: {
                     Text(isSignUp ? "Create Account" : "Sign In")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(theme.accent)
-                        .foregroundStyle(.white)
-                        .cornerRadius(12)
                 }
+                .buttonStyle(.bfPrimary)
                 .disabled(email.isEmpty || password.isEmpty || isLoading)
 
                 // Toggle Sign Up / Sign In
                 HStack {
                     Text(isSignUp ? "Already have an account?" : "Don't have an account?")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                     Button {
                         isSignUp.toggle()
@@ -285,7 +277,7 @@ struct SignInView: View {
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(BFColors.danger)
                         .multilineTextAlignment(.center)
                 }
             }

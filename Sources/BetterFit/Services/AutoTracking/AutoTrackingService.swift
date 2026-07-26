@@ -102,6 +102,16 @@ public class AutoTrackingService {
     public func getCurrentWorkout() -> Workout? {
         return currentWorkout
     }
+
+    /// Update the currently tracked workout (e.g. add/remove/edit exercises mid-session).
+    /// No-op when no workout is being tracked.
+    public func updateCurrentWorkout(_ workout: Workout) {
+        guard isTracking else { return }
+        currentWorkout = workout
+        if currentExerciseIndex >= workout.exercises.count {
+            currentExerciseIndex = max(0, workout.exercises.count - 1)
+        }
+    }
 }
 
 /// Motion data from Watch sensors

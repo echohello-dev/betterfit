@@ -204,3 +204,42 @@ extension WorkoutExercise: ExerciseDisplayable {
 
     var isCompleted: Bool { false }
 }
+
+// MARK: - Workout → PlannedExercise Conversion
+
+extension Workout {
+    /// Convert a BetterFit workout into display-ready planned exercises.
+    /// Used by the plan manager and home preview so both read one shape.
+    func toPlannedExercises() -> [PlannedExercise] {
+        exercises.map { workoutExercise in
+            PlannedExercise(
+                name: workoutExercise.exercise.name,
+                category: Self.categorize(workoutExercise.exercise),
+                sets: max(1, workoutExercise.sets.count),
+                reps: workoutExercise.sets.first.map { "\($0.reps)" } ?? "10",
+                targetWeight: workoutExercise.sets.first?.weight.map { "\(Int($0)) lbs" },
+                muscleGroups: workoutExercise.exercise.muscleGroups.map { Self.prettify($0) }
+            )
+        }
+    }
+
+    private static func categorize(_ exercise: Exercise) -> ExerciseCategory {
+        let name = exercise.name.lowercased()
+        if name.contains("press") || name.contains("push") {
+            return .push
+        } else if name.contains("row") || name.contains("pull") || name.contains("curl") {
+            return .pull
+        } else if name.contains("squat") || name.contains("leg") || name.contains("lunge") {
+            return .legs
+        } else if name.contains("plank") || name.contains("crunch") || name.contains("ab") {
+            return .core
+        } else if name.contains("run") || name.contains("bike") || name.contains("cardio") {
+            return .cardio
+        }
+        return .compound
+    }
+
+    private static func prettify(_ group: MuscleGroup) -> String {
+        group.rawValue.prefix(1).uppercased() + group.rawValue.dropFirst()
+    }
+}
