@@ -35,28 +35,25 @@ The interface is built around a single rule: **lead with the next action or conc
 
 <table>
   <tr>
-    <td width="50%" valign="top">
+    <td width="50%" align="center">
       <img src="docs/assets/screenshots/plan-week@2x.png" width="250" alt="The Plan tab with a week strip, today's workout, sets, weight, and muscle recovery." />
-      <br /><br />
-      <strong>Plan your week, see what's sore.</strong> The week strip selects a day; today's exercises carry sets and target weight; the body-map companion shows recovery in colour and a written headline.
     </td>
-    <td width="50%" valign="top">
+    <td width="50%" align="center">
       <img src="docs/assets/screenshots/profile-health@2x.png" width="250" alt="The Me tab with the brand mark, account action, health overview, and 24-day streak." />
-      <br /><br />
-      <strong>Health overview that reads in one glance.</strong> BMI, strength score, resting HR, and active calories. Each card leads with the value and a short label.
     </td>
   </tr>
 </table>
+
+- **Plan your week and see what's sore.** Today's exercises carry sets and target weight; the body-map companion pairs recovery colour with a written headline.
+- **Read your health overview in one glance.** BMI, strength score, resting heart rate, and active calories lead with the value and a short label.
 
 ---
 
 ## Design language
 
-| Layer | Palette | Rule |
-| --- | --- | --- |
-| **Identity** | BetterFit yellow `#FFD60A` + black | High-impact brand moments, launch surfaces, and achievements |
-| **Product** | Near-black `#0B0B0D` + ember `#FF5A3C` | Calm training screens with one clear primary action |
-| **Recovery** | Blue to green to amber to red | Semantic status, always paired with a written label |
+- **Identity: BetterFit yellow `#FFD60A` + black.** Reserved for high-impact brand moments, launch surfaces, and achievements.
+- **Product: near-black `#0B0B0D` + ember `#FF5A3C`.** Calm training screens with one clear primary action.
+- **Recovery: blue to green to amber to red.** Semantic status, always paired with a written label.
 
 Yellow gives BetterFit its identity, but it does not flood every screen. The product stays dark and focused so workout information remains easy to scan between sets. Ember marks the action to take next.
 
