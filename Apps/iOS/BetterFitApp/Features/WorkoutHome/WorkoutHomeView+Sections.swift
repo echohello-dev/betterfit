@@ -1141,34 +1141,16 @@ private struct StaticTimelineRow: View {
         }
     }
 
-    // MARK: - Exercise Preview Image (Gradient)
+    // MARK: - Exercise Preview Image
 
     private var exercisePreviewImage: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: gradientColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(theme.accentSurface(0.16, for: colorScheme))
 
             Image(systemName: categorySystemImage)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.9))
-        }
-    }
-
-    private var gradientColors: [Color] {
-        switch exercise.displayCategory {
-        case .push: return [.blue, .cyan]
-        case .pull: return [.purple, .pink]
-        case .legs: return [.orange, .yellow]
-        case .core: return [.yellow, .orange]
-        case .cardio: return [.red, .orange]
-        case .compound: return [.green, .teal]
-        case .all: return [.gray, .secondary]
+                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
         }
     }
 
@@ -1181,18 +1163,6 @@ private struct StaticTimelineRow: View {
         case .cardio: return "heart"
         case .compound: return "dumbbell"
         case .all: return "figure.mixed.cardio"
-        }
-    }
-
-    private var categoryColor: Color {
-        switch exercise.displayCategory {
-        case .push: return .blue
-        case .pull: return .purple
-        case .legs: return .orange
-        case .core: return .yellow
-        case .cardio: return .red
-        case .compound: return theme.accent
-        case .all: return .gray
         }
     }
 }

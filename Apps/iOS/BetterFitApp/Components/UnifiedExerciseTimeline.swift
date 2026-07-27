@@ -420,34 +420,16 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
         .padding(.trailing, 12)
     }
 
-    // MARK: - Exercise Preview Image (Gradient)
+    // MARK: - Exercise Preview Image
 
     private var exercisePreviewImage: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: gradientColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(theme.accentSurface(0.16, for: colorScheme))
 
             Image(systemName: categorySystemImage)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.9))
-        }
-    }
-
-    private var gradientColors: [Color] {
-        switch exercise.displayCategory {
-        case .push: return [.blue, .cyan]
-        case .pull: return [.purple, .pink]
-        case .legs: return [.orange, .yellow]
-        case .core: return [.yellow, .orange]
-        case .cardio: return [.red, .orange]
-        case .compound: return [.green, .teal]
-        case .all: return [.gray, .secondary]
+                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
         }
     }
 
@@ -466,23 +448,11 @@ private struct TimelineExerciseRow<E: ExerciseDisplayable>: View {
     private var categoryIcon: some View {
         ZStack {
             Circle()
-                .fill(categoryColor.opacity(0.15))
+                .fill(theme.accentSurface(0.15, for: colorScheme))
 
             Image(systemName: categorySystemImage)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(categoryColor)
-        }
-    }
-
-    private var categoryColor: Color {
-        switch exercise.displayCategory {
-        case .push: return .blue
-        case .pull: return .purple
-        case .legs: return .orange
-        case .core: return .yellow
-        case .cardio: return .red
-        case .compound: return theme.accent
-        case .all: return .gray
+                .foregroundStyle(theme.accent)
         }
     }
 
