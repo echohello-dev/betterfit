@@ -4,9 +4,11 @@
 >
 > A personal strength-training coach for iPhone and Apple Watch. BetterFit turns workout history, performance, and recovery into a clear next action.
 
-[![The BetterFit Workout tab — identity mark, weekly conclusion, next session, and one-tap start.](docs/assets/screenshots/workout-home@2x.png)](docs/assets/screenshots/workout-home@2x.png)
+<p align="center">
+  <img src="docs/assets/screenshots/workout-home@2x.png" width="320" alt="The BetterFit Workout tab — identity mark, weekly conclusion, next session, and one-tap start." />
+</p>
 
-*Lead with the next action: the Workout tab opens on what you're about to do.*
+<p align="center"><em>Lead with the next action: the Workout tab opens on what you're about to do.</em></p>
 
 ---
 
@@ -20,11 +22,20 @@ The interface is built around a single rule: **lead with the next action or conc
 
 ## A look inside
 
-[![The Plan tab — week strip, today's workout, exercises with sets and weight, and recovery state per muscle.](docs/assets/screenshots/plan-week@2x.png)](docs/assets/screenshots/plan-week@2x.png)
-**Plan your week, see what's sore.** The week strip selects a day; today's exercises carry sets and target weight; the body-map companion shows recovery in colour and a written headline.
-
-[![The Me tab — guest avatar using the brand mark, account CTA, health overview, and 24-day streak.](docs/assets/screenshots/profile-health@2x.png)](docs/assets/screenshots/profile-health@2x.png)
-**Health overview that reads in one glance.** BMI, strength score, resting HR, active calories — each card leads with the value and a short label. Recovery dots sit on the streak card with semantic colour plus a written status.
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/plan-week@2x.png" width="280" alt="The Plan tab — week strip, today's workout, exercises with sets and weight, and recovery state per muscle." />
+      <br /><br />
+      <strong>Plan your week, see what's sore.</strong> The week strip selects a day; today's exercises carry sets and target weight; the body-map companion shows recovery in colour and a written headline.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/profile-health@2x.png" width="280" alt="The Me tab — guest avatar using the brand mark, account CTA, health overview, and 24-day streak." />
+      <br /><br />
+      <strong>Health overview that reads in one glance.</strong> BMI, strength score, resting HR, active calories — each card leads with the value and a short label.
+    </td>
+  </tr>
+</table>
 
 ---
 
