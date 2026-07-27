@@ -941,7 +941,8 @@ private struct PlayingCardWorkoutCard: View {
             ZStack(alignment: .bottomLeading) {
                 AthleteIllustration(
                     pose: AthletePose.from(workoutName: workout.name),
-                    accent: theme.accent
+                    accent: theme.accent,
+                    size: 140
                 )
 
                 Text(workoutType)
@@ -952,7 +953,7 @@ private struct PlayingCardWorkoutCard: View {
                     .background(.black.opacity(0.26), in: Capsule())
                     .padding(8)
             }
-            .frame(width: 100, height: 140)
+            .frame(width: 140, height: 140)
 
             // Workout details
             VStack(alignment: .leading, spacing: 8) {
