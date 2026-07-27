@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/readme/hero.png" width="900" alt="BetterFit. Train with direction. Strength coach for iPhone and Apple Watch." />
+  <img src="docs/assets/readme/hero-yellow.png" width="900" alt="BetterFit. Train with direction. Strength coach for iPhone and Apple Watch." />
 </p>
 
 <p align="center"><strong>A personal strength-training coach that turns performance and recovery into a clear next action.</strong></p>
