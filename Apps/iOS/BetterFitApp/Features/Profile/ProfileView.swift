@@ -509,7 +509,7 @@ struct ProfileView: View {
                 label: "Total Workouts",
                 value: "\(totalWorkouts)",
                 subtitle: "All time",
-                color: .orange,
+                color: BFColors.brandAccent,
                 source: "BetterFit"
             ))
 
@@ -523,7 +523,7 @@ struct ProfileView: View {
                     label: "Total Volume",
                     value: volumeStr,
                     subtitle: "lbs",
-                    color: .blue,
+                    color: BFColors.brandAccent,
                     source: "BetterFit"
                 ))
         }
@@ -535,7 +535,7 @@ struct ProfileView: View {
                     label: "Time Active",
                     value: "\(Int(totalMinutes))",
                     subtitle: "min",
-                    color: .purple,
+                    color: BFColors.brandAccent,
                     source: "BetterFit"
                 ))
         }
@@ -549,7 +549,7 @@ struct ProfileView: View {
             label: "BMI",
             value: "23.4",
             subtitle: "Normal",
-            color: .green,
+            color: BFColors.success,
             source: "Apple Health"
         ),
         HealthStat(
@@ -557,7 +557,7 @@ struct ProfileView: View {
             label: "Strength Score",
             value: "78",
             subtitle: "Advanced",
-            color: .orange,
+            color: BFColors.brandAccent,
             source: "Calculated"
         ),
         HealthStat(
@@ -565,7 +565,7 @@ struct ProfileView: View {
             label: "Resting HR",
             value: "62",
             subtitle: "bpm",
-            color: .red,
+            color: BFColors.textSecondary(for: .dark),
             source: "Apple Health"
         ),
         HealthStat(
@@ -573,7 +573,7 @@ struct ProfileView: View {
             label: "Active Cal",
             value: "2,450",
             subtitle: "Today",
-            color: .orange,
+            color: BFColors.brandAccent,
             source: "Apple Health"
         ),
     ]
