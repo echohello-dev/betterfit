@@ -355,21 +355,7 @@ struct ProfileView: View {
 
     private var profileHeader: some View {
         HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(theme.accentSurface(0.2, for: colorScheme))
-                    .frame(width: 80, height: 80)
-
-                if isGuest {
-                    Image(systemName: "person.crop.circle.badge.questionmark")
-                        .font(.system(size: 36))
-                        .foregroundStyle(theme.accent)
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 36))
-                        .foregroundStyle(theme.accent)
-                }
-            }
+            EmberMascot(mood: isGuest ? .ready : .proud, size: 80)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName)

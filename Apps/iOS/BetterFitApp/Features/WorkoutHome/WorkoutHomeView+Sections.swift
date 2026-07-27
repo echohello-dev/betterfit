@@ -7,23 +7,13 @@ extension WorkoutHomeView {
     var welcomeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(theme.accentSurface(0.22, for: colorScheme))
-                        .frame(width: 48, height: 48)
-                    FitnessIcon(systemImage: "figure.run.circle.fill", size: 22, color: theme.accent)
-                }
+                EmberMascot(mood: .ready, size: 58)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("Hello!")
-                            .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-                        Text(username)
-                            .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-                            .foregroundStyle(theme.accent)
-                    }
+                    Text("Hello, \(username)")
+                        .bfHeading(theme: theme, size: 18, relativeTo: .headline)
 
-                    Text("Regain your healthy body")
+                    Text("Ready to train. Your week is on track.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -34,12 +24,7 @@ extension WorkoutHomeView {
     // MARK: - Compact Welcome (Active Workout)
     var compactWelcomeSection: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(theme.accentSurface(0.22, for: colorScheme))
-                    .frame(width: 36, height: 36)
-                FitnessIcon(systemImage: "figure.run.circle.fill", size: 16, color: theme.accent)
-            }
+            EmberMascot(mood: .proud, size: 42)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Workout in progress")
@@ -96,83 +81,54 @@ extension WorkoutHomeView {
             ? Double(min(weekCount, weeklyGoalTarget)) / Double(weeklyGoalTarget)
             : 0
 
-        let range = heatmapDateRange()
-        let rangeStats = workoutRangeStats(start: range.start, end: range.end)
-        let split = workoutCategorySplit(start: range.start, end: range.end)
-
         return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(Int(weeklyProgress * 100))%")
-                            .font(.system(size: 30, weight: .black, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .monospacedDigit()
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(Int(weeklyProgress * 100))%")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .monospacedDigit()
 
-                        Text("weekly goal")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Spacer(minLength: 0)
-
-                        Text("Weekly \(weekCount)/\(weeklyGoalTarget)")
-                            .font(BFTypography.captionEmphasis)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background { Capsule().fill(BFColors.surfaceRaised(for: colorScheme)) }
-                            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
-                    }
-
-                    Text(overviewSummaryText(weeklyWorkouts: weekCount, recovery: recoveryValue))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-
-                    HStack(spacing: 14) {
-                        OverviewStat(
-                            title: "This week",
-                            value: "\(weekCount)",
-                            systemImage: "calendar",
-                            theme: theme
-                        )
-                        OverviewStat(
-                            title: "Recovery",
-                            value: "\(recoveryValue)%",
-                            systemImage: "heart.fill",
-                            theme: theme
-                        )
-                        OverviewStat(
-                            title: "Active",
-                            value: "\(rangeStats.activeDays)",
-                            systemImage: "sparkles",
-                            theme: theme
-                        )
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            HStack(spacing: 12) {
-                CategoryLegendDot(
-                    label: "Cardio", percent: split.cardioPercent, color: theme.accent, theme: theme
-                )
-                CategoryLegendDot(
-                    label: "Strength", percent: split.strengthPercent,
-                    color: theme.accentSurface(0.65, for: colorScheme), theme: theme)
-                CategoryLegendDot(
-                    label: "Lifting", percent: split.liftingPercent,
-                    color: theme.accentSurface(0.40, for: colorScheme), theme: theme)
+                Text("weekly goal")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 Spacer(minLength: 0)
 
-                Text("\(heatmapRangeLabel()) • \(rangeStats.totalWorkouts)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("\(weekCount)/\(weeklyGoalTarget) this week")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                     .monospacedDigit()
             }
 
-            Divider().opacity(0.35)
+            Text(overviewSummaryText(weeklyWorkouts: weekCount, recovery: recoveryValue))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(spacing: 16) {
+                Label(
+                    title: { Text("Recovery").font(.caption2).foregroundStyle(.secondary) },
+                    icon: { EmptyView() }
+                )
+                .opacity(0)
+
+                Text("\(recoveryValue)%")
+                    .font(.subheadline.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(recoveryTint(recoveryValue))
+
+                Text("overall")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func recoveryTint(_ value: Int) -> Color {
+        switch value {
+        case ..<35: return BFColors.danger
+        case 35..<70: return BFColors.warning
+        default: return BFColors.success
         }
     }
 
@@ -429,20 +385,21 @@ extension WorkoutHomeView {
 
     // MARK: - Workout Preview Section
     var workoutPreviewSection: some View {
-        // Active workout is the source of truth during a session; otherwise today's plan
+        // Active workout is the source of truth during a session; otherwise the
+        // currently-displayed suggested workout keeps the preview in sync with Up Next.
         let plannedExercises: [PlannedExercise]
         if let active = bf.getActiveWorkout() {
             plannedExercises = active.toPlannedExercises()
+        } else if !suggestedWorkouts.isEmpty {
+            let safeIndex = min(selectedWorkoutIndex, max(0, suggestedWorkouts.count - 1))
+            plannedExercises = suggestedWorkouts[safeIndex].toPlannedExercises()
         } else {
             plannedExercises = planManager?.getTodayPlan()?.exercises ?? []
         }
 
         return AnyView(
             VStack(alignment: .leading, spacing: 24) {
-                // Target Muscles first (compact)
                 compactTargetMusclesSection(for: plannedExercises)
-
-                // Exercises list (static, non-scrollable timeline)
                 staticExercisesTimeline(for: plannedExercises)
             }
             .padding(.top, 8)
@@ -981,22 +938,21 @@ private struct PlayingCardWorkoutCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Workout icon/image placeholder
-            ZStack {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.accentSurface(0.15, for: colorScheme))
-                    .frame(width: 100, height: 140)
+            ZStack(alignment: .bottomLeading) {
+                AthleteIllustration(
+                    pose: AthletePose.from(workoutName: workout.name),
+                    accent: theme.accent
+                )
 
-                VStack(spacing: 8) {
-                    Image(systemName: iconForWorkout)
-                        .font(.system(size: 36))
-                        .foregroundStyle(theme.accent)
-
-                    Text(workoutType)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
+                Text(workoutType)
+                    .font(BFTypography.captionEmphasis)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.26), in: Capsule())
+                    .padding(8)
             }
+            .frame(width: 100, height: 140)
 
             // Workout details
             VStack(alignment: .leading, spacing: 8) {
@@ -1034,18 +990,6 @@ private struct PlayingCardWorkoutCard: View {
                 )
                 .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
-    }
-
-    private var iconForWorkout: String {
-        let name = workout.name.lowercased()
-        if name.contains("run") { return "figure.run" }
-        if name.contains("yoga") { return "figure.yoga" }
-        if name.contains("strength") || name.contains("upper") { return "dumbbell.fill" }
-        if name.contains("hiit") { return "flame.fill" }
-        if name.contains("push") { return "figure.strengthtraining.traditional" }
-        if name.contains("pull") { return "dumbbell.fill" }
-        if name.contains("leg") { return "figure.walk" }
-        return "figure.mixed.cardio"
     }
 
     private var workoutType: String {

@@ -76,6 +76,18 @@ enum BFColors {
     /// exposed here for places that need a fixed brand color.
     static let brandAccent = Color(red: 1.0, green: 0.353, blue: 0.235)  // #FF5A3C
 
+    /// Identity yellow. Reserved for brand moments only (logo, launch, achievements).
+    /// Per design spec, never use as a default product surface or action colour.
+    static let identity = Color(red: 1.0, green: 0.839, blue: 0.039)  // #FFD60A
+
+    /// Foreground paired with `identity`. The spec mandates black content on large
+    /// yellow fields; this colour is the canonical ink.
+    static let identityInk = Color.black
+
+    /// Tinted surface that signals an identity moment on the dark canvas without
+    /// committing to a full yellow field.
+    static let identitySurface = Color(red: 1.0, green: 0.839, blue: 0.039).opacity(0.16)
+
     static let success = Color(red: 0.290, green: 0.871, blue: 0.502)    // #4ADE80
     static let warning = Color(red: 0.961, green: 0.722, blue: 0.239)    // #F5B83D
     static let danger = Color(red: 0.941, green: 0.267, blue: 0.220)     // #F04438
