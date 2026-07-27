@@ -7,7 +7,7 @@ extension WorkoutHomeView {
     var welcomeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
-                EmberMascot(mood: .ready, size: 58)
+                BetterFitIdentityBadge(size: 58)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Hello, \(username)")
@@ -24,7 +24,7 @@ extension WorkoutHomeView {
     // MARK: - Compact Welcome (Active Workout)
     var compactWelcomeSection: some View {
         HStack(spacing: 12) {
-            EmberMascot(mood: .proud, size: 42)
+            BetterFitIdentityBadge(size: 42)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Workout in progress")
@@ -939,10 +939,9 @@ private struct PlayingCardWorkoutCard: View {
     var body: some View {
         HStack(spacing: 16) {
             ZStack(alignment: .bottomLeading) {
-                AthleteIllustration(
-                    pose: AthletePose.from(workoutName: workout.name),
-                    accent: theme.accent,
-                    size: 140
+                WorkoutMovementIllustration(
+                    pose: WorkoutMovementPose.from(workoutName: workout.name),
+                    accent: theme.accent
                 )
 
                 Text(workoutType)
