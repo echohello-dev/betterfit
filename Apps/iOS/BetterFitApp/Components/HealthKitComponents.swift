@@ -455,48 +455,53 @@ struct AppleHealthReminderBanner: View {
     @State private var isConnecting = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "heart.circle.fill")
-                .font(.title2)
-                .foregroundStyle(theme.accent)
+        Button {
+            connect()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "heart.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(theme.accent)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Sync with Apple Health")
-                    .font(.caption.weight(.semibold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Connect Apple Health")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
-                Text("Track your workouts automatically")
-                    .font(.caption2)
-                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-            }
+                    Text("Track workouts, recovery, and progress in one place.")
+                        .font(.caption)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                        .lineLimit(2)
+                }
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-            if isConnecting || healthKitManager.isLoading {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Button {
-                    connect()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(theme.accent)
+                if isConnecting || healthKitManager.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                 }
             }
-
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                let shape = RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                shape.fill(BFColors.surface(for: colorScheme))
+                    .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens Apple Health to share workout data")
+        .accessibilityAddTraits(.isButton)
+        .contextMenu {
             Button {
                 healthKitManager.dismissPrompt()
             } label: {
-                Image(systemName: "xmark")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                Label("Dismiss", systemImage: "xmark")
             }
-        }
-        .padding(12)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-            shape.fill(BFColors.surface(for: colorScheme))
-                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
         }
     }
 

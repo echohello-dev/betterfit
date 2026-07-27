@@ -34,18 +34,15 @@ struct PlanView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Compact week strip + quick stats
                 weekStripWithStats
 
-                // Selected day's exercises (main focus)
                 selectedDaySection
 
-                // Compact recovery row
                 compactRecoveryRow
 
                 Spacer(minLength: BFSpacing.xxl)
             }
-            .padding(16)
+            .padding(20)
         }
         .bfPageBackground()
         .navigationTitle("Plan")
@@ -200,31 +197,47 @@ struct PlanView: View {
     }
 
     private var emptyDayCard: some View {
-        Button {
-            showExercisePicker = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "plus.circle")
-                    .font(.title3)
-                    .foregroundStyle(theme.accent)
+        VStack(spacing: 14) {
+            Image(systemName: "list.bullet.clipboard")
+                .font(.system(size: 32, weight: .semibold))
+                .foregroundStyle(theme.accentSurface(0.5, for: colorScheme))
 
-                Text("Add exercises")
-                    .font(.subheadline.weight(.medium))
+            VStack(spacing: 4) {
+                Text("No exercises planned")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+
+                Text("Add the exercises you want to train this day.")
+                    .font(.caption)
                     .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                Spacer(minLength: 0)
+                    .multilineTextAlignment(.center)
             }
-            .padding(16)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(BFColors.surface(for: colorScheme))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(BFColors.border(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [6]))
-                    }
+
+            Button {
+                showExercisePicker = true
+            } label: {
+                Text("Add exercises")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
+                            .fill(theme.accent)
+                    )
             }
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .padding(.horizontal, 20)
+        .background {
+            RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                .fill(BFColors.surface(for: colorScheme))
+                .overlay {
+                    RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
+                        .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                }
+        }
     }
 
     private var exercisesList: some View {
@@ -267,18 +280,12 @@ struct PlanView: View {
         let overall = betterFit.bodyMapManager.getOverallRecoveryPercentage()
 
         return HStack(spacing: 12) {
-            // Recovery ring
-            ZStack {
-                BFProgressRing(progress: overall / 100.0, lineWidth: 4, tint: theme.accent, size: 36)
-
-                Text("\(Int(overall))%")
-                    .font(.caption2.weight(.bold))
-                    .monospacedDigit()
-            }
+            BodyMapCompanion(recovery: overall, size: 52)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Recovery")
+                Text("Recovery · \(Int(overall))%")
                     .font(.caption)
+                    .monospacedDigit()
                     .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
                 Text(recoveryHeadline(overall))
@@ -287,7 +294,6 @@ struct PlanView: View {
 
             Spacer(minLength: 0)
 
-            // Muscle status dots
             HStack(spacing: 6) {
                 ForEach(BodyRegion.allCases.filter { $0 != .other }.prefix(6), id: \.self) {
                     region in
@@ -298,12 +304,12 @@ struct PlanView: View {
                 }
             }
         }
-        .padding(12)
+        .padding(16)
         .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
                 .fill(BFColors.surface(for: colorScheme))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous)
                         .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
                 }
         }
