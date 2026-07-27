@@ -280,7 +280,7 @@ struct PlanView: View {
         let overall = betterFit.bodyMapManager.getOverallRecoveryPercentage()
 
         return HStack(spacing: 12) {
-            BodyMapCompanion(recovery: overall, size: 52)
+            BodyMapCompanion(regions: map.regions, size: 52)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Recovery · \(Int(overall))%")
