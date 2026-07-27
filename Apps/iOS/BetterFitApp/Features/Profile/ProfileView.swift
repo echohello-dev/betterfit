@@ -355,7 +355,7 @@ struct ProfileView: View {
 
     private var profileHeader: some View {
         HStack(spacing: 16) {
-            EmberMascot(mood: isGuest ? .ready : .proud, size: 80)
+            ProfileAvatar(name: displayName, isGuest: isGuest, size: 80)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName)

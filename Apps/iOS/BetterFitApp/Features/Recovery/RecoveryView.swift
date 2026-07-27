@@ -41,22 +41,16 @@ struct RecoveryView: View {
 
     private var overallCard: some View {
         let overall = betterFit.bodyMapManager.getOverallRecoveryPercentage()
-        let progress = overall / 100.0
-
         return BFCard(theme: theme) {
             HStack(spacing: 16) {
-                ZStack {
-                    BFProgressRing(progress: progress, lineWidth: 10, tint: theme.accent, size: 86)
-
-                    Text("\(Int(overall))%")
-                        .font(.title3.weight(.bold))
-                        .monospacedDigit()
-                }
+                RecoveryBodyMap(regions: map.regions)
+                    .frame(width: 104, height: 126)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Overall")
-                        .font(.caption)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                    Text("\(Int(overall))% overall")
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(theme.accent)
 
                     Text(overallHeadline(overall))
                         .bfHeading(theme: theme, size: 20, relativeTo: .headline)
