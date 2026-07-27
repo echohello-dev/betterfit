@@ -213,99 +213,44 @@ enum AthletePose {
 struct AthleteIllustration: View {
     let pose: AthletePose
     var accent: Color = BFColors.brandAccent
+    var size: CGFloat = 140
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [accent.opacity(0.30), accent.opacity(0.08)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            accent.opacity(0.18)
 
-            Circle()
-                .fill(accent.opacity(0.16))
-                .frame(width: 92, height: 92)
-                .offset(x: 30, y: -40)
+            VStack(spacing: size * 0.07) {
+                Capsule(style: .continuous)
+                    .fill(.white)
+                    .frame(width: size * 0.78, height: size * 0.14)
 
-            Canvas { context, size in
-                drawAthlete(context: &context, size: size)
+                Capsule(style: .continuous)
+                    .fill(.white)
+                    .frame(width: size * 0.86, height: size * 0.16)
+
+                Capsule(style: .continuous)
+                    .fill(.white)
+                    .frame(width: size * 0.78, height: size * 0.14)
             }
-            .padding(10)
+            .padding(.horizontal, size * 0.10)
+            .offset(y: -size * 0.08)
+
+            Image(systemName: categorySystemImage)
+                .font(.system(size: size * 0.26, weight: .black))
+                .foregroundStyle(accent)
+                .offset(y: size * 0.30)
         }
+        .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: BFRadius.card, style: .continuous))
         .accessibilityHidden(true)
     }
 
-    private func drawAthlete(context: inout GraphicsContext, size: CGSize) {
-        let color = Color.white.opacity(0.92)
-        let width = max(4, size.width * 0.055)
-        let style = StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round)
-
-        context.fill(
-            Path(ellipseIn: CGRect(x: size.width * 0.45, y: size.height * 0.12, width: 15, height: 15)),
-            with: .color(color)
-        )
-
-        for segment in segments(in: size) {
-            var path = Path()
-            path.move(to: segment.0)
-            path.addLine(to: segment.1)
-            context.stroke(path, with: .color(color), style: style)
-        }
-
-        if pose == .push {
-            var bar = Path()
-            bar.move(to: point(0.15, 0.37, in: size))
-            bar.addLine(to: point(0.88, 0.37, in: size))
-            context.stroke(bar, with: .color(accent), style: StrokeStyle(lineWidth: width * 0.55, lineCap: .round))
-        }
-    }
-
-    private func segments(in size: CGSize) -> [(CGPoint, CGPoint)] {
+    private var categorySystemImage: String {
         switch pose {
-        case .push:
-            return [
-                (point(0.50, 0.25, in: size), point(0.50, 0.62, in: size)),
-                (point(0.50, 0.34, in: size), point(0.26, 0.48, in: size)),
-                (point(0.26, 0.48, in: size), point(0.22, 0.37, in: size)),
-                (point(0.50, 0.34, in: size), point(0.74, 0.48, in: size)),
-                (point(0.74, 0.48, in: size), point(0.78, 0.37, in: size)),
-                (point(0.50, 0.62, in: size), point(0.34, 0.88, in: size)),
-                (point(0.50, 0.62, in: size), point(0.68, 0.88, in: size))
-            ]
-        case .pull:
-            return [
-                (point(0.48, 0.26, in: size), point(0.56, 0.60, in: size)),
-                (point(0.52, 0.37, in: size), point(0.28, 0.53, in: size)),
-                (point(0.28, 0.53, in: size), point(0.17, 0.72, in: size)),
-                (point(0.52, 0.37, in: size), point(0.76, 0.50, in: size)),
-                (point(0.76, 0.50, in: size), point(0.86, 0.68, in: size)),
-                (point(0.56, 0.60, in: size), point(0.37, 0.88, in: size)),
-                (point(0.56, 0.60, in: size), point(0.72, 0.88, in: size))
-            ]
-        case .legs:
-            return [
-                (point(0.50, 0.26, in: size), point(0.50, 0.57, in: size)),
-                (point(0.50, 0.36, in: size), point(0.27, 0.48, in: size)),
-                (point(0.50, 0.36, in: size), point(0.73, 0.48, in: size)),
-                (point(0.50, 0.57, in: size), point(0.28, 0.68, in: size)),
-                (point(0.28, 0.68, in: size), point(0.18, 0.88, in: size)),
-                (point(0.50, 0.57, in: size), point(0.72, 0.68, in: size)),
-                (point(0.72, 0.68, in: size), point(0.82, 0.88, in: size))
-            ]
-        case .cardio:
-            return [
-                (point(0.50, 0.25, in: size), point(0.46, 0.58, in: size)),
-                (point(0.48, 0.36, in: size), point(0.25, 0.48, in: size)),
-                (point(0.48, 0.36, in: size), point(0.70, 0.25, in: size)),
-                (point(0.46, 0.58, in: size), point(0.25, 0.82, in: size)),
-                (point(0.46, 0.58, in: size), point(0.74, 0.73, in: size)),
-                (point(0.74, 0.73, in: size), point(0.86, 0.88, in: size))
-            ]
+        case .push: return "arrow.up"
+        case .pull: return "arrow.down"
+        case .legs: return "figure.walk"
+        case .cardio: return "heart.fill"
         }
-    }
-
-    private func point(_ horizontal: CGFloat, _ vertical: CGFloat, in size: CGSize) -> CGPoint {
-        CGPoint(x: size.width * horizontal, y: size.height * vertical)
     }
 }
