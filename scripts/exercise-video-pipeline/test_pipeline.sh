@@ -37,25 +37,14 @@ for s in generate.sh prompts.sh exercises.sh; do
   fi
 done
 
-# Source the pipeline functions without running the main loop.
-# generate.sh is large — extract just the function definitions and
-# the override-lookup helper.
+# Source the pipeline functions without running the guarded main loop.
 echo "==> sourcing function definitions"
-TMPF=$(mktemp)
-# Strip the executable blocks (everything from the first 'for' loop on
-# Stage 1 onwards is a script body, not a function we want to run).
-sed -n '1,/^# Stage 2/p' "$PIPELINE_DIR/generate.sh" > "$TMPF"
-# Append a no-op so the last function definition closes cleanly.
-cat >> "$TMPF" <<'EOF'
-exit 0
-EOF
-if bash "$TMPF" >/dev/null 2>&1; then
+if bash -c "source '$PIPELINE_DIR/generate.sh'" >/dev/null 2>&1; then
   ok "function definitions source cleanly"
 else
-  bad "sourcing generated function block"
-  bash "$TMPF"
+  bad "sourcing generate.sh"
+  bash -c "source '$PIPELINE_DIR/generate.sh'"
 fi
-rm -f "$TMPF"
 
 # Source the smaller files directly.
 if bash -c "source '$PIPELINE_DIR/prompts.sh' && source '$PIPELINE_DIR/exercises.sh' && exit 0" 2>/dev/null; then

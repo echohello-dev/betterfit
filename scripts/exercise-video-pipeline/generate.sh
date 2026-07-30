@@ -168,6 +168,7 @@ normalize_output () {
 # Stage 1 — anchors via fal.ai
 # ---------------------------------------------------------------------------
 
+main () {
 for entry in "${EXERCISES[@]}"; do
   slug="$(slug_for "$entry")"
   pose="$(pose_for "$entry")"
@@ -296,3 +297,8 @@ echo "    video model (default): $FAL_VIDEO_ENDPOINT"
 echo "    video overrides: ${FAL_VIDEO_OVERRIDES:-<none>}"
 echo "    anchors: $ANCHORS_DIR"
 echo "    videos:  $VIDEOS_DIR"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
