@@ -36,6 +36,7 @@ public class BetterFit {
     // MARK: - State
 
     private var workoutHistory: [Workout] = []
+    private let workoutHistoryLock = NSLock()
 
     // MARK: - Initialization
 
@@ -67,7 +68,13 @@ public class BetterFit {
     private func loadPersistedData() async {
         do {
             // Load workout history
-            workoutHistory = try await persistenceService.getWorkouts()
+            let persistedWorkouts = try await persistenceService.getWorkouts()
+            withWorkoutHistory { currentWorkouts in
+                let persistedIds = Set(persistedWorkouts.map(\.id))
+                currentWorkouts = persistedWorkouts + currentWorkouts.filter {
+                    !persistedIds.contains($0.id)
+                }
+            }
 
             // Load user profile
             if let profile = try await persistenceService.getUserProfile() {
@@ -138,7 +145,10 @@ public class BetterFit {
         autoTrackingService.stopTracking()
 
         // Record in history
-        workoutHistory.append(workout)
+        let history = withWorkoutHistory { currentWorkouts in
+            currentWorkouts.append(workout)
+            return currentWorkouts
+        }
 
         // Persist workout
         Task {
@@ -170,7 +180,7 @@ public class BetterFit {
         // Analyze and adapt plan if needed
         if let activePlan = planManager.getActivePlan() {
             let adaptations = aiAdaptationService.analyzePerformance(
-                workouts: workoutHistory,
+                workouts: history,
                 currentPlan: activePlan
             )
 
@@ -189,7 +199,7 @@ public class BetterFit {
 
     /// Get workout history
     public func getWorkoutHistory() -> [Workout] {
-        return workoutHistory
+        withWorkoutHistory { $0 }
     }
 
     // MARK: - Personal Records
@@ -207,7 +217,8 @@ public class BetterFit {
     public func getPersonalRecords() -> [PersonalRecordEntry] {
         var records: [String: (weight: Double, date: Date)] = [:]
 
-        for workout in workoutHistory {
+        let history = withWorkoutHistory { $0 }
+        for workout in history {
             for workoutExercise in workout.exercises {
                 let name = workoutExercise.exercise.name
                 for set in workoutExercise.sets where set.isCompleted {
@@ -274,11 +285,22 @@ public class BetterFit {
 
     /// Schedule smart notifications
     private func scheduleWorkoutNotifications() {
+        let history = withWorkoutHistory { $0 }
         notificationManager.scheduleNotifications(
             userProfile: socialManager.getUserProfile(),
-            workoutHistory: workoutHistory,
+            workoutHistory: history,
             activePlan: planManager.getActivePlan()
         )
+    }
+
+    // MARK: - Private Helpers
+
+    private func withWorkoutHistory<Result>(
+        _ operation: (inout [Workout]) -> Result
+    ) -> Result {
+        workoutHistoryLock.lock()
+        defer { workoutHistoryLock.unlock() }
+        return operation(&workoutHistory)
     }
 
     // MARK: - Health Integration

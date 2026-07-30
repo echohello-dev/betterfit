@@ -79,6 +79,14 @@ cd ../.. && bash scripts/update_scheme_env.sh 2>/dev/null || echo "⚠️  No .e
 cd Apps/iOS && open BetterFit.xcodeproj
 """
 
+[tasks."ios:build:ci"]
+run = """
+cd Apps/iOS
+xcodegen generate
+xcodebuild -project BetterFit.xcodeproj -scheme BetterFit -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+"""
+description = "Build iOS for CI without querying or booting CoreSimulator devices"
+
 [tasks."watch:gen"]
 run = "cd Apps/iOS && xcodegen generate"
 
