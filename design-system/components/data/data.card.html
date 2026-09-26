@@ -1,0 +1,44 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Data" subtitle="Rings, gauges, stat tiles, muscle split, activity heatmap" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{padding:20px;font-family:var(--font-ui)}.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { ProgressRing, Gauge, StatTile, OverviewStat, LegendDot, MuscleChip, ContributionHeatmap } = window.BetterFitDesignSystem_6a70ea;
+const days = Array.from({length:182},(_,i)=> (i%7===2||i%7===5) ? 0 : Math.floor(Math.abs(Math.sin(i*.7))*4.9));
+function Demo(){return (
+  <div className="col" style={{gap:18}}>
+    <div className="row" style={{gap:24}}>
+      <ProgressRing progress={.72} size={86}><span className="bf-num" style={{fontSize:'var(--text-stat-md)',fontWeight:700}}>72%</span></ProgressRing>
+      <Gauge progress={.6} value="60%" label="weekly goal" width={150} />
+      <div className="col" style={{gap:10}}>
+        <div className="row" style={{gap:20}}>
+          <OverviewStat icon="calendar" value="3" label="This week" />
+          <OverviewStat icon="heartbeat" value="72%" label="Recovery" />
+          <OverviewStat icon="sparkle" value="41" label="Active days" />
+        </div>
+        <div className="row" style={{gap:14}}>
+          <LegendDot label="Strength" percent={54} />
+          <LegendDot label="Cardio" percent={21} color="var(--yellow-deep)" />
+          <LegendDot label="Lifting" percent={25} color="var(--yellow-dim)" />
+        </div>
+      </div>
+    </div>
+    <div className="row" style={{alignItems:'stretch'}}>
+      <StatTile icon="fire-simple" value="12" label="Day streak" style={{flex:1}} />
+      <StatTile icon="barbell" value="18.4k" label="Volume (lb)" style={{flex:1}} />
+      <MuscleChip muscle="Chest" percent={42} />
+      <MuscleChip muscle="Triceps" percent={33} />
+      <MuscleChip muscle="Delts" percent={25} />
+    </div>
+    <ContributionHeatmap values={days} weeks={26} />
+  </div>
+);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

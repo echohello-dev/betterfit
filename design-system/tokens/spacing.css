@@ -1,0 +1,20 @@
+/* 4-point rhythm (BFSpacing.swift). 8/12/16/20/24/32 used most often. */
+:root{
+  --space-xs:4px;
+  --space-sm:8px;
+  --space-md:12px;
+  --space-lg:16px;
+  --space-xl:20px;
+  --space-2xl:24px;
+  --space-3xl:32px;
+  --space-4xl:48px;
+  --page-inline:20px;      /* standard horizontal page padding on iPhone */
+  --card-padding:16px;
+
+  /* Control sizes (BFControlSize.swift) */
+  --control-lg:54px;       /* primary CTA height */
+  --control-md:44px;
+  --control-sm:44px;       /* was 34px — below --tap-min, so no interactive control may use it */
+  --pill-sm:34px;          /* compact NON-interactive pills only: avatars, badges, status dots */
+  --tap-min:44px;
+}

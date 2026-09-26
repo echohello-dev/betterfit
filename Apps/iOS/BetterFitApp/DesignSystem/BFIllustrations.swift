@@ -77,7 +77,7 @@ struct WorkoutMovementIllustration: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let pose: WorkoutMovementPose
-    var accent: Color = BFColors.brandAccent
+    var accent: Color = BFColors.accent
 
     var body: some View {
         ZStack {

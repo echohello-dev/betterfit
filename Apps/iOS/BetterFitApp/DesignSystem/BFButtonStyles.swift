@@ -2,19 +2,19 @@ import SwiftUI
 
 // MARK: - BF Button Styles
 
-/// Solid accent fill, white label. Primary CTA ("Start Workout", "Save").
+/// Yellow fill, black label. Primary CTA ("Start workout", "Save").
 struct BFPrimaryButtonStyle: ButtonStyle {
     var isFullWidth = true
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(BFTypography.headline)
-            .foregroundStyle(.white)
+            .foregroundStyle(BFColors.accentInk)
             .frame(maxWidth: isFullWidth ? .infinity : nil)
             .frame(height: BFControlSize.buttonLarge)
             .background(
-                RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
-                    .fill(BFColors.brandAccent)
+                Capsule(style: .continuous)
+                    .fill(BFColors.accent)
             )
             .opacity(configuration.isPressed ? 0.85 : 1)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
@@ -34,11 +34,11 @@ struct BFSecondaryButtonStyle: ButtonStyle {
             .frame(maxWidth: isFullWidth ? .infinity : nil)
             .frame(height: BFControlSize.buttonLarge)
             .background(
-                RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
+                Capsule(style: .continuous)
                     .fill(BFColors.surfaceRaised(for: scheme))
             )
             .overlay {
-                RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
+                Capsule(style: .continuous)
                     .stroke(BFColors.border(for: scheme), lineWidth: 1)
             }
             .opacity(configuration.isPressed ? 0.7 : 1)
@@ -46,30 +46,34 @@ struct BFSecondaryButtonStyle: ButtonStyle {
     }
 }
 
-/// No fill, accent text. Inline/tertiary actions ("View Details").
+/// No fill, accent text. Inline/tertiary actions.
 struct BFGhostButtonStyle: ButtonStyle {
-    var color: Color = BFColors.brandAccent
+    @Environment(\.colorScheme) private var scheme
+    var color: Color? = nil
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(BFTypography.subheadlineEmphasis)
-            .foregroundStyle(color)
+            .foregroundStyle(color ?? BFColors.accentText(for: scheme))
             .opacity(configuration.isPressed ? 0.6 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
-/// Solid red fill, white label. Destructive confirmations.
+/// Inverted fill (primary text on opposite field). Destructive confirmations —
+/// no alarm red; meaning comes from the label.
 struct BFDestructiveButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var scheme
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(BFTypography.headline)
-            .foregroundStyle(.white)
+            .foregroundStyle(scheme == .dark ? BFColors.background(for: .dark) : .white)
             .frame(maxWidth: .infinity)
             .frame(height: BFControlSize.buttonLarge)
             .background(
-                RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
-                    .fill(BFColors.danger)
+                Capsule(style: .continuous)
+                    .fill(BFColors.textPrimary(for: scheme))
             )
             .opacity(configuration.isPressed ? 0.85 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
@@ -78,7 +82,7 @@ struct BFDestructiveButtonStyle: ButtonStyle {
 
 // MARK: - BF Icon Button
 
-/// 40pt circular icon button on a raised surface. Replaces glass chrome buttons.
+/// Circular icon button on a raised surface.
 struct BFIconButton: View {
     let systemImage: String
     let accessibilityLabel: String

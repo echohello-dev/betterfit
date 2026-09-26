@@ -2,1710 +2,322 @@ import Auth
 import BetterFit
 import SwiftUI
 
-// MARK: - Animated Counter
-
-struct AnimatedCounter: View {
-    let value: Double
-    let unit: String
-    let duration: Double
-    let formatter: (Double) -> String
-
-    @State private var displayedValue: Double = 0
-
-    init(value: Double, unit: String = "", duration: Double = 1.0, formatter: ((Double) -> String)? = nil) {
-        self.value = value
-        self.unit = unit
-        self.duration = duration
-        self.formatter = formatter ?? { "\(Int($0))\(unit.isEmpty ? "" : " \(unit)")"
-        }
-    }
-
-    var body: some View {
-        Text(formatter(displayedValue))
-            .monospacedDigit()
-            .onAppear {
-                withAnimation(.easeOut(duration: duration)) {
-                    displayedValue = value
-                }
-            }
-    }
-}
-
-// MARK: - Personal Record
-
-struct PersonalRecord: Identifiable {
-    let id = UUID()
-    let exercise: String
-    let value: String
-    let date: Date
-    let improvement: String?
-    let icon: String
-}
-
-// MARK: - Weekly Goal
-
-struct WeeklyGoal: Identifiable {
-    let id = UUID()
-    let title: String
-    let current: Double
-    let target: Double
-    let unit: String
-    let icon: String
-    let color: Color
-}
-
-// MARK: - Achievement
-
-struct Achievement: Identifiable {
-    let id = UUID()
-    let title: String
-    let description: String
-    let icon: String
-    let isEarned: Bool
-    let earnedDate: Date?
-    let progress: Double?
-}
-
-// MARK: - Profile View
+// MARK: - Me — DS lists + cards
 
 struct ProfileView: View {
-    @Environment(\.colorScheme) var colorScheme
-    let betterFit: BetterFit?
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+
+    let betterFit: BetterFit
     let theme: AppTheme
     let isGuest: Bool
     let user: Auth.User?
     let onShowSignIn: () -> Void
     let onLogout: (() -> Void)?
 
-    @State private var showLogoutConfirmation = false
-    @State private var showYearlyWrapped = false
-    @State private var selectedYear = Calendar.current.component(.year, from: Date())
-    @State private var isHeatmapExpanded = false
-    @State private var heatmapRange: HeatmapRange = .year
-    @State private var activityByDay: [Date: Int] = [:]
-    @State private var showAllPRs = false
-    @State private var showEditTargetsAlert = false
-    @State private var showingThemePicker = false
-    @State private var showingSettings = false
-
-    @AppStorage("betterfit.workoutHome.demoMode") private var workoutHomeDemoModeEnabled = false
+    @State private var showSettings = false
     @AppStorage(AppTheme.storageKey) private var storedTheme: String = AppTheme.defaultTheme.rawValue
-    @AppStorage(AppearancePreference.storageKey) private var storedAppearance: String =
-        AppearancePreference.defaultPreference.rawValue
-
-    // MARK: - Data (Real or Demo)
 
     private var displayName: String {
-        if isGuest {
-            return "Guest"
+        if isGuest { return "Guest" }
+        if let email = user?.email {
+            return email.split(separator: "@").first.map(String.init) ?? "Athlete"
         }
-
-        // Get name from authenticated user
-        if let user = user {
-            // First try to get full_name from user metadata
-            if let fullName = user.userMetadata["full_name"]?.stringValue {
-                return fullName
-            }
-            // Fall back to extracting from email (e.g., "johnny@example.com" -> "Johnny")
-            if let email = user.email {
-                let name = email.components(separatedBy: "@").first ?? "User"
-                return name.prefix(1).uppercased() + name.dropFirst()
-            }
-        }
-
-        return "User"
+        return "Athlete"
     }
 
-    private var personalRecords: [PersonalRecord] {
-        if workoutHomeDemoModeEnabled {
-            return Self.demoPersonalRecords
-        }
-        guard let bf = betterFit else { return [] }
-        return bf.getPersonalRecords().map { entry in
-            PersonalRecord(
-                exercise: entry.exerciseName,
-                value: "\(Int(entry.maxWeight)) lbs",
-                date: entry.date,
-                improvement: nil,
-                icon: "figure.strengthtraining.traditional"
-            )
-        }
+    private var streak: Int { betterFit.socialManager.getCurrentStreak() }
+    private var recovery: Int {
+        Int(betterFit.bodyMapManager.getOverallRecoveryPercentage().rounded())
     }
 
-    private var weeklyGoals: [WeeklyGoal] {
-        if workoutHomeDemoModeEnabled {
-            return Self.demoWeeklyGoals
-        }
-        // Real data from betterFit - compute from workout history
-        guard let bf = betterFit else { return [] }
-        let history = bf.getWorkoutHistory()
-        let calendar = Calendar.current
-        let startOfWeek =
-            calendar.date(
-                from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))
-            ?? Date()
-        let thisWeekWorkouts = history.filter { $0.date >= startOfWeek }
-
-        let workoutCount = Double(thisWeekWorkouts.count)
-        let totalVolume = thisWeekWorkouts.reduce(0.0) { total, workout in
-            total
-                + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
-                    exerciseTotal
-                        + exercise.sets.reduce(0.0) { setTotal, set in
-                            setTotal + (set.weight ?? 0) * Double(set.reps)
-                        }
-                }
-        }
-        let totalMinutes = thisWeekWorkouts.reduce(0.0) { total, workout in
-            guard let duration = workout.duration else { return total }
-            return total + duration / 60.0
-        }
-
-        return [
-            WeeklyGoal(
-                title: "Workouts", current: workoutCount, target: 5, unit: "sessions",
-                icon: "figure.run",
-                color: .orange),
-            WeeklyGoal(
-                title: "Volume", current: totalVolume, target: 50000, unit: "lbs",
-                icon: "scalemass.fill",
-                color: .blue),
-            WeeklyGoal(
-                title: "Active Time", current: totalMinutes, target: 240, unit: "min",
-                icon: "clock.fill",
-                color: .purple),
-        ]
+    private var history: [Workout] {
+        betterFit.getWorkoutHistory()
     }
 
-    private var achievements: [Achievement] {
-        if workoutHomeDemoModeEnabled {
-            return Self.demoAchievements
+    private var heatmapValues: [Int] {
+        var values = Array(repeating: 0, count: 22 * 7)
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        for workout in history {
+            let days = cal.dateComponents([.day], from: cal.startOfDay(for: workout.date), to: today).day ?? 0
+            guard days >= 0, days < values.count else { continue }
+            values[values.count - 1 - days] = min(4, values[values.count - 1 - days] + 1)
         }
-        // Real achievements - compute from workout history
-        guard let bf = betterFit else { return [] }
-        let totalWorkouts = bf.getWorkoutHistory().count
-        let currentStreak = bf.socialManager.getCurrentStreak()
-
-        return [
-            Achievement(
-                title: "Iron Warrior", description: "Complete 100 workouts", icon: "shield.fill",
-                isEarned: totalWorkouts >= 100,
-                earnedDate: totalWorkouts >= 100 ? Date() : nil,
-                progress: totalWorkouts >= 100 ? nil : Double(totalWorkouts) / 100.0),
-            Achievement(
-                title: "Streak Master", description: "Maintain a 30-day streak", icon: "flame.fill",
-                isEarned: currentStreak >= 30,
-                earnedDate: currentStreak >= 30 ? Date() : nil,
-                progress: currentStreak >= 30 ? nil : Double(currentStreak) / 30.0),
-            Achievement(
-                title: "First Steps", description: "Complete your first workout",
-                icon: "figure.walk",
-                isEarned: totalWorkouts >= 1,
-                earnedDate: totalWorkouts >= 1 ? Date() : nil,
-                progress: nil),
-            Achievement(
-                title: "Week Warrior", description: "Complete 7 workouts", icon: "calendar",
-                isEarned: totalWorkouts >= 7,
-                earnedDate: totalWorkouts >= 7 ? Date() : nil,
-                progress: totalWorkouts >= 7 ? nil : Double(totalWorkouts) / 7.0),
-        ]
+        if history.isEmpty {
+            for index in 0..<values.count where index % 4 == 0 { values[index] = (index % 4) + 1 }
+        }
+        return values
     }
-
-    // MARK: - Demo Data
-
-    private static let demoPersonalRecords: [PersonalRecord] = [
-        PersonalRecord(
-            exercise: "Bench Press", value: "225 lbs",
-            date: .now.addingTimeInterval(-86400 * 7), improvement: "+10 lbs",
-            icon: "figure.strengthtraining.traditional"),
-        PersonalRecord(
-            exercise: "Deadlift", value: "315 lbs", date: .now.addingTimeInterval(-86400 * 14),
-            improvement: "+15 lbs", icon: "figure.strengthtraining.traditional"),
-        PersonalRecord(
-            exercise: "Squat", value: "275 lbs", date: .now.addingTimeInterval(-86400 * 3),
-            improvement: "+5 lbs", icon: "figure.strengthtraining.traditional"),
-        PersonalRecord(
-            exercise: "Pull-ups", value: "15 reps", date: .now.addingTimeInterval(-86400 * 5),
-            improvement: "+2 reps", icon: "figure.strengthtraining.functional"),
-    ]
-
-    private static let demoWeeklyGoals: [WeeklyGoal] = [
-        WeeklyGoal(
-            title: "Workouts", current: 4, target: 5, unit: "sessions", icon: "figure.run",
-            color: .orange),
-        WeeklyGoal(
-            title: "Volume", current: 45000, target: 50000, unit: "lbs", icon: "scalemass.fill",
-            color: .blue),
-        WeeklyGoal(
-            title: "Active Time", current: 180, target: 240, unit: "min", icon: "clock.fill",
-            color: .purple),
-        WeeklyGoal(
-            title: "Calories", current: 1800, target: 2500, unit: "cal", icon: "flame.fill",
-            color: .red),
-    ]
-
-    private static let demoAchievements: [Achievement] = [
-        Achievement(
-            title: "Iron Warrior", description: "Complete 100 workouts", icon: "shield.fill",
-            isEarned: true, earnedDate: .now.addingTimeInterval(-86400 * 30), progress: nil),
-        Achievement(
-            title: "Streak Master", description: "Maintain a 30-day streak", icon: "flame.fill",
-            isEarned: true, earnedDate: .now.addingTimeInterval(-86400 * 10), progress: nil),
-        Achievement(
-            title: "Heavy Hitter", description: "Lift 1M total pounds", icon: "bolt.fill",
-            isEarned: false, earnedDate: nil, progress: 0.75),
-        Achievement(
-            title: "Early Bird", description: "Complete 20 morning workouts",
-            icon: "sunrise.fill", isEarned: false, earnedDate: nil, progress: 0.45),
-    ]
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // MARK: - Profile Header
-
-                profileHeader
-
-                // MARK: - Guest Notification
-
+            VStack(alignment: .leading, spacing: 20) {
+                identity
+                stats
+                weeklyTargets
+                records
+                achievements
+                yearCard
                 if isGuest {
-                    guestNotificationCard
+                    signInPrompt
                 }
-
-                // MARK: - Health Stats
-
-                healthStatsSection
-
-                // MARK: - Current Streak
-
-                streakSection
-
-                // MARK: - Weekly Targets
-
-                weeklyTargetsSection
-
-                // MARK: - Personal Records
-
-                personalRecordsSection
-
-                // MARK: - Achievements
-
-                achievementsSection
-
-                // MARK: - Yearly Wrapped
-
-                yearlyWrappedSection
-
-                // MARK: - Appearance
-
-                appearanceSection
-
-                // MARK: - Settings
-
-                settingsSection
-
-                Spacer(minLength: 40)
             }
-            .padding(16)
+            .padding(.horizontal, BFSpacing.pageHorizontal)
+            .padding(.bottom, 40)
         }
-        .bfPageBackground()
+        .bfBackground(theme: theme)
         .navigationTitle("Me")
-        .confirmationDialog(
-            "Sign Out",
-            isPresented: $showLogoutConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Sign Out", role: .destructive) {
-                onLogout?()
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                }
+                .accessibilityLabel("Settings")
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Are you sure you want to sign out?")
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Close") { dismiss() }
+                    .font(BFTypography.subheadlineEmphasis)
+            }
         }
-        .sheet(isPresented: $showYearlyWrapped) {
-            YearlyWrappedView(betterFit: betterFit, theme: theme, year: selectedYear)
-        }
-        .sheet(isPresented: $showAllPRs) {
-            AllPRsSheet(records: personalRecords, theme: theme)
-        }
-        .sheet(isPresented: $showingThemePicker) {
-            ThemePickerView(
-                selectedTheme: Binding(
-                    get: { AppTheme.fromStorage(storedTheme) },
-                    set: { storedTheme = $0.rawValue }
-                ),
-                appearance: Binding(
-                    get: { AppearancePreference.fromStorage(storedAppearance) },
-                    set: { storedAppearance = $0.rawValue }
-                )
-            )
-            .presentationDetents([.medium, .large])
-        }
-        .sheet(isPresented: $showingSettings) {
+        .sheet(isPresented: $showSettings) {
             SettingsView(
-                onSignOut: (isGuest || onLogout == nil)
-                    ? nil
-                    : { showLogoutConfirmation = true }
+                onSignOut: {
+                    showSettings = false
+                    onLogout?()
+                },
+                onDeleteAccount: nil
             )
-            .presentationDetents([.large])
         }
     }
 
-    // MARK: - Profile Header
+    // MARK: - Identity
 
-    private var profileHeader: some View {
-        HStack(spacing: 16) {
-            ProfileAvatar(name: displayName, isGuest: isGuest, size: 80)
-
+    private var identity: some View {
+        HStack(spacing: 14) {
+            ProfileAvatar(name: displayName, isGuest: isGuest, size: 58)
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName)
-                    .bfHeading(theme: theme, size: 24, relativeTo: .title2)
-
-                if !isGuest {
-                    Text("Member since Jan 2024")
-                        .font(.caption)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                    HStack(spacing: 6) {
-                        Image(systemName: "crown.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-
-                        Text("Pro Member")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(theme.accent)
-                    }
-                } else {
-                    Text("Sign in to track your progress")
-                        .font(.caption)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    // MARK: - Guest Notification Card
-
-    private var guestNotificationCard: some View {
-        BFCard(theme: theme) {
-            HStack(spacing: 14) {
-                Image(systemName: "person.badge.plus")
-                    .font(.title2)
-                    .foregroundStyle(theme.accent)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Create an Account")
-                        .font(.subheadline.weight(.semibold))
-
-                    Text("Sync your workouts, track PRs, and unlock achievements")
-                        .font(.caption)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
-
-                Spacer(minLength: 0)
-
-                Button {
-                    onShowSignIn()
-                } label: {
-                    Text("Sign Up")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(theme.accent))
-                        .foregroundStyle(.white)
-                }
-            }
-        }
-    }
-
-    // MARK: - Health Stats Section
-
-    private var healthStatsSection: some View {
-        let stats = healthStats
-
-        return VStack(alignment: .leading, spacing: 12) {
-            BFSectionHeader(title: "Health Overview")
-
-            if stats.isEmpty && !workoutHomeDemoModeEnabled {
-                BFCard(theme: theme) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "heart.text.clipboard")
-                            .font(.title2)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("No health data yet")
-                            .font(.subheadline)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("Complete workouts to see your stats")
-                            .font(.caption)
-                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
-            } else {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12),
-                    ],
-                    spacing: 12
-                ) {
-                    ForEach(stats, id: \.label) { stat in
-                        healthStatCard(
-                            icon: stat.icon,
-                            label: stat.label,
-                            value: stat.value,
-                            subtitle: stat.subtitle,
-                            color: stat.color,
-                            source: stat.source
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private struct HealthStat {
-        let icon: String
-        let label: String
-        let value: String
-        let subtitle: String
-        let color: Color
-        let source: String
-    }
-
-    private var healthStats: [HealthStat] {
-        if workoutHomeDemoModeEnabled {
-            return Self.demoHealthStats
-        }
-
-        // Real stats from workout history
-        guard let bf = betterFit else { return [] }
-        let history = bf.getWorkoutHistory()
-        guard !history.isEmpty else { return [] }
-
-        let totalWorkouts = history.count
-        let totalVolume = history.reduce(0.0) { total, workout in
-            total
-                + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
-                    exerciseTotal
-                        + exercise.sets.reduce(0.0) { setTotal, set in
-                            setTotal + (set.weight ?? 0) * Double(set.reps)
-                        }
-                }
-        }
-        let totalMinutes = history.reduce(0.0) { total, workout in
-            guard let duration = workout.duration else { return total }
-            return total + duration / 60.0
-        }
-
-        var stats: [HealthStat] = []
-
-        stats.append(
-            HealthStat(
-                icon: "figure.run",
-                label: "Total Workouts",
-                value: "\(totalWorkouts)",
-                subtitle: "All time",
-                color: BFColors.brandAccent,
-                source: "BetterFit"
-            ))
-
-        if totalVolume > 0 {
-            let volumeStr =
-                totalVolume >= 1000
-                ? String(format: "%.1fK", totalVolume / 1000) : "\(Int(totalVolume))"
-            stats.append(
-                HealthStat(
-                    icon: "scalemass.fill",
-                    label: "Total Volume",
-                    value: volumeStr,
-                    subtitle: "lbs",
-                    color: BFColors.brandAccent,
-                    source: "BetterFit"
-                ))
-        }
-
-        if totalMinutes > 0 {
-            stats.append(
-                HealthStat(
-                    icon: "clock.fill",
-                    label: "Time Active",
-                    value: "\(Int(totalMinutes))",
-                    subtitle: "min",
-                    color: BFColors.brandAccent,
-                    source: "BetterFit"
-                ))
-        }
-
-        return stats
-    }
-
-    private static let demoHealthStats: [HealthStat] = [
-        HealthStat(
-            icon: "figure.stand",
-            label: "BMI",
-            value: "23.4",
-            subtitle: "Normal",
-            color: BFColors.success,
-            source: "Apple Health"
-        ),
-        HealthStat(
-            icon: "scalemass.fill",
-            label: "Strength Score",
-            value: "78",
-            subtitle: "Advanced",
-            color: BFColors.brandAccent,
-            source: "Calculated"
-        ),
-        HealthStat(
-            icon: "heart.fill",
-            label: "Resting HR",
-            value: "62",
-            subtitle: "bpm",
-            color: BFColors.textSecondary(for: .dark),
-            source: "Apple Health"
-        ),
-        HealthStat(
-            icon: "figure.walk",
-            label: "Active Cal",
-            value: "2,450",
-            subtitle: "Today",
-            color: BFColors.brandAccent,
-            source: "Apple Health"
-        ),
-    ]
-
-    @ViewBuilder
-    private func healthStatCard(
-        icon: String, label: String, value: String, subtitle: String, color: Color, source: String
-    ) -> some View {
-        BFCard(theme: theme) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.caption)
-                        .foregroundStyle(color)
-
-                    Text(label)
-                        .font(.caption)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
-
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(value)
-                        .font(.title2.weight(.bold))
-                        .monospacedDigit()
-
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(color)
-                }
-
-                Text(source)
-                    .font(.caption2)
-                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-            }
-        }
-    }
-
-    // MARK: - Streak Section
-
-    private var streakSection: some View {
-        let currentStreak =
-            workoutHomeDemoModeEnabled ? 24 : (betterFit?.socialManager.getCurrentStreak() ?? 0)
-        let longestStreak =
-            workoutHomeDemoModeEnabled ? 42 : (betterFit?.socialManager.getLongestStreak() ?? 0)
-        let thisWeekWorkouts = workoutHomeDemoModeEnabled ? 4 : calculateThisWeekWorkouts()
-        let range = heatmapDateRange()
-
-        return VStack(alignment: .leading, spacing: 12) {
-            // Compact streak header with expand/collapse
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    isHeatmapExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(.orange.opacity(0.2))
-                            .frame(width: 48, height: 48)
-
-                        Image(systemName: "flame.fill")
-                            .font(.title3)
-                            .foregroundStyle(.orange)
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("\(currentStreak)")
-                                .font(.system(size: 28, weight: .bold))
-                                .monospacedDigit()
-
-                            Text("day streak")
-                                .font(.subheadline)
-                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        }
-
-                        if longestStreak > currentStreak {
-                            Text("Best: \(longestStreak) days")
-                                .font(.caption)
-                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        }
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Image(systemName: isHeatmapExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                        Text("This Week")
-                            .font(.caption2)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                        HStack(spacing: 3) {
-                            ForEach(0..<7, id: \.self) { day in
-                                Circle()
-                                    .fill(
-                                        day < thisWeekWorkouts
-                                            ? theme.accent : theme.accentSurface(0.2, for: colorScheme)
-                                    )
-                                    .frame(width: 8, height: 8)
-                            }
-                        }
-                    }
-                }
-                .padding(14)
-                .background {
-                    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    shape
-                        .fill(BFColors.surface(for: colorScheme))
-                        .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
-                }
-            }
-            .buttonStyle(.plain)
-
-            // Expanded heatmap content
-            if isHeatmapExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Range selector
-                    HStack {
-                        Menu {
-                            Button("1 Week") { heatmapRange = .week }
-                            Button("1 Month") { heatmapRange = .month }
-                            Button("1 Year") { heatmapRange = .year }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text(heatmapRangeLabel())
-                                    .font(.caption.weight(.semibold))
-                                Image(systemName: "chevron.down")
-                                    .font(.caption2.weight(.semibold))
-                            }
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background {
-                                Capsule().fill(BFColors.surfaceRaised(for: colorScheme))
-                            }
-                            .overlay { Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
-                        }
-
-                        Spacer()
-
-                        Text("\(activityByDay.values.reduce(0, +)) workouts")
-                            .font(.caption)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                    }
-
-                    // Heatmap
-                    ProfileContributionHeatmap(
-                        startDate: range.start,
-                        endDate: range.end,
-                        valuesByDay: activityByDay,
-                        theme: theme
-                    )
-                    .frame(height: 86)
-                }
-                .padding(14)
-                .background {
-                    let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    shape
-                        .fill(BFColors.surface(for: colorScheme))
-                        .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .onAppear {
-            refreshActivityData()
-        }
-        .onChange(of: heatmapRange) {
-            refreshActivityData()
-        }
-    }
-
-    private func refreshActivityData() {
-        guard let bf = betterFit else {
-            activityByDay = [:]
-            return
-        }
-
-        let range = heatmapDateRange()
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: range.start)
-        let end = calendar.startOfDay(for: range.end)
-
-        var counts: [Date: Int] = [:]
-        for workout in bf.getWorkoutHistory() {
-            let day = calendar.startOfDay(for: workout.date)
-            guard day >= start, day <= end else { continue }
-            counts[day, default: 0] += 1
-        }
-
-        if bf.getActiveWorkout() != nil {
-            let today = calendar.startOfDay(for: Date.now)
-            if today >= start, today <= end {
-                counts[today, default: 0] += 1
-            }
-        }
-
-        activityByDay = counts
-    }
-
-    private func heatmapDateRange() -> (start: Date, end: Date) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date.now)
-
-        switch heatmapRange {
-        case .week:
-            let start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
-            return (start, today)
-        case .month:
-            let start = calendar.date(byAdding: .month, value: -1, to: today) ?? today
-            return (calendar.startOfDay(for: start), today)
-        case .year:
-            let start = calendar.date(byAdding: .year, value: -1, to: today) ?? today
-            return (calendar.startOfDay(for: start), today)
-        case .custom:
-            return (today, today)
-        }
-    }
-
-    private func heatmapRangeLabel() -> String {
-        switch heatmapRange {
-        case .week: return "1W"
-        case .month: return "1M"
-        case .year: return "1Y"
-        case .custom: return "Custom"
-        }
-    }
-
-    private func calculateThisWeekWorkouts() -> Int {
-        guard let bf = betterFit else { return 0 }
-        let calendar = Calendar.current
-        let startOfWeek =
-            calendar.date(
-                from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))
-            ?? Date()
-        return bf.getWorkoutHistory().filter { $0.date >= startOfWeek }.count
-    }
-
-    // MARK: - Weekly Targets Section
-
-    private var weeklyTargetsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            BFSectionHeader(title: "Weekly Targets") {
-                if !weeklyGoals.isEmpty {
-                    Button {
-                        showEditTargetsAlert = true
-                    } label: {
-                        Text("Edit")
-                            .font(BFTypography.captionEmphasis)
-                            .foregroundStyle(theme.accent)
-                    }
-                }
-            }
-
-            if weeklyGoals.isEmpty {
-                BFCard(theme: theme) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "target")
-                            .font(.title2)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("No activity this week")
-                            .font(.subheadline)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("Start a workout to track your progress")
-                            .font(.caption)
-                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(weeklyGoals) { goal in
-                        weeklyGoalRow(goal)
-                    }
-                }
-            }
-        }
-        .alert("Edit Weekly Targets", isPresented: $showEditTargetsAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Target editing coming soon. Complete more workouts to update your progress automatically.")
-        }
-    }
-
-    @ViewBuilder
-    private func weeklyGoalRow(_ goal: WeeklyGoal) -> some View {
-        let progress = min(goal.current / goal.target, 1.0)
-        let isCompleted = goal.current >= goal.target
-
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(goal.color.opacity(0.15))
-                    .frame(width: 40, height: 40)
-
-                Image(systemName: goal.icon)
-                    .font(.subheadline)
-                    .foregroundStyle(goal.color)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(goal.title)
-                        .font(.subheadline.weight(.semibold))
-
-                    Spacer(minLength: 0)
-
-                    if isCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-
-                    AnimatedCounter(
-                        value: goal.current,
-                        unit: goal.unit,
-                        duration: 0.8,
-                        formatter: { formatGoalValue($0, unit: goal.unit) }
-                    )
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(isCompleted ? .green : .primary)
-
-                    Text("/ \(formatGoalValue(goal.target, unit: goal.unit))")
-                        .font(.caption)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
-
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(goal.color.opacity(0.2))
-                            .frame(height: 6)
-
-                        Capsule()
-                            .fill(isCompleted ? .green : goal.color)
-                            .frame(width: geo.size.width * progress, height: 6)
-                    }
-                }
-                .frame(height: 6)
-            }
-        }
-        .padding(12)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-            shape
-                .fill(BFColors.surface(for: colorScheme))
-                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
-        }
-    }
-
-    private func formatGoalValue(_ value: Double, unit: String) -> String {
-        if value >= 1000 {
-            return String(format: "%.1fK", value / 1000)
-        }
-        return "\(Int(value))"
-    }
-
-    // MARK: - Personal Records Section
-
-    private var personalRecordsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            BFSectionHeader(title: "Personal Records") {
-                if !personalRecords.isEmpty {
-                    Button {
-                        showAllPRs = true
-                    } label: {
-                        Text("View All")
-                            .font(BFTypography.captionEmphasis)
-                            .foregroundStyle(theme.accent)
-                    }
-                }
-            }
-
-            if personalRecords.isEmpty {
-                BFCard(theme: theme) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "trophy")
-                            .font(.title2)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("No personal records yet")
-                            .font(.subheadline)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("Complete workouts to set your first PRs")
-                            .font(.caption)
-                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(personalRecords.prefix(3)) { record in
-                        prRow(record)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func prRow(_ record: PersonalRecord) -> some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.yellow.opacity(0.15))
-                    .frame(width: 44, height: 44)
-
-                Image(systemName: record.icon)
-                    .font(.subheadline)
-                    .foregroundStyle(.yellow)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.exercise)
-                    .font(.subheadline.weight(.semibold))
-
-                Text(record.date, format: .dateTime.month(.abbreviated).day())
-                    .font(.caption)
+                    .font(BFTypography.title2)
+                    .tracking(BFTypography.displayTracking)
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                Text(isGuest ? "Training as guest" : "Member")
+                    .font(BFTypography.footnote)
                     .foregroundStyle(BFColors.textSecondary(for: colorScheme))
             }
-
-            Spacer(minLength: 0)
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(record.value)
-                    .font(.subheadline.weight(.bold))
-
-                if let improvement = record.improvement {
-                    Text(improvement)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.green)
-                }
-            }
+            Spacer()
+            Text(isGuest ? "Guest" : "Pro")
+                .font(BFTypography.captionEmphasis)
+                .foregroundStyle(BFColors.accentInk)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(BFColors.accent))
         }
-        .padding(12)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-            shape
-                .fill(BFColors.surface(for: colorScheme))
-                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
+        .padding(.top, 8)
+    }
+
+    // MARK: - Stats
+
+    private var stats: some View {
+        HStack(spacing: 10) {
+            BFStatTile(systemImage: "flame.fill", value: "\(streak)", label: "Day streak", tint: BFColors.accent)
+            BFStatTile(systemImage: "dumbbell.fill", value: volumeLabel, label: "Volume", tint: BFColors.accent)
+            BFStatTile(systemImage: "heart.fill", value: "\(recovery)%", label: "Recovery", tint: BFColors.accent)
         }
     }
 
-    // MARK: - Achievements Section
+    // MARK: - Weekly targets
 
-    private var achievementsSection: some View {
-        let earnedCount = achievements.filter { $0.isEarned }.count
-        let totalCount = achievements.count
+    private var weeklyTargets: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            BFSectionHeader(title: "Weekly targets") {
+                Button("Edit") {}
+                    .font(BFTypography.footnoteEmphasis)
+                    .foregroundStyle(BFColors.accentText(for: colorScheme))
+            }
+            BFDSCard {
+                VStack(spacing: 14) {
+                    targetRow(label: "Workouts", value: Double(min(streak, 5)), target: 5, unit: "")
+                    targetRow(label: "Volume", value: 41, target: 60, unit: "k")
+                    targetRow(label: "Active minutes", value: 186, target: 250, unit: "")
+                }
+            }
+        }
+    }
 
+    private func targetRow(label: String, value: Double, target: Double, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(label)
+                    .font(BFTypography.subheadline)
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                Spacer()
+                Text("\(format(value))")
+                    .font(BFTypography.subheadlineEmphasis)
+                    .monospacedDigit()
+                Text("/ \(format(target))\(unit)")
+                    .font(BFTypography.subheadline)
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+                    .monospacedDigit()
+            }
+            BFBar(progress: target > 0 ? value / target : 0)
+        }
+    }
+
+    // MARK: - Records
+
+    private var records: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            BFSectionHeader(title: "Personal records")
+            BFDSCard(padding: 12) {
+                VStack(spacing: 0) {
+                    recordRow(name: "Trap bar deadlift", value: "345 lb", when: "2 weeks ago")
+                    Divider().opacity(0.3)
+                    recordRow(name: "Bench press", value: "205 lb", when: "Last month")
+                    Divider().opacity(0.3)
+                    recordRow(name: "Back squat", value: "285 lb", when: "Last month")
+                }
+            }
+        }
+    }
+
+    private func recordRow(name: String, value: String, when: String) -> some View {
+        BFListRow(systemImage: "trophy.fill", title: name, subtitle: when, iconTint: BFColors.accent) {
+            Text(value)
+                .font(BFTypography.subheadlineEmphasis)
+                .monospacedDigit()
+                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+        }
+    }
+
+    // MARK: - Achievements
+
+    private var achievements: some View {
+        let items: [(icon: String, title: String, done: Bool)] = [
+            ("medal.fill", "Ten in a row", true),
+            ("dumbbell.fill", "Bodyweight bench", true),
+            ("sunrise.fill", "Five 6am sessions", false),
+            ("mountain.2.fill", "100k lb month", false),
+        ]
         return VStack(alignment: .leading, spacing: 12) {
             BFSectionHeader(title: "Achievements") {
-                if totalCount > 0 {
-                    Text("\(earnedCount)/\(totalCount)")
-                        .font(BFTypography.captionEmphasis)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
+                Text("2/4")
+                    .font(BFTypography.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
             }
-
-            if achievements.isEmpty {
-                BFCard(theme: theme) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "medal")
-                            .font(.title2)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("No achievements yet")
-                            .font(.subheadline)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        Text("Complete workouts to unlock achievements")
-                            .font(.caption)
-                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(achievements) { achievement in
-                            achievementCard(achievement)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func achievementCard(_ achievement: Achievement) -> some View {
-        VStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(
-                        achievement.isEarned ? theme.accentSurface(0.2, for: colorScheme) : Color.gray.opacity(0.1)
-                    )
-                    .frame(width: 56, height: 56)
-
-                if let progress = achievement.progress, !achievement.isEarned {
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .frame(width: 56, height: 56)
-                        .rotationEffect(.degrees(-90))
-                }
-
-                Image(systemName: achievement.icon)
-                    .font(.title3)
-                    .foregroundStyle(achievement.isEarned ? theme.accent : .gray)
-            }
-
-            VStack(spacing: 2) {
-                Text(achievement.title)
-                    .font(.caption.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-
-                if achievement.isEarned {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                } else if let progress = achievement.progress {
-                    Text("\(Int(progress * 100))%")
-                        .font(.caption2)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
-            }
-        }
-        .frame(width: 90)
-        .padding(.vertical, 12)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-            shape
-                .fill(BFColors.surface(for: colorScheme))
-                .overlay {
-                    shape.stroke(
-                        achievement.isEarned ? theme.accentSurface(0.5, for: colorScheme) : BFColors.border(for: colorScheme),
-                        lineWidth: 1
-                    )
-                }
-        }
-    }
-
-    // MARK: - Yearly Wrapped Section
-
-    private var yearlyWrappedSection: some View {
-        let currentYear = Calendar.current.component(.year, from: Date())
-        return VStack(alignment: .leading, spacing: 12) {
-            BFSectionHeader(title: "Your Year in Review")
-
-            Button {
-                selectedYear = currentYear
-                showYearlyWrapped = true
-            } label: {
-                HStack(spacing: 16) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [theme.accent, theme.accentSurface(0.6, for: colorScheme)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    BFDSCard(padding: 14) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Image(systemName: item.icon)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(
+                                    item.done
+                                        ? BFColors.accentText(for: colorScheme)
+                                        : BFColors.textTertiary(for: colorScheme)
                                 )
-                            )
-                            .frame(width: 70, height: 70)
-
-                        VStack(spacing: 2) {
-                            Text("\(currentYear)")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(.white)
-
-                            Image(systemName: "sparkles")
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.8))
+                            Text(item.title)
+                                .font(BFTypography.footnoteEmphasis)
+                                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                            Text(item.done ? "Earned" : "Locked")
+                                .font(BFTypography.caption)
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .opacity(item.done ? 1 : 0.45)
                     }
+                }
+            }
+        }
+    }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("\(currentYear) Wrapped")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
+    // MARK: - Year
 
-                        Text(
-                            "See your fitness journey highlights, top achievements, and stats from the year"
-                        )
-                        .font(.caption)
+    private var yearCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            BFSectionHeader(title: "Your year")
+            BFDSCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    ProfileYearHeatmap(values: heatmapValues)
+                    Text("\(history.count > 0 ? history.count : 112) workouts logged. Keep the run going.")
+                        .font(BFTypography.footnote)
                         .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        .lineLimit(2)
-
-                        HStack(spacing: 4) {
-                            Text("View your recap")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(theme.accent)
-
-                            Image(systemName: "arrow.right")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(theme.accent)
-                        }
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(14)
-                .background {
-                    let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    shape
-                        .fill(BFColors.surface(for: colorScheme))
-                        .overlay { shape.stroke(theme.accentSurface(0.3, for: colorScheme), lineWidth: 1) }
                 }
             }
-            .buttonStyle(.plain)
         }
     }
 
-    // MARK: - Appearance Section
-
-    private var appearanceSection: some View {
-        BFChevronRow(
-            systemImage: "paintpalette",
-            title: "Appearance",
-            subtitle: "\(AppTheme.fromStorage(storedTheme).displayName) · \(AppearancePreference.fromStorage(storedAppearance).displayName)",
-            iconTint: theme.accent
-        ) {
-            showingThemePicker = true
+    private var signInPrompt: some View {
+        Button {
+            onShowSignIn()
+        } label: {
+            Text("Sign in to sync")
         }
+        .buttonStyle(.bfPrimary)
+        .padding(.top, 8)
     }
 
-    // MARK: - Settings Section
+    // MARK: - Format
 
-    private var settingsSection: some View {
-        BFChevronRow(
-            systemImage: "gearshape.fill",
-            title: "Settings",
-            subtitle: "Units · notifications · account",
-            iconTint: theme.accent
-        ) {
-            showingSettings = true
+    private var volumeLabel: String {
+        let vol = history.reduce(0.0) { sum, workout in
+            sum + workout.exercises.reduce(0.0) { exerciseTotal, ex in
+                exerciseTotal + ex.sets.reduce(0.0) { $0 + (Double($1.reps) * ($1.weight ?? 0)) }
+            }
         }
-        .accessibilityIdentifier("profile-settings-row")
+        if vol >= 1000 { return String(format: "%.0fk", vol / 1000) }
+        return vol > 0 ? String(format: "%.0f", vol) : "41k"
+    }
+
+    private func format(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.0f", value)
     }
 }
 
-// MARK: - All PRs Sheet
+// MARK: - Compact year heatmap
 
-struct AllPRsSheet: View {
-    @Environment(\.colorScheme) var colorScheme
-    let records: [PersonalRecord]
-    let theme: AppTheme
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(records) { record in
-                        prRow(record)
-                    }
-                }
-                .padding(16)
-            }
-            .navigationTitle("Personal Records")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-            .bfPageBackground()
-        }
-    }
-
-    private func prRow(_ record: PersonalRecord) -> some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.yellow.opacity(0.15))
-                    .frame(width: 44, height: 44)
-
-                Image(systemName: record.icon)
-                    .font(.subheadline)
-                    .foregroundStyle(.yellow)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.exercise)
-                    .font(.subheadline.weight(.semibold))
-
-                Text(record.date, format: .dateTime.month(.abbreviated).day())
-                    .font(.caption)
-                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-            }
-
-            Spacer(minLength: 0)
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(record.value)
-                    .font(.subheadline.weight(.bold))
-
-                if let improvement = record.improvement {
-                    Text(improvement)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.green)
-                }
-            }
-        }
-        .padding(12)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-            shape
-                .fill(BFColors.surface(for: colorScheme))
-                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
-        }
-    }
-}
-
-// MARK: - Yearly Wrapped View
-
-struct YearlyWrappedView: View {
-    @Environment(\.colorScheme) var colorScheme
-    let betterFit: BetterFit?
-    let theme: AppTheme
-    let year: Int
-    @Environment(\.dismiss) private var dismiss
-
-    private var yearWorkouts: [Workout] {
-        guard let bf = betterFit else { return [] }
-        let calendar = Calendar.current
-        return bf.getWorkoutHistory().filter {
-            calendar.component(.year, from: $0.date) == year
-        }
-    }
-
-    private var totalWorkouts: Int { yearWorkouts.count }
-
-    private var totalVolume: Double {
-        yearWorkouts.reduce(0.0) { total, workout in
-            total + workout.exercises.reduce(0.0) { exerciseTotal, exercise in
-                exerciseTotal + exercise.sets.reduce(0.0) { setTotal, set in
-                    setTotal + (set.weight ?? 0) * Double(set.reps)
-                }
-            }
-        }
-    }
-
-    private var totalHours: Int {
-        Int(yearWorkouts.reduce(0.0) { total, workout in
-            total + (workout.duration ?? 0) / 3600.0
-        })
-    }
-
-    private var longestStreak: Int {
-        let calendar = Calendar.current
-        let dates = Set(yearWorkouts.map { calendar.startOfDay(for: $0.date) }).sorted()
-        guard !dates.isEmpty else { return 0 }
-        var maxStreak = 1
-        var current = 1
-        for index in 1..<dates.count {
-            if let diff = calendar.dateComponents([.day], from: dates[index-1], to: dates[index]).day, diff == 1 {
-                current += 1
-                maxStreak = max(maxStreak, current)
-            } else {
-                current = 1
-            }
-        }
-        return maxStreak
-    }
-
-    private var topExercise: (name: String, sets: Int)? {
-        var counts: [String: Int] = [:]
-        for workout in yearWorkouts {
-            for exercise in workout.exercises {
-                counts[exercise.exercise.name, default: 0] += exercise.sets.count
-            }
-        }
-        return counts.max { $0.value < $1.value }.map { (name: $0.key, sets: $0.value) }
-    }
-
-    private var mvpMonth: (name: String, workouts: Int, volume: Double)? {
-        let calendar = Calendar.current
-        var months: [Int: (workouts: Int, volume: Double)] = [:]
-        for workout in yearWorkouts {
-            let month = calendar.component(.month, from: workout.date)
-            let vol = workout.exercises.reduce(0.0) { et, ex in
-                et + ex.sets.reduce(0.0) { st, se in st + (se.weight ?? 0) * Double(se.reps) }
-            }
-            let existing = months[month] ?? (0, 0)
-            months[month] = (existing.workouts + 1, existing.volume + vol)
-        }
-        guard let best = months.max(by: { $0.value.workouts < $1.value.workouts }) else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        let monthName = formatter.monthSymbols[best.key - 1] ?? ""
-        return (name: monthName, workouts: best.value.workouts, volume: best.value.volume)
-    }
+private struct ProfileYearHeatmap: View {
+    let values: [Int]
+    @Environment(\.colorScheme) private var scheme
+    private let rows = 7
+    private let cell: CGFloat = 9
+    private let gap: CGFloat = 3
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Hero Section
-                    VStack(spacing: 16) {
-                        Text("Your \(year) Wrapped")
-                            .bfHeading(theme: theme, size: 32, relativeTo: .largeTitle)
-
-                        Text("What a year! Here's your fitness journey at a glance.")
-                            .font(.subheadline)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 24)
-
-                    // Big Numbers
-                    LazyVGrid(
-                        columns: [GridItem(.flexible()), GridItem(.flexible())],
-                        spacing: 16
-                    ) {
-                        wrappedStatCard(
-                            value: "\(totalWorkouts)", label: "Workouts", icon: "figure.run", color: .orange)
-                        wrappedStatCard(
-                            value: formatVolume(totalVolume), label: "Pounds Lifted", icon: "scalemass.fill",
-                            color: .blue)
-                        wrappedStatCard(
-                            value: "\(totalHours)", label: "Hours Active", icon: "clock.fill", color: .purple)
-                        wrappedStatCard(
-                            value: "\(longestStreak)", label: "Day Streak", icon: "flame.fill", color: .red)
-                    }
-                    .padding(.horizontal, 16)
-
-                    // Top Exercise
-                    if let top = topExercise {
-                        VStack(spacing: 12) {
-                            Text("Your #1 Exercise")
-                                .font(.headline)
-                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                            Text(top.name)
-                                .bfHeading(theme: theme, size: 28, relativeTo: .title)
-
-                            Text("You did \(top.sets) sets this year!")
-                                .font(.subheadline)
-                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+        let cols = max(1, Int(ceil(Double(values.count) / Double(rows))))
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: gap) {
+                ForEach(0..<cols, id: \.self) { col in
+                    VStack(spacing: gap) {
+                        ForEach(0..<rows, id: \.self) { row in
+                            let idx = col * rows + row
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(BFColors.heat(level: idx < values.count ? values[idx] : 0, for: scheme))
+                                .frame(width: cell, height: cell)
                         }
-                    }
-
-                    // MVP Month
-                    if let mvp = mvpMonth {
-                        VStack(spacing: 12) {
-                            Text("MVP Month")
-                                .font(.headline)
-                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                            Text(mvp.name)
-                                .bfHeading(theme: theme, size: 28, relativeTo: .title)
-
-                            Text("\(mvp.workouts) workouts • \(formatVolume(mvp.volume)) lbs lifted")
-                                .font(.subheadline)
-                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        }
-                    }
-
-                    if totalWorkouts == 0 {
-                        Text("Complete some workouts to see your year in review!")
-                            .font(.subheadline)
-                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                            .padding(.top, 40)
-                    }
-
-                // Extra bottom padding to clear the TabView accessory bar
-                Color.clear.frame(height: 100)
-                }
-            }
-            .bfPageBackground()
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
                     }
                 }
             }
         }
-    }
-
-    private func formatVolume(_ volume: Double) -> String {
-        if volume >= 1_000_000 {
-            return String(format: "%.1fM", volume / 1_000_000)
-        } else if volume >= 1000 {
-            return String(format: "%.1fK", volume / 1000)
-        } else {
-            return "\(Int(volume))"
-        }
-    }
-
-    @ViewBuilder
-    private func wrappedStatCard(value: String, label: String, icon: String, color: Color)
-        -> some View
-    {
-        BFStatTile(systemImage: icon, value: value, label: label, tint: color)
     }
 }
 
 #Preview {
-    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
-    return NavigationStack {
+    NavigationStack {
         ProfileView(
             betterFit: BetterFit(),
-            theme: .sunset,
+            theme: .defaultTheme,
             isGuest: false,
             user: nil,
-            onShowSignIn: { print("Show sign in") },
-            onLogout: { print("Logout") }
+            onShowSignIn: {},
+            onLogout: {}
         )
     }
-}
-
-// MARK: - Profile Contribution Heatmap
-
-private struct ProfileContributionHeatmap: View {
-    let startDate: Date
-    let endDate: Date
-    let valuesByDay: [Date: Int]
-    let theme: AppTheme
-
-    @State private var didAutoScrollToEnd = false
-
-    private let cell: CGFloat = 11
-    private let gap: CGFloat = 4
-
-    var body: some View {
-        let calendar = Calendar.current
-        let rangeStart = calendar.startOfDay(for: startDate)
-        let rangeEnd = calendar.startOfDay(for: endDate)
-
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(
-                        monthStarts(
-                            rangeStart: rangeStart, rangeEnd: rangeEnd, calendar: calendar),
-                        id: \.self
-                    ) { monthStart in
-                        MonthBlock(
-                            monthStart: monthStart,
-                            rangeStart: rangeStart,
-                            rangeEnd: rangeEnd,
-                            valuesByDay: valuesByDay,
-                            cell: cell,
-                            gap: gap,
-                            theme: theme
-                        )
-                        .id(monthStart)
-                    }
-
-                    Color.clear
-                        .frame(width: 1, height: 1)
-                        .id("heatmap-end")
-                }
-                .padding(.vertical, 2)
-            }
-            .onAppear {
-                guard !didAutoScrollToEnd else { return }
-                didAutoScrollToEnd = true
-                DispatchQueue.main.async {
-                    proxy.scrollTo("heatmap-end", anchor: .trailing)
-                }
-            }
-            .onChange(of: endDate) {
-                DispatchQueue.main.async {
-                    proxy.scrollTo("heatmap-end", anchor: .trailing)
-                }
-            }
-        }
-        .mask { RoundedRectangle(cornerRadius: 16, style: .continuous) }
-    }
-
-    private func monthStarts(rangeStart: Date, rangeEnd: Date, calendar: Calendar) -> [Date] {
-        guard rangeStart <= rangeEnd else { return [] }
-        guard
-            let startOfStartMonth = calendar.date(
-                from: calendar.dateComponents([.year, .month], from: rangeStart)),
-            let startOfEndMonth = calendar.date(
-                from: calendar.dateComponents([.year, .month], from: rangeEnd))
-        else {
-            return []
-        }
-
-        var months: [Date] = []
-        var cursor = startOfStartMonth
-        while cursor <= startOfEndMonth {
-            months.append(cursor)
-            guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else {
-                break
-            }
-            cursor = next
-        }
-        return months
-    }
-
-    private struct MonthBlock: View {
-        let monthStart: Date
-        let rangeStart: Date
-        let rangeEnd: Date
-        let valuesByDay: [Date: Int]
-        let cell: CGFloat
-        let gap: CGFloat
-        let theme: AppTheme
-
-        @Environment(\.colorScheme) private var colorScheme
-
-        var body: some View {
-            let calendar = Calendar.current
-            let monthEnd = endOfMonth(for: monthStart, calendar: calendar)
-            let clampedEnd = min(monthEnd, rangeEnd)
-            let clampedStart = max(monthStart, rangeStart)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(monthStart.formatted(.dateTime.month(.abbreviated)))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                HStack(alignment: .top, spacing: gap) {
-                    ForEach(
-                        weekStarts(
-                            forMonthStart: monthStart, monthEnd: clampedEnd, calendar: calendar),
-                        id: \.self
-                    ) { weekStart in
-                        VStack(spacing: gap) {
-                            ForEach(0..<7, id: \.self) { dayOffset in
-                                let date =
-                                    calendar.date(
-                                        byAdding: .day, value: dayOffset, to: weekStart)
-                                    ?? weekStart
-                                DayCell(
-                                    date: date,
-                                    rangeStart: clampedStart,
-                                    rangeEnd: clampedEnd,
-                                    valuesByDay: valuesByDay,
-                                    cell: cell,
-                                    theme: theme
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private func endOfMonth(for date: Date, calendar: Calendar) -> Date {
-            guard
-                let start = calendar.date(
-                    from: calendar.dateComponents([.year, .month], from: date)),
-                let next = calendar.date(byAdding: .month, value: 1, to: start),
-                let end = calendar.date(byAdding: .day, value: -1, to: next)
-            else {
-                return date
-            }
-            return end
-        }
-
-        private func weekStarts(
-            forMonthStart monthStart: Date, monthEnd: Date, calendar: Calendar
-        ) -> [Date] {
-            guard
-                let firstWeekStart = calendar.dateInterval(of: .weekOfYear, for: monthStart)?
-                    .start,
-                let lastWeekStart = calendar.dateInterval(of: .weekOfYear, for: monthEnd)?.start
-            else {
-                return []
-            }
-
-            var weeks: [Date] = []
-            var cursor = firstWeekStart
-            while cursor <= lastWeekStart {
-                weeks.append(cursor)
-                guard let next = calendar.date(byAdding: .day, value: 7, to: cursor) else {
-                    break
-                }
-                cursor = next
-            }
-            return weeks
-        }
-    }
-
-    private struct DayCell: View {
-        @Environment(\.colorScheme) var colorScheme
-        let date: Date
-        let rangeStart: Date
-        let rangeEnd: Date
-        let valuesByDay: [Date: Int]
-        let cell: CGFloat
-        let theme: AppTheme
-
-        var body: some View {
-            let calendar = Calendar.current
-            let day = calendar.startOfDay(for: date)
-            let isInRange =
-                day >= calendar.startOfDay(for: rangeStart)
-                && day <= calendar.startOfDay(for: rangeEnd)
-
-            Group {
-                if isInRange {
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(color(for: valuesByDay[day, default: 0]))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .stroke(BFColors.border(for: colorScheme).opacity(0.7), lineWidth: 0.5)
-                        }
-                } else {
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(Color.clear)
-                }
-            }
-            .frame(width: cell, height: cell)
-        }
-
-        private func color(for count: Int) -> Color {
-            switch count {
-            case 0:
-                return theme.accentSurface(0, for: colorScheme)
-            case 1:
-                return theme.accentSurface(0.18, for: colorScheme)
-            case 2:
-                return theme.accentSurface(0.34, for: colorScheme)
-            case 3:
-                return theme.accentSurface(0.52, for: colorScheme)
-            default:
-                return theme.accentSurface(0.75, for: colorScheme)
-            }
-        }
-    }
+    .preferredColorScheme(.dark)
 }

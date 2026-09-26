@@ -1,0 +1,9 @@
+/* Minimal element defaults so specimen cards and kits share a baseline. */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-page);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--text-body);line-height:var(--leading-normal);-webkit-font-smoothing:antialiased}
+a{color:var(--accent-text);text-decoration:none}
+a:hover{color:var(--text-primary)}
+button{font-family:inherit}
+.bf-display{font-family:var(--font-display);letter-spacing:var(--tracking-display);line-height:var(--leading-tight)}
+.bf-label{font-size:var(--text-caption);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-secondary)}
+.bf-num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}

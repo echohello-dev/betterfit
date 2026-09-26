@@ -15,12 +15,16 @@ extension RecoveryStatusLike {
 }
 
 extension RecoveryStatus {
-    /// Muscle recovery color — recovered (blue) → sore (red).
+    /// Muscle recovery colour on the yellow ladder.
     var bfColor: Color {
         BFColors.recoveryColor(for: RecoveryStatusLike(self))
     }
 
-    /// Short label for chips/legends.
+    func bfColor(for scheme: ColorScheme) -> Color {
+        BFColors.recoveryColor(for: RecoveryStatusLike(self), scheme: scheme)
+    }
+
+    /// Short label for chips/legends — always pair with the colour.
     var bfLabel: String {
         switch self {
         case .recovered: return "Recovered"
@@ -29,18 +33,28 @@ extension RecoveryStatus {
         case .sore: return "Sore"
         }
     }
+
+    /// 0…1 readiness used by ledger bars.
+    var bfReadiness: Double {
+        switch self {
+        case .recovered: return 0.96
+        case .slightlyFatigued: return 0.72
+        case .fatigued: return 0.48
+        case .sore: return 0.22
+        }
+    }
 }
 
 // MARK: - Recovery Dot
 
-/// Small colored dot indicating a region's recovery status.
 struct BFRecoveryDot: View {
     let status: RecoveryStatus
     var size: CGFloat = 10
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         Circle()
-            .fill(status.bfColor)
+            .fill(status.bfColor(for: scheme))
             .frame(width: size, height: size)
             .accessibilityLabel("Recovery: \(status.bfLabel)")
     }
@@ -48,16 +62,19 @@ struct BFRecoveryDot: View {
 
 // MARK: - Recovery Badge
 
-/// Colored capsule with status label (e.g. "Recovered", "Sore").
 struct BFRecoveryBadge: View {
     let status: RecoveryStatus
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         Text(status.bfLabel)
             .font(BFTypography.captionEmphasis)
-            .foregroundStyle(status.bfColor)
+            .foregroundStyle(status.bfColor(for: scheme))
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Capsule().fill(status.bfColor.opacity(0.15)))
+            .background(Capsule().fill(status.bfColor(for: scheme).opacity(0.22)))
+            .overlay {
+                Capsule().stroke(status.bfColor(for: scheme).opacity(0.45), lineWidth: 1)
+            }
     }
 }

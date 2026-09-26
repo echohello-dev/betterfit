@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="BetterFit app screen" description="iPhone screen scaffold: yellow identity band with black CTA, stat card, exercise timeline" -->
+<helmet>
+<script src="./ds-base.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>body{margin:0;background:#08080a}</style>
+</helmet>
+<div style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif">
+<div style="width:390px;height:844px;background:#0B0B0D;color:#fff;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 10px #1b1b1f">
+
+<div style="flex:0 0 48px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600">
+<span style="font-variant-numeric:tabular-nums">9:41</span>
+<span style="display:inline-flex;gap:5px;align-items:center"><i class="ph-fill ph-cell-signal-full" style="font-size:14px"></i><i class="ph-fill ph-wifi-high" style="font-size:14px"></i><i class="ph-fill ph-battery-full" style="font-size:16px"></i></span>
+</div>
+
+<div style="flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:0 20px 14px">
+<img src="../../assets/icon-lettermark.png" alt="BetterFit" style="height:34px;border-radius:9px;display:block">
+<div style="flex:1;min-width:0">
+<div style="font-size:15px;font-weight:600">Hello, Johnny</div>
+<div style="font-size:12px;color:#9C9CA6">Two workouts this week. One more reaches your goal.</div>
+</div>
+</div>
+
+<div style="flex:1;overflow-y:auto;overflow-x:hidden">
+
+<div style="background:#FFD60A;color:#000;padding:20px">
+<div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;opacity:.62">Today · Tue 26 Jul</div>
+<div style="font-family:'BBH Hegarty','Arial Black',system-ui,sans-serif;letter-spacing:-.02em;line-height:1.05;font-size:44px;margin-top:6px">Pull B</div>
+<div style="display:flex;gap:18px;margin-top:12px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">
+<span>5 exercises</span><span>42 min</span><span>14.2k lb</span>
+</div>
+<div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap">
+<span style="font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.1)">Lats</span>
+<span style="font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.1)">Biceps</span>
+<span style="font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.1)">Rear delts</span>
+</div>
+<button type="button" style="margin-top:18px;width:100%;height:54px;border:none;cursor:pointer;background:#000;color:#FFD60A;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:17px;font-weight:600"><i class="ph-fill ph-play" style="font-size:16px"></i>Start workout<i class="ph-bold ph-caret-right" style="font-size:13px;opacity:.7"></i></button>
+</div>
+
+<div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:20px">
+
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.Banner" tone="warning" icon="heartbeat" title="Chest is still recovering" message="Back and biceps today. Push moves to Thursday." hint-size="100%,84px"></x-import>
+
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.Card" hint-size="100%,120px">
+<div style="display:flex;align-items:center;gap:10px">
+<i class="ph-fill ph-fire-simple" style="font-size:18px;color:#FFD60A"></i>
+<span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">12</span>
+<span style="font-size:15px;color:#9C9CA6">day streak</span>
+</div>
+<div style="display:flex;gap:20px;margin-top:16px">
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.OverviewStat" icon="calendar" value="3" label="This week" hint-size="80px,40px"></x-import>
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.OverviewStat" icon="heartbeat" value="72%" label="Recovery" hint-size="80px,40px"></x-import>
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.OverviewStat" icon="sparkle" value="41" label="Active days" hint-size="90px,40px"></x-import>
+</div>
+</x-import>
+
+<div style="display:flex;flex-direction:column;gap:12px">
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.SectionHeader" title="Exercises" hint-size="100%,16px"></x-import>
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.Card" hint-size="100%,300px">
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.ExerciseRow" index="{{ 1 }}" name="Trap bar deadlift" prescription="4 × 5 · 245 lb" muscles="Back, Glutes" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.ExerciseRow" index="{{ 2 }}" name="Barbell row" prescription="4 × 8 · 135 lb" muscles="Lats, Rear delts" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.ExerciseRow" index="{{ 3 }}" name="Lat pulldown" prescription="3 × 10 · 120 lb" muscles="Lats" hint-size="100%,64px"></x-import>
+<x-import component-from-global-scope="BetterFitDesignSystem_6a70ea.ExerciseRow" index="{{ 4 }}" name="EZ curl" prescription="3 × 12 · 65 lb" muscles="Biceps" is-last="{{ true }}" hint-size="100%,56px"></x-import>
+</x-import>
+</div>
+
+</div>
+</div>
+
+<div style="flex:0 0 auto;background:#131316;border-top:1px solid rgba(255,255,255,.07);padding:8px 8px 22px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:#FFD60A"><i class="ph-fill ph-person-simple-run" style="font-size:22px"></i><span style="font-size:10px;font-weight:600">Workout</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:#63636D"><i class="ph-fill ph-waveform" style="font-size:22px"></i><span style="font-size:10px;font-weight:600">Plan</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:#63636D"><i class="ph-fill ph-magnifying-glass" style="font-size:22px"></i><span style="font-size:10px;font-weight:600">Search</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:#63636D"><i class="ph-fill ph-user" style="font-size:22px"></i><span style="font-size:10px;font-weight:600">Me</span></div>
+</div>
+
+</div>
+</div>
+
+</x-dc>
+</body>
+</html>

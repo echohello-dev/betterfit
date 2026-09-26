@@ -1,0 +1,38 @@
+/* iOS point scale from BFTypography.swift, carried 1:1 into px. */
+:root{
+  /* Display / titles */
+  --text-hero:56px;      /* redesign: full-bleed identity headline */
+  --text-large-title:34px;
+  --text-title-1:28px;
+  --text-title-2:22px;
+  --text-title-3:20px;
+
+  /* Body */
+  --text-headline:17px;
+  --text-body:17px;
+  --text-callout:16px;
+  --text-subheadline:15px;
+  --text-footnote:13px;
+  --text-caption:12px;
+
+  /* Numeric (monospaced digits — timers, weights, reps, stats) */
+  --text-timer:40px;
+  --text-stat-lg:28px;
+  --text-stat-md:20px;
+  --text-stat-sm:15px;
+
+  --weight-regular:400;
+  --weight-medium:500;
+  --weight-semibold:600;
+  --weight-bold:700;
+  --weight-black:800;
+
+  --leading-tight:1.05;
+  --leading-snug:1.2;
+  --leading-normal:1.35;
+  --leading-relaxed:1.5;
+
+  --tracking-display:.005em;   /* loosened: only the Regular cut is licensed here */
+  --tracking-normal:0;
+  --tracking-label:.1em;   /* uppercase section markers */
+}

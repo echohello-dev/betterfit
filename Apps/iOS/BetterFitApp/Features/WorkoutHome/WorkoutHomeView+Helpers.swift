@@ -1,7 +1,9 @@
-import BetterFit
 import SwiftUI
+import BetterFit
+import Auth
 
-// MARK: - Workout Notifications
+// MARK: - Workout lifecycle notifications
+
 extension Notification.Name {
     static let workoutStarted = Notification.Name("BetterFit.workoutStarted")
     static let workoutCompleted = Notification.Name("BetterFit.workoutCompleted")
@@ -9,967 +11,376 @@ extension Notification.Name {
     static let workoutResumed = Notification.Name("BetterFit.workoutResumed")
 }
 
-extension WorkoutHomeView {
-    // MARK: - Helper Functions
+// MARK: - Plan helpers (Workout tab)
 
-    func refreshActiveWorkout() {
-        activeWorkoutId = bf.getActiveWorkout()?.id
+extension WorkoutHomeView {
+    func pairSuperset(currentIndex: Int, withIndex nextIndex: Int) {
+        guard nextIndex < exercises.count, currentIndex >= 0 else { return }
+        // Group both into a single workout. We use a UUID shared between the two rows.
+        let group = exercises[currentIndex].id
+        // Assign same supersetGroup via a side-channel via the session-model approach:
+        // in this codebase we mark via `BFSupersetStore.shared`.
+        BFSupersetStore.shared.link(exercises[currentIndex].id, exercises[nextIndex].id)
     }
 
-    func startWorkoutTimerIfNeeded() {
-        guard hasActiveWorkout else {
-            stopWorkoutTimer()
+    func removePlanExercise(_ exercise: PlannedExercise) {
+        exercises.removeAll { $0.id == exercise.id }
+        persistExercises()
+    }
+
+    func planInput(
+        label: String,
+        text: Binding<String>,
+        focus: PlanField,
+        keyboard: UIKeyboardType,
+        onCommit: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 4) {
+            TextField("—", text: text)
+                .keyboardType(keyboard)
+                .font(BFTypography.setValue)
+                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 56)
+                .focused($focusedPlanField, equals: focus)
+                .onSubmit(onCommit)
+                .onChange(of: focusedPlanField) { _, newValue in
+                    // Only commit on focus-loss if the user actually typed a
+                    // draft. The displayed value may be a model fallback, so
+                    // checking the draft directly avoids wiping stored kg.
+                    guard newValue != focus else { return }
+                    if hasDraft(for: focus) { onCommit() }
+                }
+            Text(label)
+                .font(BFTypography.captionEmphasis)
+                .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                .fill(BFColors.surfaceRaised(for: colorScheme))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: BFRadius.medium, style: .continuous)
+                .stroke(
+                    focusedPlanField == focus ? BFColors.accent : BFColors.border(for: colorScheme),
+                    lineWidth: focusedPlanField == focus ? 1.5 : 1
+                )
+        }
+    }
+
+    func hasDraft(for focus: PlanField) -> Bool {
+        switch focus {
+        case .weight(let id): return draftWeight[id] != nil
+        case .reps(let id): return draftReps[id] != nil
+        }
+    }
+
+    func weightDraft(for exercise: PlannedExercise) -> Binding<String> {
+        Binding(
+            get: {
+                if let cached = draftWeight[exercise.id] { return cached }
+                return exercise.weightValue > 0 ? formatPlanNum(exercise.weightValue) : ""
+            },
+            set: { draftWeight[exercise.id] = $0 }
+        )
+    }
+
+    func repsDraft(for exercise: PlannedExercise) -> Binding<String> {
+        Binding(
+            get: {
+                if let cached = draftReps[exercise.id] { return cached }
+                return exercise.repsValue > 0 ? "\(exercise.repsValue)" : exercise.reps
+            },
+            set: { draftReps[exercise.id] = $0 }
+        )
+    }
+
+    func commitWeight(_ id: UUID) {
+        guard let exerciseIndex = exercises.firstIndex(where: { $0.id == id }) else { return }
+        let raw = draftWeight[id] ?? ""
+        let cleaned = raw.replacingOccurrences(of: ",", with: ".").filter { $0.isNumber || $0 == "." }
+        // Empty string clears the target weight (no zero placeholder).
+        guard !cleaned.isEmpty, cleaned != ".", let value = Double(cleaned), value > 0 else {
+            // Either empty or 0 — treat as "not set" and clear both draft + store.
+            exercises[exerciseIndex].targetWeight = nil
+            draftWeight[id] = ""
+            persistExercises()
             return
         }
+        exercises[exerciseIndex].targetWeight = "\(formatPlanNum(value)) kg"
+        draftWeight[id] = formatPlanNum(value)
+        persistExercises()
+    }
 
-        // Stop existing timer if any
-        workoutTimer?.invalidate()
-
-        // Start timer that updates every 10ms for smooth animation
-        workoutTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [self] _ in
-            self.elapsedTimeUpdateTrigger.toggle()
+    func commitReps(_ id: UUID) {
+        guard let exerciseIndex = exercises.firstIndex(where: { $0.id == id }) else { return }
+        let raw = draftReps[id] ?? ""
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            // Revert to the stored value rather than guessing.
+            draftReps[id] = "\(exercises[exerciseIndex].repsValue)"
+            return
         }
+        // Accept only the first whole number — drop ranges like "8-10".
+        let digits = trimmed.filter { $0.isNumber }
+        let value = Int(digits.prefix(4)) ?? exercises[exerciseIndex].repsValue
+        let stored = "\(max(1, value))"
+        exercises[exerciseIndex].reps = stored
+        draftReps[id] = stored
+        persistExercises()
     }
 
-    func stopWorkoutTimer() {
-        workoutTimer?.invalidate()
-        workoutTimer = nil
+    func formatPlanNum(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(value))
+            : String(format: "%.1f", value)
     }
 
-    func loadGameStats() {
-        currentStreak = bf.socialManager.getCurrentStreak()
-        longestStreak = bf.socialManager.getLongestStreak()
-        lastWorkoutDate = bf.socialManager.getLastWorkoutDate()
-
-        // Get username from authenticated user or fallback to profile
-        if let user = user {
-            // First try to get full_name from user metadata
-            if let fullName = user.userMetadata["full_name"]?.stringValue {
-                username = fullName
-            }
-            // Fall back to extracting from email (e.g., "johnny@example.com" -> "Johnny")
-            else if let email = user.email {
-                let name = email.components(separatedBy: "@").first ?? "User"
-                username = name.prefix(1).uppercased() + name.dropFirst()
-            } else {
-                username = "User"
-            }
+    func meta(for exercise: PlannedExercise, index: Int, focus: Bool) -> String {
+        var parts: [String] = []
+        if focus { parts.append("Focus exercise") }
+        if let first = exercise.muscleGroups.first {
+            parts.append(first.capitalized)
         } else {
-            username = bf.socialManager.getUserProfile().username
+            parts.append(exercise.category.rawValue.capitalized)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    func replaceWorkoutPreview(_ preview: WorkoutPreview) {
+        exercises = preview.exercises
+        sessionName = preview.name
+        if let type = workoutTypeMatching(preview.name) {
+            workoutType = type
+        }
+        persistExercises()
+    }
+
+    func workoutTypeMatching(_ name: String) -> WorkoutType? {
+        let lowered = name.lowercased()
+        if lowered.contains("pull") { return .pull }
+        if lowered.contains("push") { return .push }
+        if lowered.contains("leg") { return .legs }
+        if lowered.contains("upper") { return .upper }
+        if lowered.contains("lower") { return .lower }
+        if lowered.contains("condition") || lowered.contains("cardio") { return .cardio }
+        if lowered.contains("full") { return .fullBody }
+        return nil
+    }
+
+    func showPreview(named name: String) {
+        guard let preview = previewForName(name) else { return }
+        workoutPreview = preview
+    }
+
+    func previewForName(_ name: String) -> WorkoutPreview? {
+        if name == sessionName {
+            return WorkoutPreview(
+                name: sessionName,
+                duration: plannedMinutes,
+                exercises: exercises
+            )
+        }
+        return WorkoutPreviewLibrary.sampleWorkouts.first(where: { $0.name == name })
+            ?? WorkoutPreview(
+                name: name,
+                duration: 45,
+                exercises: WorkoutHomeView.demoExercises(named: name)
+            )
+    }
+
+    static func demoExercises(named name: String) -> [PlannedExercise] {
+        let lowered = name.lowercased()
+        if lowered.contains("leg") {
+            return WorkoutPreviewLibrary.sampleWorkouts.first(where: { $0.name == "Legs A" })?.exercises ?? []
+        }
+        if lowered.contains("push") {
+            return WorkoutPreviewLibrary.sampleWorkouts.first(where: { $0.name == "Push A" })?.exercises ?? []
+        }
+        if lowered.contains("condition") {
+            return WorkoutPreviewLibrary.sampleWorkouts.first(where: { $0.name == "Conditioning" })?.exercises ?? []
+        }
+        return WorkoutPreviewLibrary.sampleWorkouts.first(where: { $0.name == "Pull Day" })?.exercises ?? []
+    }
+
+    // MARK: - Data
+
+    func loadPlan() {
+        if let plan = todayPlan, !plan.isRest, !plan.exercises.isEmpty {
+            exercises = plan.exercises
+            workoutType = plan.workoutType
+            sessionName = plan.workoutType.map { "\($0.rawValue) Day" } ?? "Today's session"
+        } else if exercises.isEmpty {
+            // Seed demo plan into the manager so Start workout picks it up.
+            exercises = Self.demoPullDay
+            workoutType = .pull
+            sessionName = "Pull Day"
+        }
+
+        // Always keep planManager in sync with what Plan is showing.
+        persistExercises()
+
+        // Seed demo history once so Log/Targets have data
+        if demoModeOverride ?? demoModeEnabled {
+            seedLightDemoIfNeeded()
         }
     }
 
-    func refreshVitals() {
-        let range = heatmapDateRange()
-        activityByDay = makeDailyWorkoutCounts(startDate: range.start, endDate: range.end)
+    func persistExercises() {
+        guard let manager = planManager else { return }
+        let date = Calendar.current.startOfDay(for: Date())
+        let existing = manager.getPlanDay(for: date)
+        manager.replaceDay(
+            WorkoutPlanDay(
+                id: existing?.id ?? UUID(),
+                date: date,
+                workoutType: workoutType ?? existing?.workoutType ?? .fullBody,
+                exercises: exercises,
+                isRest: exercises.isEmpty,
+                isCompleted: existing?.isCompleted ?? false
+            )
+        )
     }
 
-    func heatmapDateRange() -> (start: Date, end: Date) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date.now)
+    func remove(_ exercise: PlannedExercise) {
+        exercises.removeAll { $0.id == exercise.id }
+        persistExercises()
+    }
 
-        switch heatmapRange {
-        case .week:
-            let start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
-            return (start, today)
-        case .month:
-            let start = calendar.date(byAdding: .month, value: -1, to: today) ?? today
-            return (calendar.startOfDay(for: start), today)
-        case .year:
-            let start = calendar.date(byAdding: .year, value: -1, to: today) ?? today
-            return (calendar.startOfDay(for: start), today)
-        case .custom:
-            let start = calendar.startOfDay(for: min(customRangeStart, customRangeEnd))
-            let end = calendar.startOfDay(for: min(max(customRangeStart, customRangeEnd), today))
-            return (start, end)
+    func moveToTop(_ exercise: PlannedExercise) {
+        guard let exerciseIndex = exercises.firstIndex(where: { $0.id == exercise.id }), exerciseIndex > 0 else { return }
+        let item = exercises.remove(at: exerciseIndex)
+        exercises.insert(item, at: 0)
+        persistExercises()
+    }
+
+    func cycleSession() {
+        let cycle: [WorkoutType] = [.pull, .push, .legs, .upper]
+        let next: WorkoutType
+        if let current = workoutType, let idx = cycle.firstIndex(of: current) {
+            next = cycle[(idx + 1) % cycle.count]
+        } else {
+            next = .pull
+        }
+        workoutType = next
+        sessionName = "\(next.rawValue) Day"
+        if let manager = planManager {
+            exercises = manager.getTodayPlan()?.exercises ?? Self.demoFor(next)
+        } else {
+            exercises = Self.demoFor(next)
+        }
+        if exercises.isEmpty { exercises = Self.demoFor(next) }
+        persistExercises()
+    }
+
+    func adoptSession(named name: String) {
+        sessionName = name
+        if name.localizedCaseInsensitiveContains("leg") {
+            workoutType = .legs
+            exercises = Self.demoFor(.legs)
+        } else if name.localizedCaseInsensitiveContains("push") {
+            workoutType = .push
+            exercises = Self.demoFor(.push)
+        } else if name.localizedCaseInsensitiveContains("condition") {
+            workoutType = .cardio
+            exercises = Self.demoFor(.cardio)
+        } else {
+            workoutType = .pull
+            exercises = Self.demoPullDay
+        }
+        persistExercises()
+    }
+
+    func repeatLast() {
+        let history = betterFit.getWorkoutHistory().sorted { $0.date > $1.date }
+        guard let last = history.first else { return }
+        sessionName = last.name
+        exercises = last.exercises.map { we in
+            PlannedExercise(
+                name: we.exercise.name,
+                sets: max(we.sets.count, 3),
+                reps: "\(we.sets.first?.reps ?? 8)",
+                targetWeight: we.sets.first?.weight.map { "\(Int($0)) kg" },
+                muscleGroups: we.exercise.muscleGroups.map(\.rawValue)
+            )
+        }
+        persistExercises()
+    }
+
+    func trimToThirty() {
+        // Keep focus lifts first, cap around 5 movements
+        if exercises.count > 5 {
+            exercises = Array(exercises.prefix(5))
+            persistExercises()
         }
     }
 
-    func heatmapRangeLabel() -> String {
-        switch heatmapRange {
-        case .week: return "1W"
-        case .month: return "1M"
-        case .year: return "1Y"
-        case .custom: return "Custom"
-        }
-    }
-
-    var suggestedWorkout: Workout {
-        // First check if planManager has a workout for today
-        if let planDay = planManager?.getTodayPlan(), !planDay.isRest, !planDay.exercises.isEmpty {
-            return planDay.toWorkout()
-        }
-        return bf.getRecommendedWorkout() ?? defaultWorkout
-    }
-
-    var suggestedWorkouts: [Workout] {
-        // Get multiple workout suggestions from real data
-        var workouts: [Workout] = []
-
-        // First, use today's planned workout if available from planManager
-        if let planDay = planManager?.getTodayPlan(), !planDay.isRest, !planDay.exercises.isEmpty {
-            workouts.append(planDay.toWorkout())
-        } else if let recommended = bf.getRecommendedWorkout() {
-            workouts.append(recommended)
-        }
-
-        // Add workouts from templates if available
-        let templates = bf.templateManager.getAllTemplates()
-        for template in templates where !workouts.contains(where: { $0.name == template.name }) {
-            workouts.append(template.createWorkout())
-            if workouts.count >= 4 { break }  // Limit to 4 suggested workouts
-        }
-
-        // If we still have few workouts, add upcoming planned workouts from this week
-        if workouts.count < 4, let manager = planManager {
-            let weekDays = manager.getCurrentWeekDays()
-            for day in weekDays where !day.isRest && !day.isToday && !day.exercises.isEmpty {
-                let workout = day.toWorkout()
-                if !workouts.contains(where: { $0.name == workout.name }) {
-                    workouts.append(workout)
-                    if workouts.count >= 4 { break }
-                }
-            }
-        }
-
-        // Fallback to default workouts if we still have none
-        if workouts.isEmpty {
-            workouts.append(defaultWorkout)
-        }
-
-        return workouts
-    }
-
-    var defaultWorkout: Workout {
-        Workout(
-            name: "Steady Running",
+    func seedLightDemoIfNeeded() {
+        // Only seed if history is empty — avoid fighting real data
+        guard betterFit.getWorkoutHistory().isEmpty else { return }
+        let demo = Workout(
+            name: "Push A",
             exercises: [
                 WorkoutExercise(
                     exercise: Exercise(
-                        name: "Running", equipmentRequired: .bodyweight,
-                        muscleGroups: [.quads, .calves]),
-                    sets: [ExerciseSet(reps: 1, weight: 0)]
-                )
-            ]
-        )
-    }
-
-    func startWorkout() {
-        let workout = suggestedWorkout
-        planManager?.setSelectedWorkoutForToday(workout)
-        bf.startWorkout(workout)
-        activeWorkoutId = workout.id
-        NotificationCenter.default.post(name: .workoutStarted, object: workout.id)
-    }
-
-    func selectWorkout(_ workout: Workout) {
-        planManager?.setSelectedWorkoutForToday(workout)
-        bf.startWorkout(workout)
-        activeWorkoutId = workout.id
-        NotificationCenter.default.post(name: .workoutStarted, object: workout.id)
-    }
-
-    func overviewSummaryText(weeklyWorkouts: Int, recovery: Int) -> String {
-        if weeklyWorkouts == 0 {
-            return "Start with something light today — your body will thank you."
-        }
-
-        if recovery < 35 {
-            return "You’re training consistently — consider keeping intensity moderate."
-        }
-
-        if weeklyWorkouts >= 4 {
-            return "Strong week so far. Keep the momentum going."
-        }
-
-        return "Nice progress. A quick session today keeps the streak alive."
-    }
-
-    func workoutsThisWeek(date: Date) -> Int {
-        let calendar = Calendar.current
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else {
-            return 0
-        }
-
-        let history = bf.getWorkoutHistory()
-        let completed = history.filter { $0.date >= interval.start && $0.date < interval.end }.count
-
-        if let active = bf.getActiveWorkout(),
-            active.date >= interval.start && active.date < interval.end
-        {
-            return completed + 1
-        }
-
-        return completed
-    }
-
-    func workoutRangeStats(start: Date, end: Date) -> WorkoutRangeStats {
-        let calendar = Calendar.current
-        let startDay = calendar.startOfDay(for: start)
-        let endDay = calendar.startOfDay(for: end)
-        guard startDay <= endDay else { return WorkoutRangeStats(totalWorkouts: 0, activeDays: 0) }
-
-        let counts = makeDailyWorkoutCounts(startDate: startDay, endDate: endDay)
-        let total = counts.values.reduce(0, +)
-        let activeDays = counts.values.filter { $0 > 0 }.count
-        return WorkoutRangeStats(totalWorkouts: total, activeDays: activeDays)
-    }
-
-    func workoutCategorySplit(start: Date, end: Date) -> WorkoutCategorySplit {
-        let calendar = Calendar.current
-        let startDay = calendar.startOfDay(for: start)
-        let endDay = calendar.startOfDay(for: end)
-        guard startDay <= endDay else {
-            return WorkoutCategorySplit(cardioPercent: 0, strengthPercent: 0, liftingPercent: 0)
-        }
-
-        let history = bf.getWorkoutHistory().filter { $0.date >= startDay && $0.date <= endDay }
-        let workouts: [Workout] = {
-            if let active = bf.getActiveWorkout(), active.date >= startDay && active.date <= endDay
-            {
-                return history + [active]
-            }
-            return history
-        }()
-
-        guard !workouts.isEmpty else {
-            return WorkoutCategorySplit(cardioPercent: 0, strengthPercent: 0, liftingPercent: 0)
-        }
-
-        var counts: [WorkoutCategory: Int] = [.cardio: 0, .strength: 0, .lifting: 0]
-        for workout in workouts {
-            counts[workoutCategory(for: workout), default: 0] += 1
-        }
-
-        let total = max(1, workouts.count)
-        func pct(_ n: Int) -> Int { Int(round((Double(n) / Double(total)) * 100)) }
-
-        let cardio = pct(counts[.cardio, default: 0])
-        let strength = pct(counts[.strength, default: 0])
-        let lifting = max(0, 100 - cardio - strength)
-        return WorkoutCategorySplit(
-            cardioPercent: cardio, strengthPercent: strength, liftingPercent: lifting)
-    }
-
-    func workoutCategory(for workout: Workout) -> WorkoutCategory {
-        var score: [WorkoutCategory: Int] = [.cardio: 0, .strength: 0, .lifting: 0]
-
-        for we in workout.exercises {
-            let name = we.exercise.name.lowercased()
-            if name.contains("run") || name.contains("treadmill") || name.contains("bike")
-                || name.contains("cycle")
-            {
-                score[.cardio, default: 0] += 2
-            }
-            if name.contains("row") || name.contains("erg") || name.contains("jump") {
-                score[.cardio, default: 0] += 1
-            }
-
-            switch we.exercise.equipmentRequired {
-            case .barbell, .dumbbell, .kettlebell, .machine, .cable:
-                score[.lifting, default: 0] += 2
-            case .bands, .bodyweight:
-                score[.strength, default: 0] += 2
-            case .other:
-                break
-            }
-        }
-
-        return score.max { $0.value < $1.value }?.key ?? .strength
-    }
-
-    var streakDays: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date.now)
-        let end = calendar.startOfDay(for: min(selectedDate, today))
-        let count = 21
-
-        return (0..<count).compactMap { offset in
-            calendar.date(byAdding: .day, value: -(count - 1 - offset), to: end)
-        }
-    }
-
-    var streakWeekDays: [Date] {
-        let calendar = sundayFirstCalendar
-        let start =
-            calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start
-            ?? calendar.startOfDay(for: selectedDate)
-        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
-    }
-
-    var streakVisibleDays: [Date] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date.now)
-
-        // Keep today centered by showing a few days on either side.
-        // Future days are displayed but disabled.
-        let halfWindow = 10
-        let start = calendar.date(byAdding: .day, value: -halfWindow, to: today) ?? today
-        return (0..<(halfWindow * 2 + 1)).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: start)
-        }
-    }
-
-    var sundayFirstCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale.current
-        calendar.timeZone = TimeZone.current
-        calendar.firstWeekday = 1
-        return calendar
-    }
-
-    func recapTimeText(for workout: Workout, isOngoing: Bool) -> String {
-        if isOngoing {
-            let seconds = max(0, Date.now.timeIntervalSince(workout.date))
-            return formatElapsed(seconds)
-        }
-
-        if let duration = workout.duration, duration > 0 {
-            return formatElapsed(duration)
-        }
-
-        // Best-effort fallback: show relative time since last workout.
-        return workout.date.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
-    }
-
-    func recapSubtitle(for workout: Workout) -> String {
-        let groups = primaryMuscleGroups(for: workout)
-        if groups.isEmpty {
-            return workout.name
-        }
-        return groups.joined(separator: ", ")
-    }
-
-    func primaryMuscleGroups(for workout: Workout) -> [String] {
-        let groups = workout.exercises
-            .flatMap { $0.exercise.muscleGroups }
-            .map { $0.rawValue }
-
-        var counts: [String: Int] = [:]
-        for g in groups {
-            counts[g, default: 0] += 1
-        }
-
-        return
-            counts
-            .sorted { $0.value > $1.value }
-            .map { prettifyMuscleGroup($0.key) }
-            .prefix(3)
-            .map { $0 }
-    }
-
-    func prettifyMuscleGroup(_ raw: String) -> String {
-        switch raw {
-        case "abs": return "Core"
-        case "quads": return "Quadriceps"
-        default:
-            return raw.prefix(1).uppercased() + raw.dropFirst()
-        }
-    }
-
-    func recapExerciseThumb(_ exercise: Exercise) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(theme.accentSurface(0.10, for: colorScheme))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(
-                        theme.cardStroke(for: colorScheme), lineWidth: 1)
-                }
-
-            Image(systemName: thumbIcon(for: exercise))
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(theme.accent)
-        }
-        .frame(width: 64, height: 52)
-        .accessibilityLabel(exercise.name)
-    }
-
-    func recapExerciseRow(_ workoutExercise: WorkoutExercise) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(theme.accentSurface(0.12, for: colorScheme))
-                    .frame(width: 44, height: 44)
-                Image(systemName: thumbIcon(for: workoutExercise.exercise))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(theme.accent)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(workoutExercise.exercise.name)
-                    .font(.subheadline.weight(.semibold))
-
-                Text(recapExerciseDetail(workoutExercise))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-            shape
-                .fill(.regularMaterial)
-                .overlay { shape.stroke(theme.cardStroke(for: colorScheme), lineWidth: 1) }
-                .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08),
-                    radius: colorScheme == .dark ? 14 : 10,
-                    x: 0,
-                    y: 6
-                )
-        }
-    }
-
-    func recapExerciseDetail(_ workoutExercise: WorkoutExercise) -> String {
-        let groups = workoutExercise.exercise.muscleGroups.prefix(2).map {
-            prettifyMuscleGroup($0.rawValue)
-        }
-        if !workoutExercise.sets.isEmpty {
-            let sets = workoutExercise.sets.count
-            return "\(groups.joined(separator: ", ")) • \(sets) sets"
-        }
-        return groups.joined(separator: ", ")
-    }
-
-    func thumbIcon(for exercise: Exercise) -> String {
-        let name = exercise.name.lowercased()
-        if name.contains("run") || name.contains("treadmill") { return "figure.run" }
-        if name.contains("bench") || name.contains("press") { return "dumbbell.fill" }
-        if name.contains("row") { return "figure.strengthtraining.traditional" }
-        if name.contains("yoga") { return "figure.yoga" }
-
-        switch exercise.equipmentRequired {
-        case .barbell, .dumbbell, .kettlebell:
-            return "dumbbell.fill"
-        case .machine, .cable:
-            return "figure.strengthtraining.traditional"
-        case .bands:
-            return "circle.dotted"
-        case .bodyweight:
-            return "figure.core.training"
-        case .other:
-            return "bolt.fill"
-        }
-    }
-
-    func formatElapsed(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        let minutes = total / 60
-        let hrs = minutes / 60
-        let mins = minutes % 60
-        let secs = total % 60
-        let milliseconds = Int((seconds.truncatingRemainder(dividingBy: 1)) * 100)
-
-        if hrs > 0 {
-            return String(format: "%d:%02d:%02d.%02d", hrs, mins, secs, milliseconds)
-        }
-        return String(format: "%02d:%02d.%02d", mins, secs, milliseconds)
-    }
-
-    func makeDailyWorkoutCounts(startDate: Date, endDate: Date) -> [Date: Int] {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: startDate)
-        let end = calendar.startOfDay(for: endDate)
-        guard start <= end else { return [:] }
-
-        var counts: [Date: Int] = [:]
-
-        for workout in bf.getWorkoutHistory() {
-            let day = calendar.startOfDay(for: workout.date)
-            guard day >= start, day <= end else { continue }
-            counts[day, default: 0] += 1
-        }
-
-        if bf.getActiveWorkout() != nil {
-            // Best-effort: count today's in-progress session if it's inside the selected range.
-            let today = calendar.startOfDay(for: Date.now)
-            if today >= start, today <= end {
-                counts[today, default: 0] += 1
-            }
-        }
-
-        return counts
-    }
-
-    func streakDayPill(for date: Date) -> some View {
-        let calendar = sundayFirstCalendar
-        let today = Calendar.current.startOfDay(for: Date.now)
-        let isToday = Calendar.current.isDate(date, inSameDayAs: today)
-        let isFuture = date > today
-        let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
-        let isInStreak = isDateInCurrentStreak(date)
-
-        let selectedFill: Color = colorScheme == .dark ? .white : .black
-        let selectedText: Color = colorScheme == .dark ? .black : .white
-
-        return Button {
-            selectedDate = date
-        } label: {
-            VStack(spacing: 6) {
-                Text(date.formatted(.dateTime.weekday(.abbreviated)))
-                    .font(.caption.weight(.semibold))
-
-                HStack(spacing: 4) {
-                    Text(date.formatted(.dateTime.month(.abbreviated)))
-                        .font(.caption.weight(.semibold))
-
-                    Text(date.formatted(.dateTime.day()))
-                        .font(.subheadline.weight(.bold))
-                        .monospacedDigit()
-                }
-            }
-            .frame(width: 60, height: 64)
-            .foregroundStyle(
-                isSelected ? selectedText : (isFuture ? Color.secondary : Color.primary)
-            )
-            .background {
-                let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-                if isSelected {
-                    shape.fill(selectedFill)
-                } else {
-                    shape.fill(theme.cardBackground(for: colorScheme))
-                        .overlay { shape.stroke(theme.cardStroke(for: colorScheme), lineWidth: 1) }
-                }
-            }
-            .overlay {
-                if isToday, !isSelected {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(theme.accentSurface(0.45, for: colorScheme), lineWidth: 1)
-                }
-            }
-            .overlay(alignment: .topTrailing) {
-                if isInStreak {
-                    Circle()
-                        .fill(theme.accent)
-                        .frame(width: 8, height: 8)
-                        .offset(x: 4, y: -4)
-                }
-            }
-            .opacity(isFuture ? 0.55 : 1)
-        }
-        .buttonStyle(.plain)
-        .disabled(isFuture)
-    }
-
-    var displayRegions: [BodyRegion] {
-        BodyRegion.allCases.filter { $0 != .other }
-    }
-
-    var weekDays: [Date] {
-        let calendar = Calendar.current
-        let start = calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start ?? selectedDate
-        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
-    }
-
-    func dayBackground(for date: Date) -> AnyShapeStyle {
-        let calendar = Calendar.current
-        if calendar.isDate(date, inSameDayAs: selectedDate) {
-            return AnyShapeStyle(theme.accentSurface(0.25, for: colorScheme))
-        }
-        return AnyShapeStyle(theme.cardBackground(for: colorScheme))
-    }
-
-    func isDateInCurrentStreak(_ date: Date) -> Bool {
-        guard currentStreak > 0, let lastWorkoutDate else {
-            return false
-        }
-
-        let calendar = Calendar.current
-        let day = calendar.startOfDay(for: date)
-        let lastDay = calendar.startOfDay(for: lastWorkoutDate)
-        let difference = calendar.dateComponents([.day], from: day, to: lastDay).day ?? Int.max
-
-        return difference >= 0 && difference < currentStreak
-    }
-
-    func refreshStatuses() {
-        var next: [BodyRegion: RecoveryStatus] = [:]
-        for region in displayRegions {
-            next[region] = bf.bodyMapManager.getRecoveryStatus(for: region)
-        }
-        statuses = next
-
-        if statuses[selectedRegion] == nil {
-            selectedRegion = displayRegions.first ?? .core
-        }
-    }
-
-    func statusPercent(_ status: RecoveryStatus) -> Double {
-        switch status {
-        case .recovered: return 100
-        case .slightlyFatigued: return 75
-        case .fatigued: return 50
-        case .sore: return 25
-        }
-    }
-
-    func statusLabel(_ status: RecoveryStatus) -> String {
-        switch status {
-        case .recovered: return "Recovered"
-        case .slightlyFatigued: return "Slightly fatigued"
-        case .fatigued: return "Fatigued"
-        case .sore: return "Sore"
-        }
-    }
-
-    func statusSubtitle(_ status: RecoveryStatus) -> String {
-        switch status {
-        case .recovered: return "Fresh muscle group"
-        case .slightlyFatigued: return "Trainable with moderation"
-        case .fatigued: return "Consider reduced intensity"
-        case .sore: return "Rest recommended"
-        }
-    }
-
-    func regionDisplayName(_ region: BodyRegion) -> String {
-        switch region {
-        case .chest: return "Chest"
-        case .back: return "Back"
-        case .shoulders: return "Shoulders"
-        case .arms: return "Arms"
-        case .core: return "Core"
-        case .legs: return "Legs"
-        case .other: return "Other"
-        }
-    }
-
-    /// Remove an exercise from the active workout (or today's plan when no session is running).
-    func deletePlannedExercise(_ exercise: PlannedExercise) {
-        if var active = bf.getActiveWorkout() {
-            guard let index = active.exercises.firstIndex(where: { $0.exercise.name == exercise.name })
-            else { return }
-            active.exercises.remove(at: index)
-            bf.updateActiveWorkout(active)
-            planManager?.setSelectedWorkoutForToday(active)
-        } else if let manager = planManager, let plan = manager.getTodayPlan() {
-            guard let index = plan.exercises.firstIndex(where: {
-                $0.id == exercise.id || $0.name == exercise.name
-            }) else { return }
-            manager.removeExercise(at: index, from: Date.now)
-        }
-    }
-
-    /// Apply edits (sets/reps/weight) to an exercise in the active workout or today's plan.
-    func updatePlannedExercise(_ updated: PlannedExercise) {
-        if var active = bf.getActiveWorkout() {
-            guard let index = active.exercises.firstIndex(where: { $0.exercise.name == updated.name })
-            else { return }
-            active.exercises[index] = updated.toWorkoutExercise()
-            bf.updateActiveWorkout(active)
-            planManager?.setSelectedWorkoutForToday(active)
-        } else if let manager = planManager, let plan = manager.getTodayPlan() {
-            guard let index = plan.exercises.firstIndex(where: {
-                $0.id == updated.id || $0.name == updated.name
-            }) else { return }
-            manager.replaceExercise(at: index, with: updated, on: Date.now)
-        }
-    }
-
-    func addExerciseToCurrentWorkout(_ plannedExercise: PlannedExercise) {
-        // Convert PlannedExercise to WorkoutExercise and add to current workout
-        let muscleGroups: [MuscleGroup] = plannedExercise.muscleGroups.compactMap { name in
-            MuscleGroup.allCases.first { $0.rawValue.lowercased() == name.lowercased() }
-        }
-
-        let exercise = Exercise(
-            name: plannedExercise.name,
-            equipmentRequired: inferEquipment(from: plannedExercise.name),
-            muscleGroups: muscleGroups.isEmpty ? [.chest] : muscleGroups
-        )
-
-        // Parse reps and weight
-        let repsValue = Int(plannedExercise.reps.components(separatedBy: "-").first ?? "10") ?? 10
-        let weightValue = plannedExercise.targetWeight.flatMap { str -> Double? in
-            let numbers = str.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-            return Double(numbers)
-        }
-
-        // Create sets
-        let sets = (0..<plannedExercise.sets).map { _ in
-            ExerciseSet(reps: repsValue, weight: weightValue)
-        }
-
-        let workoutExercise = WorkoutExercise(exercise: exercise, sets: sets)
-
-        if let activeWorkout = bf.getActiveWorkout() {
-            var updatedWorkout = activeWorkout
-            updatedWorkout.exercises.append(workoutExercise)
-            bf.updateActiveWorkout(updatedWorkout)
-            planManager?.setSelectedWorkoutForToday(updatedWorkout)
-        } else if let manager = planManager {
-            // Add to today's plan
-            manager.addExerciseToToday(plannedExercise)
-        }
-    }
-
-    private func inferEquipment(from name: String) -> Equipment {
-        let lowercased = name.lowercased()
-        if lowercased.contains("dumbbell") { return .dumbbell }
-        if lowercased.contains("barbell") || lowercased.contains("bench press") { return .barbell }
-        if lowercased.contains("cable") { return .cable }
-        if lowercased.contains("machine")
-            || lowercased.contains("press")
-                && !lowercased.contains("dumbbell")
-        {
-            return .machine
-        }
-        if lowercased.contains("pull up") || lowercased.contains("plank")
-            || lowercased.contains("hanging")
-        {
-            return .bodyweight
-        }
-        return .other
-    }
-
-    func quickAddWorkout() {
-        // Placeholder action; we can later wire this to a workout builder.
-        generateWorkout()
-    }
-
-    func startEmptyWorkout() {
-        // Placeholder. For now, just refresh recovery so the screen feels alive.
-        refreshStatuses()
-    }
-
-    func generateWorkout() {
-        // Keep a tiny demo flow: use BetterFit's API path where possible.
-        if let workout = bf.getRecommendedWorkout() {
-            bf.startWorkout(workout)
-            bf.completeWorkout(workout)
-        } else {
-            // Fall back to a minimal sample.
-            let benchPress = Exercise(
-                name: "Bench Press",
-                equipmentRequired: .barbell,
-                muscleGroups: [.chest, .triceps]
-            )
-
-            let workout = Workout(
-                name: "Quick Session",
-                exercises: [
-                    WorkoutExercise(exercise: benchPress, sets: [ExerciseSet(reps: 8, weight: 60)])
-                ]
-            )
-
-            bf.startWorkout(workout)
-            bf.completeWorkout(workout)
-        }
-
-        refreshStatuses()
-    }
-
-    func ensureDemoSeededIfNeeded() {
-        guard isDemoMode else { return }
-        guard !didSeedDemoData else { return }
-
-        // Seed into the same BetterFit instance shared with RootTabView so
-        // Start Workout and home preview see one consistent source of truth.
-        seedDemoData(into: betterFit)
-        didSeedDemoData = true
-    }
-
-    func seedDemoData(into bf: BetterFit) {
-        // Profile
-        var profile = bf.socialManager.getUserProfile()
-        profile.username = "Demo"
-        bf.socialManager.updateUserProfile(profile)
-
-        // Templates + plan so the built-in recommendation path returns something.
-        let bench = Exercise(
-            name: "Bench Press",
-            equipmentRequired: .barbell,
-            muscleGroups: [.chest, .triceps]
-        )
-        let row = Exercise(
-            name: "Cable Row",
-            equipmentRequired: .cable,
-            muscleGroups: [.back, .lats]
-        )
-        let squat = Exercise(
-            name: "Back Squat",
-            equipmentRequired: .barbell,
-            muscleGroups: [.quads, .glutes]
-        )
-        let press = Exercise(
-            name: "Overhead Press",
-            equipmentRequired: .dumbbell,
-            muscleGroups: [.shoulders, .triceps]
-        )
-        let curl = Exercise(
-            name: "Dumbbell Curl",
-            equipmentRequired: .dumbbell,
-            muscleGroups: [.biceps]
-        )
-        let hinge = Exercise(
-            name: "Romanian Deadlift",
-            equipmentRequired: .barbell,
-            muscleGroups: [.hamstrings, .glutes]
-        )
-        let core = Exercise(
-            name: "Plank",
-            equipmentRequired: .bodyweight,
-            muscleGroups: [.abs]
-        )
-
-        let pushDay = WorkoutTemplate(
-            name: "Push Day",
-            description: "Chest + shoulders + triceps",
-            exercises: [
-                TemplateExercise(
-                    exercise: bench,
-                    targetSets: [
-                        TargetSet(reps: 8, weight: 60),
-                        TargetSet(reps: 8, weight: 60),
-                        TargetSet(reps: 6, weight: 65),
+                        name: "Bench press",
+                        equipmentRequired: .barbell,
+                        muscleGroups: [.chest, .triceps]
+                    ),
+                    sets: [
+                        ExerciseSet(reps: 8, weight: 60, isCompleted: true),
+                        ExerciseSet(reps: 8, weight: 60, isCompleted: true),
+                        ExerciseSet(reps: 6, weight: 65, isCompleted: true),
                     ]
-                ),
-                TemplateExercise(
-                    exercise: press,
-                    targetSets: [TargetSet(reps: 10, weight: 18), TargetSet(reps: 10, weight: 18)]
-                ),
-            ],
-            tags: ["strength", "upper"]
-        )
-
-        let pullDay = WorkoutTemplate(
-            name: "Pull Day",
-            description: "Back + biceps",
-            exercises: [
-                TemplateExercise(
-                    exercise: row,
-                    targetSets: [TargetSet(reps: 12, weight: 45), TargetSet(reps: 10, weight: 50)]
-                ),
-                TemplateExercise(
-                    exercise: curl,
-                    targetSets: [TargetSet(reps: 12, weight: 12), TargetSet(reps: 10, weight: 12)]
-                ),
-            ],
-            tags: ["strength", "upper"]
-        )
-
-        let legsDay = WorkoutTemplate(
-            name: "Leg Day",
-            description: "Quads + hamstrings + glutes",
-            exercises: [
-                TemplateExercise(
-                    exercise: squat,
-                    targetSets: [TargetSet(reps: 5, weight: 90), TargetSet(reps: 5, weight: 90)]
-                ),
-                TemplateExercise(
-                    exercise: hinge,
-                    targetSets: [TargetSet(reps: 8, weight: 80), TargetSet(reps: 8, weight: 80)]
-                ),
-                TemplateExercise(exercise: core, targetSets: [TargetSet(reps: 60, weight: nil)]),
-            ],
-            tags: ["strength", "lower"]
-        )
-
-        [pushDay, pullDay, legsDay].forEach { bf.templateManager.addTemplate($0) }
-
-        let plan = TrainingPlan(
-            name: "Demo Plan",
-            description: "A simple 3-day split with realistic history.",
-            weeks: [
-                TrainingWeek(weekNumber: 1, workouts: [pushDay.id, pullDay.id, legsDay.id])
-            ],
-            goal: .hypertrophy
-        )
-        bf.planManager.addPlan(plan)
-        bf.planManager.setActivePlan(plan.id)
-
-        // Workout history (3x/week for ~12 weeks, with occasional doubles).
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date.now)
-        let start = calendar.date(byAdding: .day, value: -84, to: today) ?? today
-
-        func demoMix(_ x: UInt64) -> UInt64 {
-            var z = x &+ 0x9E37_79B9_7F4A_7C15
-            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-            return z ^ (z >> 31)
-        }
-
-        func demoUnit(_ a: Int, _ b: Int = 0) -> Double {
-            let mixed = demoMix(UInt64(bitPattern: Int64(a * 1_000_003 + b * 97)))
-            return Double(mixed % 10_000) / 10_000.0
-        }
-
-        let run = Exercise(
-            name: "Easy Run",
-            equipmentRequired: .bodyweight,
-            muscleGroups: [.quads, .calves]
-        )
-
-        var workoutEvents: [Workout] = []
-        for dayOffset in 0...84 {
-            guard let day = calendar.date(byAdding: .day, value: dayOffset, to: start) else {
-                continue
-            }
-
-            let r = demoUnit(dayOffset)
-            let isStrengthDay = r < 0.42
-            let isCardioDay = !isStrengthDay && r < 0.57
-            guard isStrengthDay || isCardioDay else { continue }
-
-            let hour = 6 + Int(demoUnit(dayOffset, 1) * 11)  // 6...16
-            let minute = Int(demoUnit(dayOffset, 2) * 60)
-            let dateWithTime =
-                calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
-                ?? day
-
-            if isCardioDay {
-                let minutes = 22 + Int(demoUnit(dayOffset, 3) * 35)  // 22...56
-                let workout = Workout(
-                    name: demoUnit(dayOffset, 4) < 0.5 ? "Easy Run" : "Bike Ride",
-                    exercises: [
-                        WorkoutExercise(exercise: run, sets: [ExerciseSet(reps: 1, weight: nil)])
-                    ],
-                    date: dateWithTime,
-                    duration: TimeInterval(minutes * 60),
-                    isCompleted: true
                 )
-                workoutEvents.append(workout)
-            } else {
-                let templatePick = Int(demoUnit(dayOffset, 5) * 3) % 3
-                let template = [pushDay, pullDay, legsDay][templatePick]
+            ],
+            date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
+            duration: 48 * 60,
+            isCompleted: true
+        )
+        betterFit.completeWorkout(demo)
+    }
 
-                var workout = template.createWorkout()
-                workout.date = dateWithTime
-                workout.duration = TimeInterval((32 + Int(demoUnit(dayOffset, 6) * 28)) * 60)  // 32...60m
-                workout.isCompleted = true
-                workoutEvents.append(workout)
+    // MARK: - Demo data
 
-                // Occasionally add a second shorter session on the same day.
-                if demoUnit(dayOffset, 7) < 0.12 {
-                    let extraMinute = Int(demoUnit(dayOffset, 8) * 50)
-                    let extraDate =
-                        calendar.date(byAdding: .minute, value: 90 + extraMinute, to: dateWithTime)
-                        ?? dateWithTime
+    static let demoPullDay: [PlannedExercise] = [
+        PlannedExercise(name: "Lat pulldown", category: .pull, sets: 3, reps: "8", targetWeight: "50 kg", muscleGroups: ["Lats"]),
+        PlannedExercise(name: "Cable row", category: .pull, sets: 4, reps: "8", targetWeight: "64 kg", muscleGroups: ["Lats"]),
+        PlannedExercise(name: "Barbell curl", category: .pull, sets: 4, reps: "8", targetWeight: "30 kg", muscleGroups: ["Biceps"]),
+        PlannedExercise(name: "Hammer curls", category: .pull, sets: 3, reps: "12", targetWeight: "15 kg", muscleGroups: ["Biceps"]),
+        PlannedExercise(name: "Face pull", category: .pull, sets: 3, reps: "15", targetWeight: "18 kg", muscleGroups: ["Rear delts"]),
+        PlannedExercise(name: "Reverse fly", category: .pull, sets: 3, reps: "12", targetWeight: "10 kg", muscleGroups: ["Rear delts"]),
+        PlannedExercise(name: "Cable wood chop", category: .compound, sets: 3, reps: "15", targetWeight: "20 kg", muscleGroups: ["Core"]),
+    ]
 
-                    let bonus = Workout(
-                        name: demoUnit(dayOffset, 9) < 0.5 ? "Core Finisher" : "Mobility",
-                        exercises: [
-                            WorkoutExercise(exercise: core, sets: [ExerciseSet(reps: 60)]),
-                            WorkoutExercise(
-                                exercise: Exercise(
-                                    name: "Hollow Hold",
-                                    equipmentRequired: .bodyweight,
-                                    muscleGroups: [.abs]
-                                ),
-                                sets: [ExerciseSet(reps: 45)]
-                            ),
-                        ],
-                        date: extraDate,
-                        duration: TimeInterval(15 * 60),
-                        isCompleted: true
-                    )
-                    workoutEvents.append(bonus)
-                }
-            }
+    private static func demoFor(_ type: WorkoutType) -> [PlannedExercise] {
+        switch type {
+        case .push:
+            return [
+                PlannedExercise(name: "Bench press", category: .push, sets: 4, reps: "6", targetWeight: "70 kg", muscleGroups: ["Chest"]),
+                PlannedExercise(name: "Overhead press", category: .push, sets: 3, reps: "8", targetWeight: "40 kg", muscleGroups: ["Shoulders"]),
+                PlannedExercise(name: "Incline dumbbell press", category: .push, sets: 3, reps: "10", targetWeight: "28 kg", muscleGroups: ["Chest"]),
+                PlannedExercise(name: "Lateral raise", category: .push, sets: 3, reps: "12", targetWeight: "12 kg", muscleGroups: ["Shoulders"]),
+                PlannedExercise(name: "Tricep pushdown", category: .push, sets: 3, reps: "12", targetWeight: "25 kg", muscleGroups: ["Triceps"]),
+            ]
+        case .legs:
+            return [
+                PlannedExercise(name: "Back squat", category: .legs, sets: 4, reps: "5", targetWeight: "100 kg", muscleGroups: ["Quads"]),
+                PlannedExercise(name: "Romanian deadlift", category: .legs, sets: 3, reps: "8", targetWeight: "80 kg", muscleGroups: ["Hamstrings"]),
+                PlannedExercise(name: "Leg press", category: .legs, sets: 3, reps: "10", targetWeight: "160 kg", muscleGroups: ["Quads"]),
+                PlannedExercise(name: "Walking lunge", category: .legs, sets: 3, reps: "12", targetWeight: "20 kg", muscleGroups: ["Glutes"]),
+                PlannedExercise(name: "Calf raise", category: .legs, sets: 4, reps: "15", targetWeight: "60 kg", muscleGroups: ["Calves"]),
+            ]
+        case .cardio:
+            return [
+                PlannedExercise(name: "Treadmill intervals", category: .cardio, sets: 8, reps: "1", targetWeight: nil, muscleGroups: ["Cardio"]),
+                PlannedExercise(name: "Row erg", category: .cardio, sets: 4, reps: "500m", targetWeight: nil, muscleGroups: ["Cardio"]),
+                PlannedExercise(name: "Core circuit", category: .compound, sets: 3, reps: "12", targetWeight: nil, muscleGroups: ["Core"]),
+            ]
+        default:
+            return demoPullDay
         }
-
-        workoutEvents.forEach { bf.completeWorkout($0, saveToHealthKit: false) }
     }
 }

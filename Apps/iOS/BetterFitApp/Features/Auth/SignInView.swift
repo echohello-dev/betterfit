@@ -68,16 +68,26 @@ struct SignInView: View {
 
             // MARK: - Logo & Title
 
-                VStack(spacing: 16) {
-                FitnessIcon(systemImage: "figure.strengthtraining.traditional", size: 80, color: theme.accent)
+            VStack(spacing: 16) {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(BFColors.identity)
+                    .frame(width: 88, height: 88)
+                    .overlay {
+                        Text("B")
+                            .font(BFTypography.display(48))
+                            .foregroundStyle(BFColors.identityInk)
+                    }
 
                 Text("BetterFit")
-                    .bfHeading(theme: theme, size: 44, relativeTo: .largeTitle)
-                    .foregroundStyle(theme.accent)
+                    .font(BFTypography.display)
+                    .tracking(BFTypography.displayTracking)
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
-                Text("Your strength training coach")
-                    .font(.title3)
+                Text("Train with direction. Get better with every session.")
+                    .font(BFTypography.title3)
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                    .padding(.horizontal, 24)
             }
 
             Spacer()

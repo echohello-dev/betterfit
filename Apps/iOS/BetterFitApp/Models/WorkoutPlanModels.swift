@@ -52,7 +52,7 @@ struct WorkoutPlanDay: Identifiable, Equatable {
 
     /// Convert the plan day to a Workout for starting/executing
     func toWorkout() -> Workout {
-        let workoutName = workoutType?.rawValue ?? "Today's Workout"
+        let workoutName = workoutType.map { "\($0.rawValue) Day" } ?? "Today's workout"
         let workoutExercises = exercises.map { $0.toWorkoutExercise() }
         return Workout(
             name: workoutName,
@@ -198,8 +198,31 @@ final class WorkoutPlanManager {
         let startOfDay = calendar.startOfDay(for: date)
         if var planDay = planDays[startOfDay] {
             planDay.exercises = exercises
+            planDay.isRest = exercises.isEmpty
             planDays[startOfDay] = planDay
+        } else {
+            planDays[startOfDay] = WorkoutPlanDay(
+                date: startOfDay,
+                workoutType: .fullBody,
+                exercises: exercises,
+                isRest: exercises.isEmpty
+            )
         }
+    }
+
+    /// Replace an entire plan day (type + exercises).
+    func replaceDay(_ day: WorkoutPlanDay) {
+        let startOfDay = calendar.startOfDay(for: day.date)
+        var copy = day
+        // Keep date keyed consistently.
+        planDays[startOfDay] = WorkoutPlanDay(
+            id: copy.id,
+            date: startOfDay,
+            workoutType: copy.workoutType,
+            exercises: copy.exercises,
+            isRest: copy.isRest,
+            isCompleted: copy.isCompleted
+        )
     }
 
     /// Add exercise to a date
@@ -298,16 +321,16 @@ final class WorkoutPlanManager {
         case .push:
             return [
                 PlannedExercise(
-                    name: "Bench Press", category: .push, sets: 4, reps: "8-10",
+                    name: "Bench Press", category: .push, sets: 4, reps: "8",
                     targetWeight: "135 lbs", muscleGroups: ["Chest", "Triceps"]),
                 PlannedExercise(
-                    name: "Overhead Press", category: .push, sets: 3, reps: "8-10",
+                    name: "Overhead Press", category: .push, sets: 3, reps: "8",
                     targetWeight: "95 lbs", muscleGroups: ["Shoulders", "Triceps"]),
                 PlannedExercise(
-                    name: "Incline Dumbbell Press", category: .push, sets: 3, reps: "10-12",
+                    name: "Incline Dumbbell Press", category: .push, sets: 3, reps: "10",
                     targetWeight: "50 lbs", muscleGroups: ["Upper Chest"]),
                 PlannedExercise(
-                    name: "Tricep Pushdowns", category: .push, sets: 3, reps: "12-15",
+                    name: "Tricep Pushdowns", category: .push, sets: 3, reps: "12",
                     targetWeight: "40 lbs", muscleGroups: ["Triceps"]),
             ]
         case .pull:
@@ -316,7 +339,7 @@ final class WorkoutPlanManager {
                     name: "Deadlift", category: .pull, sets: 4, reps: "5", targetWeight: "225 lbs",
                     muscleGroups: ["Back", "Hamstrings", "Glutes"]),
                 PlannedExercise(
-                    name: "Pull-ups", category: .pull, sets: 4, reps: "8-10",
+                    name: "Pull-ups", category: .pull, sets: 4, reps: "8",
                     muscleGroups: ["Lats", "Biceps"]),
                 PlannedExercise(
                     name: "Barbell Row", category: .pull, sets: 3, reps: "8",
@@ -328,61 +351,61 @@ final class WorkoutPlanManager {
         case .legs:
             return [
                 PlannedExercise(
-                    name: "Squat", category: .legs, sets: 4, reps: "6-8", targetWeight: "185 lbs",
+                    name: "Squat", category: .legs, sets: 4, reps: "6", targetWeight: "185 lbs",
                     muscleGroups: ["Quads", "Glutes"]),
                 PlannedExercise(
-                    name: "Romanian Deadlift", category: .legs, sets: 3, reps: "10-12",
+                    name: "Romanian Deadlift", category: .legs, sets: 3, reps: "10",
                     targetWeight: "135 lbs", muscleGroups: ["Hamstrings", "Glutes"]),
                 PlannedExercise(
-                    name: "Leg Press", category: .legs, sets: 3, reps: "12-15",
+                    name: "Leg Press", category: .legs, sets: 3, reps: "12",
                     targetWeight: "270 lbs", muscleGroups: ["Quads"]),
                 PlannedExercise(
-                    name: "Calf Raises", category: .legs, sets: 4, reps: "15-20",
+                    name: "Calf Raises", category: .legs, sets: 4, reps: "15",
                     targetWeight: "100 lbs", muscleGroups: ["Calves"]),
             ]
         case .upper:
             return [
                 PlannedExercise(
-                    name: "Bench Press", category: .push, sets: 3, reps: "8-10",
+                    name: "Bench Press", category: .push, sets: 3, reps: "8",
                     targetWeight: "135 lbs", muscleGroups: ["Chest"]),
                 PlannedExercise(
-                    name: "Barbell Row", category: .pull, sets: 3, reps: "8-10",
+                    name: "Barbell Row", category: .pull, sets: 3, reps: "8",
                     targetWeight: "135 lbs", muscleGroups: ["Back"]),
                 PlannedExercise(
-                    name: "Shoulder Press", category: .push, sets: 3, reps: "10-12",
+                    name: "Shoulder Press", category: .push, sets: 3, reps: "10",
                     targetWeight: "65 lbs", muscleGroups: ["Shoulders"]),
                 PlannedExercise(
-                    name: "Lat Pulldown", category: .pull, sets: 3, reps: "10-12",
+                    name: "Lat Pulldown", category: .pull, sets: 3, reps: "10",
                     targetWeight: "100 lbs", muscleGroups: ["Lats"]),
             ]
         case .lower:
             return [
                 PlannedExercise(
-                    name: "Squat", category: .legs, sets: 4, reps: "6-8", targetWeight: "185 lbs",
+                    name: "Squat", category: .legs, sets: 4, reps: "6", targetWeight: "185 lbs",
                     muscleGroups: ["Quads", "Glutes"]),
                 PlannedExercise(
-                    name: "Leg Curl", category: .legs, sets: 3, reps: "12-15",
+                    name: "Leg Curl", category: .legs, sets: 3, reps: "12",
                     targetWeight: "80 lbs", muscleGroups: ["Hamstrings"]),
                 PlannedExercise(
-                    name: "Hip Thrust", category: .legs, sets: 3, reps: "10-12",
+                    name: "Hip Thrust", category: .legs, sets: 3, reps: "10",
                     targetWeight: "135 lbs", muscleGroups: ["Glutes"]),
                 PlannedExercise(
-                    name: "Calf Raises", category: .legs, sets: 3, reps: "15-20",
+                    name: "Calf Raises", category: .legs, sets: 3, reps: "15",
                     targetWeight: "100 lbs", muscleGroups: ["Calves"]),
             ]
         case .fullBody:
             return [
                 PlannedExercise(
-                    name: "Squat", category: .legs, sets: 3, reps: "8-10", targetWeight: "155 lbs",
+                    name: "Squat", category: .legs, sets: 3, reps: "8", targetWeight: "155 lbs",
                     muscleGroups: ["Quads", "Glutes"]),
                 PlannedExercise(
-                    name: "Bench Press", category: .push, sets: 3, reps: "8-10",
+                    name: "Bench Press", category: .push, sets: 3, reps: "8",
                     targetWeight: "135 lbs", muscleGroups: ["Chest"]),
                 PlannedExercise(
-                    name: "Barbell Row", category: .pull, sets: 3, reps: "8-10",
+                    name: "Barbell Row", category: .pull, sets: 3, reps: "8",
                     targetWeight: "115 lbs", muscleGroups: ["Back"]),
                 PlannedExercise(
-                    name: "Overhead Press", category: .push, sets: 3, reps: "8-10",
+                    name: "Overhead Press", category: .push, sets: 3, reps: "8",
                     targetWeight: "85 lbs", muscleGroups: ["Shoulders"]),
             ]
         case .cardio:

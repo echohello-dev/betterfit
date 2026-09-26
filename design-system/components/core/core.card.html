@@ -1,0 +1,46 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Core" subtitle="Buttons, icon buttons, cards, chips, dropdowns, pills, photo slots" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{padding:20px;font-family:var(--font-ui)}.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Button, IconButton, Card, Chip, DropdownChip, MetricPill, SectionHeader, Divider, Logo, PhotoSlot } = window.BetterFitDesignSystem_6a70ea;
+function Demo(){return (
+  <div className="col" style={{gap:18}}>
+    <div className="row">
+      <Button fullWidth={false} icon="play" trailingIcon="caret-right">Start workout</Button>
+      <Button variant="secondary" fullWidth={false}>Swap exercise</Button>
+      <Button variant="destructive" fullWidth={false}>End workout</Button>
+      <Button variant="ghost" fullWidth={false}>View details</Button>
+      <Button variant="secondary" fullWidth={false} disabled>Disabled</Button>
+    </div>
+    <div className="row">
+      <Button size="md" fullWidth={false}>44px</Button>
+      <Button size="sm" fullWidth={false}>34px</Button>
+      <IconButton icon="chart-bar" label="Stats" />
+      <IconButton icon="plus" label="Add" variant="accent" size={44} />
+      <IconButton icon="dots-three" label="More" variant="quiet" />
+      <Chip label="Barbell" icon="barbell" selected />
+      <Chip label="Dumbbell" />
+      <DropdownChip label="45m" />
+      <DropdownChip label="Anytime Fitness" />
+      <MetricPill label="Weekly" value="3/5" />
+      <MetricPill icon="fire-simple" value="12" tone="accent" />
+    </div>
+    <div className="row" style={{alignItems:'stretch'}}>
+      <Card style={{flex:1}}><SectionHeader title="Today" action={<Button variant="ghost" fullWidth={false}>Swap</Button>} /><div className="bf-display" style={{fontSize:'var(--text-title-2)',marginTop:8}}>Push A</div><Divider style={{margin:'12px 0'}} /><div style={{fontSize:'var(--text-footnote)',color:'var(--text-secondary)'}}>6 exercises · 48 min</div></Card>
+      <Card tone="raised" style={{flex:1}}><div className="bf-label">Raised</div><div style={{marginTop:8,fontSize:'var(--text-subheadline)'}}>Nested well</div></Card>
+      <Card tone="identity" style={{flex:1}}><div className="bf-label" style={{color:'var(--bf-black)',opacity:.65}}>Identity</div><div className="bf-display" style={{fontSize:'var(--text-title-2)',marginTop:8,color:'var(--bf-black)'}}>Better</div></Card>
+      <Card tone="outline" style={{flex:'0 0 120px',display:'grid',placeItems:'center'}}><Logo variant="lettermark" height={44} assetBase="../../assets" /></Card>
+      <PhotoSlot width={90} height={90} label="Photo slot" />
+    </div>
+  </div>
+);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

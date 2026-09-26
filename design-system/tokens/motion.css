@@ -1,0 +1,15 @@
+/* Short, responsive, native-feeling. No ambient loops. */
+:root{
+  --dur-press:120ms; /* @kind other */
+  --dur-fast:180ms; /* @kind other */
+  --dur-standard:250ms; /* @kind other */
+  --dur-slow:350ms; /* @kind other */
+  --ease-out:cubic-bezier(.2,.8,.3,1); /* @kind other */
+  --ease-snappy:cubic-bezier(.32,.72,0,1); /* @kind other */
+  --ease-spring:cubic-bezier(.34,1.36,.64,1); /* @kind other */
+  --press-opacity:.85; /* @kind other */
+  --press-scale:.985; /* @kind other */
+}
+@media (prefers-reduced-motion:reduce){
+  :root{--dur-press:0ms; /* @kind other */ --dur-fast:0ms; /* @kind other */ --dur-standard:0ms; /* @kind other */ --dur-slow:0ms /* @kind other */}
+}
