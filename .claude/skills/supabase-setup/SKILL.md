@@ -1,5 +1,5 @@
 ---
-name: betterfit-supabase-setup
+name: supabase-setup
 description: Local Supabase setup and configuration for BetterFit iOS app. Use when setting up the project for the first time, or when .env credentials are missing.
 ---
 

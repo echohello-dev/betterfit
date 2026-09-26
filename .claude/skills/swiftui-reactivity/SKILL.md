@@ -1,5 +1,5 @@
 ---
-name: betterfit-swiftui-reactivity
+name: swiftui-reactivity
 description: Prevent unwanted re-renders in SwiftUI by extracting high-frequency state into isolated child components. Use when views flicker, performance degrades, or @State updates cascade to siblings.
 ---
 

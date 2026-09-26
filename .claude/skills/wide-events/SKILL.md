@@ -1,5 +1,5 @@
 ---
-name: betterfit-wide-events
+name: wide-events
 description: Implement wide event (canonical log line) telemetry for the BetterFit app. Use when adding logging, observability, or telemetry to track user actions, errors, or performance.
 ---
 

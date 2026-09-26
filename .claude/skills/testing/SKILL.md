@@ -1,5 +1,5 @@
 ---
-name: betterfit-testing
+name: testing
 description: Testing practices for BetterFit iOS project. Use when writing, running, or debugging unit tests, integration tests, UI tests, or Mobile MCP tests.
 ---
 

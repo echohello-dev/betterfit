@@ -1,5 +1,5 @@
 ---
-name: betterfit-code-organization
+name: code-organization
 description: Organize Swift code with MARK comments and consistent file structure. Use when refactoring, creating new files, or improving code navigability.
 ---
 
@@ -181,7 +181,7 @@ final class WorkoutManager: ObservableObject {
 
 ### Across files
 
-See `betterfit-swift-file-splitting` skill for when/how to split large files.
+See `swift-file-splitting` skill for when/how to split large files.
 
 ## Xcode benefits
 

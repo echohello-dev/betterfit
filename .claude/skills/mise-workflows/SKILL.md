@@ -1,5 +1,5 @@
 ---
-name: betterfit-mise-workflows
+name: mise-workflows
 description: Fast development workflows for the BetterFit iOS project using mise. Use when building, testing, opening Xcode, or running lint.
 ---
 
@@ -115,7 +115,7 @@ mise run test
 
 ### When build fails
 1. Run `mise run lint` to catch syntax/style issues first
-2. Check if Supabase credentials are configured (see betterfit-supabase-setup skill)
+2. Check if Supabase credentials are configured (see supabase-setup skill)
 3. Try clean build: `mise run ios:build:dev` (rebuilds from scratch)
 4. For SwiftPM issues: `swift package resolve` then retry
 
@@ -136,4 +136,4 @@ mise run test
 - Run `mise run ios:open` to regenerate from `project.yml`
 
 ### Build fails after git clean
-- `.env` may be deleted — check betterfit-supabase-setup skill for reconfiguration
+- `.env` may be deleted — check supabase-setup skill for reconfiguration

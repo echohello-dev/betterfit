@@ -1,5 +1,5 @@
 ---
-name: betterfit-swift-file-splitting
+name: swift-file-splitting
 description: Split large SwiftUI screens into maintainable, scan-friendly files. Use when files exceed 300-500 lines or contain multiple "reasons to change".
 ---
 

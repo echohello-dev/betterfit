@@ -363,8 +363,8 @@ Ensure `TransitionSeries` wraps all scenes. Use `@remotion/transitions` package 
 
 ## Related skills
 
-- **betterfit-mise-workflows**: Build/render commands via mise (includes `video:*` tasks)
-- **betterfit-testing**: Mobile MCP testing for capturing simulator footage
+- **mise-workflows**: Build/render commands via mise (includes `video:*` tasks)
+- **testing**: Mobile MCP testing for capturing simulator footage
 
 ## External resources
 
