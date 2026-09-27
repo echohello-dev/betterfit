@@ -43,10 +43,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
     case bold
     /// Quieter yellow: accent lives on the docked action only.
     case classic
-    /// Legacy storage keys — all resolve to yellow neutrals.
-    case midnight
-    case forest
-    case sunset
 
     var id: String { rawValue }
 
@@ -55,9 +51,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .fitbod: return "Balanced"
         case .bold: return "Bold"
         case .classic: return "Restrained"
-        case .midnight: return "Midnight"
-        case .forest: return "Forest"
-        case .sunset: return "Warm"
         }
     }
 
@@ -100,22 +93,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 
     func backgroundBase(for scheme: ColorScheme) -> Color {
-        switch self {
-        case .midnight:
-            return scheme == .dark
-                ? Color(red: 0.05, green: 0.06, blue: 0.10)
-                : BFColors.background(for: scheme)
-        case .forest:
-            return scheme == .dark
-                ? Color(red: 0.04, green: 0.09, blue: 0.07)
-                : BFColors.background(for: scheme)
-        case .sunset:
-            return scheme == .dark
-                ? Color(red: 0.10, green: 0.06, blue: 0.07)
-                : BFColors.background(for: scheme)
-        default:
-            return BFColors.background(for: scheme)
-        }
+        BFColors.background(for: scheme)
     }
 
     func backgroundGradient(for scheme: ColorScheme) -> LinearGradient {
@@ -144,9 +122,9 @@ extension AppTheme {
     static let storageKey = "betterfit.appTheme"
     static let defaultTheme: AppTheme = .fitbod
 
-    /// Themes shown in the picker (yellow density + atmosphere).
+    /// Themes shown in the picker (yellow density).
     static var selectableThemes: [AppTheme] {
-        [.fitbod, .bold, .classic, .midnight, .forest, .sunset]
+        [.fitbod, .bold, .classic]
     }
 
     static func fromStorage(_ rawValue: String?) -> AppTheme {

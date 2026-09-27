@@ -4,6 +4,9 @@ body{margin:0;background:var(--bg-page);color:var(--text-primary);font-family:va
 a{color:var(--accent-text);text-decoration:none}
 a:hover{color:var(--text-primary)}
 button{font-family:inherit}
+/* Branded display — BBH Hegarty when licensed (var(--font-display)). */
 .bf-display{font-family:var(--font-display);letter-spacing:var(--tracking-display);line-height:var(--leading-tight)}
-.bf-label{font-size:var(--text-caption);font-weight:var(--weight-semibold);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-secondary)}
+/* Uppercase micro label — BFTypography.eyebrow: 11px bold. */
+.bf-label{font-size:11px;font-weight:var(--weight-bold);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-secondary)}
+/* Numbers on the native system typeface with monospaced (tabular) digits. */
 .bf-num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}

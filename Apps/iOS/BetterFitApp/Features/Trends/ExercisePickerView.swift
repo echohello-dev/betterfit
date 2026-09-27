@@ -394,7 +394,7 @@ struct ExercisePickerView: View {
 }
 
 #Preview {
-    ExercisePickerView(theme: .forest) { exercises in
+    ExercisePickerView(theme: .fitbod) { exercises in
         print("Added: \(exercises.map(\.name))")
     }
 }

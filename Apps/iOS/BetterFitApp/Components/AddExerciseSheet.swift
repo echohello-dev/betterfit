@@ -384,7 +384,7 @@ private extension View {
 // MARK: - Preview
 
 #Preview {
-    AddExerciseSheet(theme: .midnight) { exercise in
+    AddExerciseSheet(theme: .fitbod) { exercise in
         print("Added: \(exercise.name)")
     }
 }

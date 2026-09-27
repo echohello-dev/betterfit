@@ -166,7 +166,7 @@ struct AdjustSetsSheet: View {
 
 #Preview {
     AdjustSetsSheet(
-        theme: .forest,
+        theme: .fitbod,
         exercise: PlannedExercise(
             name: "Bench Press",
             category: .push,

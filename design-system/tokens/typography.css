@@ -1,25 +1,32 @@
-/* iOS point scale from BFTypography.swift, carried 1:1 into px. */
+/* iOS point scale from BFTypography.swift — every size in that file, carried 1:1 into px. */
 :root{
-  /* Display / titles */
+  /* Display / titles — BBH Hegarty when licensed, heavy rounded system face as fallback */
   --text-hero:56px;      /* redesign: full-bleed identity headline */
+  --text-display:44px;   /* BFTypography.display — slab / session titles */
   --text-large-title:34px;
   --text-title-1:28px;
+  --text-screen-title:26px;   /* BFTypography.screenTitle — screen head (Plan / Body / Log) */
   --text-title-2:22px;
   --text-title-3:20px;
 
-  /* Body */
+  /* UI copy — native system typeface */
   --text-headline:17px;
   --text-body:17px;
   --text-callout:16px;
   --text-subheadline:15px;
   --text-footnote:13px;
   --text-caption:12px;
+  --text-eyebrow:11px;   /* BFTypography.eyebrow — uppercase micro label */
 
-  /* Numeric (monospaced digits — timers, weights, reps, stats) */
+  /* Numeric — native system face with monospaced digits (timers, weights, reps, stats) */
+  --text-readout:64px;
   --text-timer:40px;
+  --text-stepper-value:34px;
   --text-stat-lg:28px;
+  --text-spec-value:22px;
   --text-stat-md:20px;
   --text-stat-sm:15px;
+  --text-gutter:15px;
 
   --weight-regular:400;
   --weight-medium:500;

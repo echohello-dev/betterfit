@@ -48,6 +48,10 @@ supabase/.temp/
 *.swp
 *.swo
 *~
+*.bak
+*.orig
+*.rej
+*.tmp
 .tmp/
 tmp/
 artifacts/

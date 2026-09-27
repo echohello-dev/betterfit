@@ -92,10 +92,12 @@ struct ActiveSessionView: View {
     }
 
     var elapsedLabel: String {
-        let _ = tick
+        _ = tick
         let secs = Int(Date().timeIntervalSince(startedAt))
         return String(format: "%02d:%02d", secs / 60, secs % 60)
     }
+
+    // MARK: - View
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -141,41 +143,6 @@ struct ActiveSessionView: View {
             }
             .presentationDetents([.medium, .large])
         }
-    }
-}
-
-// MARK: - Summary data
-
-struct WorkoutSummaryData {
-    var name: String
-    var duration: TimeInterval
-    var volume: Double = 0
-    var sets: Int = 0
-    var note: String = "Good work. Consistency compounds."
-    var exercises: [WorkoutSummaryExercise]
-    var recoveryEffects: [(muscle: String, from: Int, to: Int)] = [
-        ("Lats", 96, 41),
-        ("Biceps", 81, 46),
-        ("Rear delts", 78, 52),
-    ]
-}
-
-struct WorkoutSummaryExercise: Identifiable {
-    let id = UUID()
-    let name: String
-    let best: String
-    let setsDone: Int
-    let setsPlanned: Int
-    let volume: Double
-    let isPR: Bool
-}
-
-// MARK: - Double rounding
-
-extension Double {
-    func rounded(toPlaces places: Int) -> Double {
-        let factor = pow(10.0, Double(places))
-        return (self * factor).rounded() / factor
     }
 }
 

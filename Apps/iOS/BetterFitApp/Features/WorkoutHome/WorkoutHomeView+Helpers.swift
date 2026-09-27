@@ -81,7 +81,7 @@ extension WorkoutHomeView {
         Binding(
             get: {
                 if let cached = draftWeight[exercise.id] { return cached }
-                return exercise.weightValue > 0 ? formatPlanNum(exercise.weightValue) : ""
+                return exercise.weightValue > 0 ? BFFormat.trimmed(exercise.weightValue) : ""
             },
             set: { draftWeight[exercise.id] = $0 }
         )
@@ -109,8 +109,8 @@ extension WorkoutHomeView {
             persistExercises()
             return
         }
-        exercises[exerciseIndex].targetWeight = "\(formatPlanNum(value)) kg"
-        draftWeight[id] = formatPlanNum(value)
+        exercises[exerciseIndex].targetWeight = "\(BFFormat.trimmed(value)) kg"
+        draftWeight[id] = BFFormat.trimmed(value)
         persistExercises()
     }
 
@@ -132,10 +132,16 @@ extension WorkoutHomeView {
         persistExercises()
     }
 
-    func formatPlanNum(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(Int(value))
-            : String(format: "%.1f", value)
+    /// Exercise → SF Symbol for the work-list thumbnail tile.
+    /// Name heuristics first (same convention as the historical `thumbIcon`),
+    /// falling back to the shared `ExerciseCategory.icon` mapping.
+    func thumbIcon(for exercise: PlannedExercise) -> String {
+        let name = exercise.name.lowercased()
+        if name.contains("run") || name.contains("treadmill") { return "figure.run" }
+        if name.contains("bench") || name.contains("press") { return "dumbbell.fill" }
+        if name.contains("row") { return "figure.strengthtraining.traditional" }
+        if name.contains("yoga") { return "figure.yoga" }
+        return exercise.category.icon
     }
 
     func meta(for exercise: PlannedExercise, index: Int, focus: Bool) -> String {

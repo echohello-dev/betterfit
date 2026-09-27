@@ -7,9 +7,6 @@ import SwiftUI
 
 // MARK: - Plan (Workout tab) — Ledger layout
 
-// Bridge BFSupersetStore from WorkoutHomeView's nested modules.
-typealias SupersetStore = BFSupersetStore
-
 struct WorkoutHomeView: View {
     @Environment(\.colorScheme) var colorScheme
 
@@ -32,6 +29,8 @@ struct WorkoutHomeView: View {
     @State var availableEquipment: Set<Equipment> = Set(Equipment.allCases)
     @State var selectedExercise: PlannedExercise?
     @State var workoutPreview: WorkoutPreview?
+    /// When set, the add-exercise sheet swaps this exercise in place (Replace flow).
+    @State var replaceTargetId: UUID?
     /// Collapses the large title into a compact search nav when the user scrolls.
     @State var isScrolled = false
     /// Draft text for plan-mode weight/reps editing.
@@ -157,7 +156,14 @@ struct WorkoutHomeView: View {
         .onAppear(perform: loadPlan)
         .sheet(isPresented: $showAddExercise) {
             AddExerciseSheet(theme: theme) { planned in
-                exercises.append(planned)
+                if let targetId = replaceTargetId,
+                   let targetIndex = exercises.firstIndex(where: { $0.id == targetId })
+                {
+                    exercises[targetIndex] = planned
+                    replaceTargetId = nil
+                } else {
+                    exercises.append(planned)
+                }
                 persistExercises()
             }
             .presentationDetents([.medium, .large])
@@ -175,8 +181,21 @@ struct WorkoutHomeView: View {
                     persistExercises()
                     selectedExercise = nil
                 },
-                onReplace: {},
-                onSuperset: {},
+                onReplace: {
+                    // Swap this exercise in place via the add-exercise picker.
+                    replaceTargetId = exercise.id
+                    showAddExercise = true
+                },
+                onSuperset: {
+                    // Pair with the next row (or the previous one at the end),
+                    // matching the work-list swipe/context-menu behaviour.
+                    guard let exerciseIndex = exercises.firstIndex(where: { $0.id == exercise.id }) else { return }
+                    if exerciseIndex + 1 < exercises.count {
+                        pairSuperset(currentIndex: exerciseIndex, withIndex: exerciseIndex + 1)
+                    } else if exerciseIndex > 0 {
+                        pairSuperset(currentIndex: exerciseIndex - 1, withIndex: exerciseIndex)
+                    }
+                },
                 onUpdate: { updated in
                     if let exerciseIndex = exercises.firstIndex(where: { $0.id == exercise.id }) {
                         exercises[exerciseIndex] = updated

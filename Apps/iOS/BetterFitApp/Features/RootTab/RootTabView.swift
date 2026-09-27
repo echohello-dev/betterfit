@@ -80,6 +80,13 @@ struct RootTabView: View {
     /// home indicator (~34) + tab bar (~49) + 8pt gap.
     private static let startPillBottomInset: CGFloat = 78
 
+    /// One-yellow rule (design.md): at most one yellow fill is visible at a time.
+    /// When the screen leads with a full yellow field the field owns the yellow,
+    /// so the docked action renders as neutral glass. `AppTheme.quietPrimaryAction`
+    /// encodes exactly this ("header took the yellow"), so the decision holds for
+    /// any yellow-field screen — not a WorkoutHome special case.
+    private var dockIsQuiet: Bool { theme.quietPrimaryAction }
+
     var body: some View {
         tabView
             .tint(BFColors.accentText(for: .dark))
@@ -151,7 +158,12 @@ struct RootTabView: View {
         if hasActiveWorkout {
             activeWorkoutControls
         } else {
-            BFDockPrimaryButton(title: "Start workout", systemImage: "play.fill", standalone: false) {
+            BFDockPrimaryButton(
+                title: "Start workout",
+                systemImage: "play.fill",
+                standalone: false,
+                quiet: dockIsQuiet
+            ) {
                 startOrResumeWorkout()
             }
             .accessibilityLabel("Start workout")
@@ -164,7 +176,8 @@ struct RootTabView: View {
             BFDockPrimaryButton(
                 title: isWorkoutPaused ? "Resume" : "Pause",
                 systemImage: isWorkoutPaused ? "play.fill" : "pause.fill",
-                standalone: false
+                standalone: false,
+                quiet: dockIsQuiet
             ) {
                 if isWorkoutPaused {
                     togglePause()

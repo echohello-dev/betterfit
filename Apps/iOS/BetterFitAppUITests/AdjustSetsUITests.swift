@@ -1,6 +1,8 @@
 import XCTest
 
-/// UI tests for core workout planning journeys
+/// UI tests for core workout planning journeys:
+/// today's plan on the Workout tab, the exercise set editor (adjust sets),
+/// and the plan insights that moved to the Body and Targets tabs.
 final class AdjustSetsUITests: XCTestCase {
     var app: XCUIApplication!
 
@@ -17,128 +19,115 @@ final class AdjustSetsUITests: XCTestCase {
         app = nil
     }
 
-    // MARK: - Core Navigation Tests
+    // MARK: - Plan Navigation
 
     func testLaunchAndNavigateToPlan() throws {
         // Verify app launches with tab bar
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
 
-        // Tap Plan tab (2nd position in tab bar)
-        let tabs = app.tabBars.buttons.allElementsBoundByIndex
-        XCTAssertGreaterThan(tabs.count, 1, "Expected at least 2 tabs")
-        tabs[1].tap()
+        // The plan lives on the Workout tab
+        app.tabBars.buttons["Workout"].tap()
 
-        // Verify Plan view loaded
-        let planTitle = app.staticTexts["Your Training Plan"]
-        XCTAssertTrue(planTitle.waitForExistence(timeout: 3))
+        // Verify today's plan loaded
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] 'The work'")
+            ).firstMatch.waitForExistence(timeout: 3),
+            "Workout tab should show today's plan")
 
-        // Verify week schedule is visible
-        let weekSection = app.staticTexts["This Week"]
-        XCTAssertTrue(weekSection.exists, "Week schedule should be visible")
+        // Verify the work list is present
+        XCTAssertTrue(
+            app.buttons["Add exercise"].waitForExistence(timeout: 2),
+            "Work list should offer adding exercises")
     }
 
-    func testPlanViewShowsWorkoutDays() throws {
+    func testPlanShowsPlannedExercises() throws {
         navigateToPlan()
 
-        // Find day cards by looking for workout types
-        let workoutTypes = ["Push", "Pull", "Legs", "Upper", "Rest"]
-        var foundWorkouts = 0
-
-        for type in workoutTypes {
-            if app.staticTexts[type].exists {
-                foundWorkouts += 1
-            }
-        }
-
-        XCTAssertGreaterThan(foundWorkouts, 0, "Expected at least one workout type visible")
+        // Each planned exercise renders its set count ("3 sets" …)
+        let setRows = app.staticTexts.matching(
+            NSPredicate(format: "label ENDSWITH 'sets'")
+        )
+        XCTAssertGreaterThan(setRows.count, 0, "Expected at least one planned exercise with sets")
     }
 
-    // MARK: - Workout Day Selection
+    // MARK: - Exercise Detail (adjust sets)
 
-    func testSelectWorkoutDay() throws {
+    func testSelectExerciseOpensDetails() throws {
         navigateToPlan()
 
-        // Look for Push day (first workout day in split)
-        let pushDay = app.staticTexts["Push"]
-        if pushDay.waitForExistence(timeout: 2) {
-            // Tap its parent container (day card)
-            let dayCard = pushDay.firstMatch
-            dayCard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // The first planned exercise is marked as the focus row; tapping it
+        // opens the exercise detail (set editor) sheet.
+        let focusRow = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS 'Focus exercise'")
+        ).firstMatch
+        XCTAssertTrue(
+            focusRow.waitForExistence(timeout: 3),
+            "First planned exercise should be marked as the focus exercise")
+        focusRow.tap()
 
-            // Wait for content to update
-            sleep(1)
-
-            // Verify exercises or content appears
-            let hasExercises = app.otherElements["exercise-timeline-row"].exists
-            let hasEmptyState = app.staticTexts["No exercises planned"].exists
-            let hasExerciseHeader = app.staticTexts.matching(
-                NSPredicate(format: "label CONTAINS 'Exercises'")
-            ).firstMatch.exists
-
-            XCTAssertTrue(
-                hasExercises || hasEmptyState || hasExerciseHeader,
-                "Expected exercise content or empty state after selecting day")
-        }
+        let sheetTitle = app.navigationBars["Exercise Details"].firstMatch
+        let setEditor = app.staticTexts["Tap a value to edit"]
+        XCTAssertTrue(
+            sheetTitle.waitForExistence(timeout: 3) || setEditor.waitForExistence(timeout: 2),
+            "Tapping an exercise row should open its detail sheet")
     }
 
-    func testFindWorkoutWithExercises() throws {
+    func testExerciseDetailShowsSetControls() throws {
         navigateToPlan()
 
-        // Try clicking through different workout days to find one with exercises
-        let workoutTypes = ["Push", "Pull", "Legs", "Upper"]
-        var foundExercises = false
+        let focusRow = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS 'Focus exercise'")
+        ).firstMatch
+        XCTAssertTrue(focusRow.waitForExistence(timeout: 3))
+        focusRow.tap()
 
-        for type in workoutTypes {
-            let dayTexts = app.staticTexts[type]
-            if dayTexts.exists {
-                dayTexts.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-                    .tap()
-                sleep(1)
-
-                // Check if exercises appeared
-                if app.otherElements["exercise-timeline-row"].waitForExistence(timeout: 1) {
-                    foundExercises = true
-                    print("Found exercises on \(type) day")
-                    break
-                }
-            }
-        }
-
-        if !foundExercises {
-            print("⚠️ No exercises found on any workout day - plan may not be generated")
-        }
-
-        // This test passes as long as we can navigate between days
-        XCTAssertTrue(true, "Navigation between workout days works")
+        // Set editor: sets section with editable kg/reps columns and save controls
+        XCTAssertTrue(
+            app.staticTexts["Sets"].waitForExistence(timeout: 3),
+            "Detail sheet should list the sets section")
+        XCTAssertTrue(app.staticTexts["Tap a value to edit"].exists, "Set editor should be editable")
+        XCTAssertTrue(app.staticTexts["KG"].exists, "Set editor should show the weight column")
+        XCTAssertTrue(app.staticTexts["REPS"].exists, "Set editor should show the reps column")
+        XCTAssertTrue(app.buttons["Save"].exists, "Detail sheet should offer Save")
+        XCTAssertTrue(app.buttons["Cancel"].exists, "Detail sheet should offer Cancel")
     }
 
     // MARK: - Recovery Insights
 
     func testRecoveryInsightsVisible() throws {
-        navigateToPlan()
+        // Recovery insights moved off the plan screen onto the Body tab.
+        app.tabBars.buttons["Body"].tap()
 
-        // Scroll down to recovery section
-        app.swipeUp()
-
-        // Check for recovery section
-        let recoveryTitle = app.staticTexts["Recovery Status"]
         XCTAssertTrue(
-            recoveryTitle.waitForExistence(timeout: 2),
-            "Recovery insights section should be visible")
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] 'By muscle group'")
+            ).firstMatch.waitForExistence(timeout: 3),
+            "Per-muscle recovery insights should be visible on the Body tab")
+
+        // Every tracked region gets a recovery row
+        XCTAssertTrue(
+            app.staticTexts["Chest"].exists,
+            "Recovery rows should list muscle groups")
     }
 
+    // MARK: - Weekly Stats
+
     func testWeeklyStatsVisible() throws {
-        navigateToPlan()
+        // Weekly progress moved off the plan screen onto the Targets tab.
+        app.tabBars.buttons["Targets"].tap()
 
-        // Scroll to bottom
-        app.swipeUp()
-        app.swipeUp()
-
-        // Check for stats section
-        let statsTitle = app.staticTexts["This Week's Progress"]
         XCTAssertTrue(
-            statsTitle.waitForExistence(timeout: 2),
-            "Weekly stats section should be visible")
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] 'This week'")
+            ).firstMatch.waitForExistence(timeout: 3),
+            "This week's progress should be visible on the Targets tab")
+
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label ENDSWITH '% of the week'")
+            ).firstMatch.exists,
+            "Weekly target rows should show their weekly progress")
     }
 
     // MARK: - Helper Methods
@@ -146,11 +135,13 @@ final class AdjustSetsUITests: XCTestCase {
     private func navigateToPlan() {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
 
-        // Tap Plan tab (2nd position)
-        let tabs = app.tabBars.buttons.allElementsBoundByIndex
-        tabs[1].tap()
+        // The plan lives on the Workout tab
+        app.tabBars.buttons["Workout"].tap()
 
-        let planTitle = app.staticTexts["Your Training Plan"]
-        XCTAssertTrue(planTitle.waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] 'The work'")
+            ).firstMatch.waitForExistence(timeout: 3),
+            "Workout tab should load today's plan")
     }
 }

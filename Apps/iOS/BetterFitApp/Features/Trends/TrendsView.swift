@@ -128,5 +128,5 @@ struct TrendsView: View {
 }
 
 #Preview {
-    TrendsView(theme: .midnight)
+    TrendsView(theme: .fitbod)
 }

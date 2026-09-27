@@ -1,5 +1,30 @@
 import SwiftUI
 
+// MARK: - Summary data
+
+struct WorkoutSummaryData {
+    var name: String
+    var duration: TimeInterval
+    var volume: Double = 0
+    var sets: Int = 0
+    var note: String = "Good work. Consistency compounds."
+    var exercises: [WorkoutSummaryExercise]
+    /// Readiness change per trained muscle region, computed at finish from the
+    /// session's logged sets and `BetterFit`'s recovery map. Empty when it
+    /// cannot be derived — the summary hides the section rather than faking it.
+    var recoveryEffects: [(muscle: String, from: Int, to: Int)] = []
+}
+
+struct WorkoutSummaryExercise: Identifiable {
+    let id = UUID()
+    let name: String
+    let best: String
+    let setsDone: Int
+    let setsPlanned: Int
+    let volume: Double
+    let isPR: Bool
+}
+
 // MARK: - Workout summary — Ledger layout
 
 struct WorkoutSummaryView: View {
@@ -43,8 +68,6 @@ struct WorkoutSummaryView: View {
                 }
                 .buttonStyle(.plain)
                 .layoutPriority(1)
-
-                BFDockButton(systemImage: "square.and.arrow.up", label: "Share summary")
             }
             .padding(.bottom, 16)
         }
@@ -65,14 +88,6 @@ struct WorkoutSummaryView: View {
             }
             .buttonStyle(.plain)
             Spacer()
-            Button {} label: {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Share summary")
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -112,7 +127,6 @@ struct WorkoutSummaryView: View {
                         Rectangle()
                             .fill(BFColors.identityInk.opacity(0.2))
                             .frame(height: 1.5)
-                            .padding(.top, 0)
                     }
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -150,33 +164,35 @@ struct WorkoutSummaryView: View {
                 }
             }
 
-            BFSectionRule(label: "Effect on recovery")
-            ForEach(Array(data.recoveryEffects.enumerated()), id: \.offset) { _, effect in
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) {
-                        Text(effect.muscle)
-                            .font(BFTypography.bodyEmphasis)
-                            .foregroundStyle(BFColors.textPrimary(for: colorScheme))
-                        Spacer()
-                        Text("\(effect.from)%")
-                            .font(BFTypography.footnote)
-                            .monospacedDigit()
-                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
-                        Text("\(effect.to)%")
-                            .font(BFTypography.subheadlineEmphasis)
-                            .monospacedDigit()
-                            .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+            if !data.recoveryEffects.isEmpty {
+                BFSectionRule(label: "Effect on recovery")
+                ForEach(Array(data.recoveryEffects.enumerated()), id: \.offset) { _, effect in
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 12) {
+                            Text(effect.muscle)
+                                .font(BFTypography.bodyEmphasis)
+                                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                            Spacer()
+                            Text("\(effect.from)%")
+                                .font(BFTypography.footnote)
+                                .monospacedDigit()
+                                .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+                            Text("\(effect.to)%")
+                                .font(BFTypography.subheadlineEmphasis)
+                                .monospacedDigit()
+                                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                        }
+                        BFBar(progress: Double(effect.to) / 100.0, color: BFColors.yellowDeep)
                     }
-                    BFBar(progress: Double(effect.to) / 100.0, color: BFColors.yellowDeep)
-                }
-                .padding(.vertical, 13)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(BFColors.separator(for: colorScheme))
-                        .frame(height: 1)
+                    .padding(.vertical, 13)
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(BFColors.separator(for: colorScheme))
+                            .frame(height: 1)
+                    }
                 }
             }
 
@@ -229,6 +245,10 @@ struct WorkoutSummaryView: View {
             exercises: [
                 WorkoutSummaryExercise(name: "Lat pulldown", best: "50 kg × 8", setsDone: 3, setsPlanned: 3, volume: 1200, isPR: false),
                 WorkoutSummaryExercise(name: "Cable row", best: "64 kg × 8", setsDone: 4, setsPlanned: 4, volume: 2000, isPR: true),
+            ],
+            recoveryEffects: [
+                (muscle: "Back", from: 96, to: 48),
+                (muscle: "Arms", from: 72, to: 48),
             ]
         )
     )

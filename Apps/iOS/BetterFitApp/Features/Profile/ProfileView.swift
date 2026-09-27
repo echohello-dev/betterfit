@@ -135,11 +135,7 @@ struct ProfileView: View {
 
     private var weeklyTargets: some View {
         VStack(alignment: .leading, spacing: 12) {
-            BFSectionHeader(title: "Weekly targets") {
-                Button("Edit") {}
-                    .font(BFTypography.footnoteEmphasis)
-                    .foregroundStyle(BFColors.accentText(for: colorScheme))
-            }
+            BFSectionHeader(title: "Weekly targets")
             BFDSCard {
                 VStack(spacing: 14) {
                     targetRow(label: "Workouts", value: Double(min(streak, 5)), target: 5, unit: "")
@@ -157,10 +153,10 @@ struct ProfileView: View {
                     .font(BFTypography.subheadline)
                     .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                 Spacer()
-                Text("\(format(value))")
+                Text(BFFormat.rounded(value))
                     .font(BFTypography.subheadlineEmphasis)
                     .monospacedDigit()
-                Text("/ \(format(target))\(unit)")
+                Text("/ \(BFFormat.rounded(target))\(unit)")
                     .font(BFTypography.subheadline)
                     .foregroundStyle(BFColors.textTertiary(for: colorScheme))
                     .monospacedDigit()
@@ -275,9 +271,6 @@ struct ProfileView: View {
         return vol > 0 ? String(format: "%.0f", vol) : "41k"
     }
 
-    private func format(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.0f", value)
-    }
 }
 
 // MARK: - Compact year heatmap

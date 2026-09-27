@@ -500,7 +500,7 @@ struct AppSearchView: View {
 
         var body: some View {
             AppSearchView(
-                theme: .midnight,
+                theme: .fitbod,
                 betterFit: BetterFit(),
                 query: $query,
                 previousTabIcon: "figure.run",

@@ -8,12 +8,25 @@ extension WorkoutHomeView {
     // MARK: - Top bar (title only)
 
     var topBar: some View {
-        HStack {
+        HStack(spacing: 10) {
             Text("Plan")
                 .font(BFTypography.screenTitle)
                 .tracking(BFTypography.displayTracking)
                 .foregroundStyle(BFColors.textPrimary(for: colorScheme))
             Spacer(minLength: 0)
+            BFIconButton(systemImage: "magnifyingglass", accessibilityLabel: "Search", action: onSearch)
+            Button(action: onProfile) {
+                Text(initials)
+                    .font(BFTypography.captionEmphasis)
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(BFColors.surfaceRaised(for: colorScheme)))
+                    .overlay {
+                        Circle().stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Profile")
         }
         .padding(.horizontal, BFSpacing.pageHorizontal)
         .padding(.bottom, 14)
@@ -166,6 +179,8 @@ extension WorkoutHomeView {
                     )
                     .frame(width: 28, alignment: .leading)
 
+                exerciseThumbTile(exercise)
+
                 Button {
                     selectedExercise = exercise
                 } label: {
@@ -189,17 +204,36 @@ extension WorkoutHomeView {
                     .foregroundStyle(BFColors.textTertiary(for: colorScheme))
 
                 if superset != nil {
+                    // Neutral chip — yellow stays reserved for the single
+                    // primary action/hero (design.md "Yellow versus amber").
                     Text("SS")
                         .font(BFTypography.captionEmphasis)
-                        .foregroundStyle(BFColors.accentInk)
+                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Capsule().fill(BFColors.accent))
+                        .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
+                        .overlay {
+                            Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+                        }
                 }
             }
 
             planEditFields(for: exercise)
         }
+    }
+
+    /// Small leading thumbnail tile — an SF Symbol glyph in a rounded tinted tile
+    /// (no photo assets exist; reuses the `thumbIcon` mapping convention).
+    private func exerciseThumbTile(_ exercise: PlannedExercise) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(theme.accentSurface(0.12, for: colorScheme))
+            Image(systemName: thumbIcon(for: exercise))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(BFColors.accentText(for: colorScheme))
+        }
+        .frame(width: 40, height: 40)
+        .accessibilityHidden(true)
     }
 
     private func planEditFields(for exercise: PlannedExercise) -> some View {
@@ -223,7 +257,8 @@ extension WorkoutHomeView {
             )
             Spacer(minLength: 0)
         }
-        .padding(.leading, 40)
+        // Align under the text column: 28pt gutter + 40pt thumbnail + 2×12pt gaps.
+        .padding(.leading, 92)
     }
 
     // MARK: - Start something else

@@ -1,6 +1,6 @@
 # BetterFit UI Tests
 
-Automated UI tests for verifying the BetterFit app functionality, with a focus on the Adjust Sets feature.
+Automated UI tests for verifying the BetterFit app functionality, with a focus on workout planning journeys and the redesigned tab structure.
 
 ## Running Tests
 
@@ -14,29 +14,54 @@ mise run ios:open
 # Then: Cmd+U or Product > Test
 ```
 
+## Tab Structure
+
+Tests navigate via the tab bar titles defined by `AppTab` in
+`Apps/iOS/BetterFitApp/Features/RootTab/RootTabView.swift`:
+
+| Tab | Screen | Contents |
+|-----|--------|----------|
+| **Workout** | `WorkoutHomeView` | Today's plan ("The work"), quick actions, "Start something else", floating Start workout dock |
+| **Body** | `RecoveryView` | Overall recovery readout, per-muscle recovery rows |
+| **Targets** | `TargetsView` | This week slab, weekly targets, the week, streak, records |
+| **Log** | `LogView` | Streak readout, consistency heatmap, month ledger, all-time stats |
+
+Prefer `app.tabBars.buttons["<Title>"]` over index-based tab access.
+
 ### Test Coverage
 
 #### `AdjustSetsUITests.swift`
-Tests for the Adjust Sets functionality in PlanView:
+Core workout planning journeys:
 
-- **Navigation Tests**
-  - `testNavigateToPlanView` - Verifies tab navigation to Plan view
-  - `testPlanViewShowsWeekDays` - Checks week schedule rendering
-  - `testTodaysPlanSectionExists` - Validates exercises or empty state
+- **Plan Navigation** — Workout tab loads today's plan; the work list renders planned exercises with set counts
+- **Exercise Detail (adjust sets)** — tapping the focus exercise row opens the `ExerciseDetailSheet` set editor (sets section, KG/REPS columns, Save/Cancel)
+- **Recovery Insights** — recovery rows live on the Body tab
+- **Weekly Stats** — weekly progress lives on the Targets tab
 
-- **Swipe Actions**
-  - `testSwipeToRevealAdjustSets` - Swipe left reveals "Adjust Sets" button
-  - `testAdjustSetsSheetOpens` - Tapping action opens modal sheet
+#### `TabNavigationUITests.swift`
+- All four tabs are reachable and show distinct content
+- The Start workout dock only appears on the Workout tab
+- The dock does not overlap scrollable content on other tabs
+- Starting a workout transitions to the active session
 
-- **Sheet Controls**
-  - `testAdjustSetsSheetControls` - Verifies all controls exist (sets stepper, reps field, weight field, save button)
-  - `testAdjustSetsIncrement` - Tests + button increments sets
-  - `testAdjustSetsDecrement` - Tests - button decrements sets
-  - `testAdjustSetsSaveAndDismiss` - Save button dismisses sheet
-  - `testAdjustSetsCancelDismisses` - Cancel button dismisses sheet
+#### `ProfileJourneyUITests.swift`
+Content that moved off the old Profile tab:
 
-- **Context Menu**
-  - `testLongPressShowsAdjustSets` - Long press shows "Adjust Sets" in menu
+- Health/recovery overview → Body tab
+- Weekly targets → Targets tab
+- Personal records / empty state → Targets tab
+
+#### `WorkoutPreviewUITests.swift`
+The workout preview sheet opened from "Start something else" (Legs A renders its work, Close dismisses).
+
+#### `WorkoutSummaryUITests.swift`
+Finishing a demo session shows the summary (session complete, what you lifted, next row) and hides the recovery section when no sets were logged.
+
+#### `LogViewUITests.swift`
+Streak readout, consistency heatmap (26 weeks), all-time stats, log-a-past-workout sheet.
+
+#### `TargetsViewUITests.swift`
+This week slab, weekly target rows, week day rows, streak and records sections.
 
 ## Requirements
 
@@ -44,22 +69,12 @@ Tests for the Adjust Sets functionality in PlanView:
 - **iOS 17.0+ Simulator**
 - Demo mode enabled for consistent test data
 
-## Architecture
+## Accessibility Identifiers
 
-### Test Structure
-```
-BetterFitAppUITests/
-├── AdjustSetsUITests.swift      # Adjust sets functionality tests
-└── README.md                     # This file
-```
+Current tests match on accessibility labels (section rules, row titles, button
+labels) rather than custom identifiers. Known identifiers in the app:
 
-### Accessibility Identifiers
-Tests rely on accessibility identifiers added to components:
-- `exercise-timeline-row` - Timeline exercise rows in UnifiedExerciseTimeline
-
-### Test Helpers
-- `navigateToPlan()` - Navigates to Plan tab
-- `openAdjustSetsSheet()` - Opens adjust sets sheet for first exercise
+- `exercise-timeline-row` — rows in `UnifiedExerciseTimeline` (currently only used by the unwired `PlanView`)
 
 ## Demo Mode
 
@@ -67,21 +82,38 @@ Tests run with these launch arguments:
 - `UI_TESTING` - Enables UI testing mode
 - `DEMO_MODE` - Uses consistent seed data
 
-This ensures predictable test results regardless of user data.
+This ensures predictable test results regardless of user data. Note that the
+demo plan is a Push/Pull/Legs split (`WorkoutPlanManager`), so today's session
+name varies by weekday — assert structural markers ("The work", "Focus
+exercise", "Exercise 01") rather than session names.
+
+## Coverage Gaps
+
+- **ProfileView sheet is unreachable** — `WorkoutHomeView.onProfile` is never
+  invoked, so profile-only surfaces are untested: PR detail sheet, achievements,
+  yearly wrapped, settings sheet, guest/sign-in prompt.
+- **AppSearchView sheet is unreachable** — `WorkoutHomeView.onSearch` is never
+  invoked, so search/categories are untested.
+- **`PlanView` (Trends) is unwired** — the old week-schedule plan screen is not
+  in the tab hierarchy; the week now lives on the Targets tab.
 
 ## Troubleshooting
 
-### Tests Skip Due to No Exercises
-If tests skip with "No exercises found in plan":
+### Tests Can't Find a Tab
+Verify the tab titles match `AppTab.title` in `RootTabView.swift`
+(Workout, Body, Targets, Log).
+
+### No Exercises in the Plan
+If the work list is empty:
 1. Verify demo mode is generating exercise data
-2. Check `WorkoutPlanManager.generateInitialPlan()` in demo mode
-3. Ensure at least one day has exercises
+2. Check `WorkoutPlanManager.generateInitialPlan()` and
+   `WorkoutHomeView.loadPlan()` (falls back to the demo Pull Day)
 
 ### Sheet Not Opening
-If "Adjust Sets" sheet doesn't open:
-1. Check accessibility identifier is set on timeline rows
-2. Verify swipe gesture is working (try manual test)
-3. Ensure `onAdjustSets` callback is wired in PlanView
+If a sheet (workout preview, exercise detail) doesn't open:
+1. Confirm the row is hittable (scroll it on screen first)
+2. Verify the tap target — plan rows open the detail sheet via the
+   exercise-name button ("Focus exercise" meta on the first row)
 
 ### Simulator Issues
 ```bash
@@ -95,9 +127,8 @@ mise run ios:sim:boot26
 ## Future Tests
 
 Potential additions:
-- Test replacing exercises
-- Test creating supersets
-- Test drag-to-reorder exercises
-- Test workout execution flow
-- Test active workout tracking
+- Test replacing exercises and supersets (swipe actions on plan rows)
+- Test workout execution flow (logging sets in the active session)
+- Test active workout pause/resume/stop (minimized session dock)
 - Test watch app sync
+- Re-add Profile coverage once `onProfile` is wired to a UI entry point

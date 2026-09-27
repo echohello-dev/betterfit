@@ -474,7 +474,7 @@ extension HKWorkoutActivityType {
     return StreakSummarySheetView(
         betterFit: betterFit,
         selectedDate: $selectedDate,
-        theme: .midnight,
+        theme: .fitbod,
         openCalendar: {}
     )
 }

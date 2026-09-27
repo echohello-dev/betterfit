@@ -244,7 +244,7 @@ struct SettingDetailView: View {
         SettingDetailView(
             settingId: "notifications",
             title: "Notifications",
-            theme: .midnight
+            theme: .fitbod
         )
     }
 }

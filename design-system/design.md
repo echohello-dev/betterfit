@@ -100,13 +100,13 @@ The training interface is dark-first, calm, and functional. Yellow carries the p
 | Tertiary text | `#63636D` | approximately `#94949E` |
 | Primary action | `#FFD60A` | `#FFD60A` |
 | Action ink | `#000000` | `#000000` |
-| Action tint (subtle) | `#FFD60A` at 16% | `#FFD60A` at 16% |
-| Success | `#4ADE80` | `#4ADE80` |
-| Warning | `#F5B83D` | `#F5B83D` |
-| Danger | `#F04438` | `#F04438` |
-| Information / recovered | `#2E90FA` | `#2E90FA` |
+| Action tint (subtle) | `#FFD60A` at 15% | `#FFD60A` at 15% |
+| Yellow ladder — bright (recovered, success) | `#FFE860` | `#FFE860` |
+| Yellow ladder — base (fresh, warning) | `#FFD60A` | `#FFD60A` |
+| Yellow ladder — deep (fatigued, information) | `#C9A800` | `#C9A800` |
+| Yellow ladder — dim (sore) | `#7A6600` | `#7A6600` |
 
-Use semantic colors consistently. Recovery runs from blue for recovered, through green and amber, to red for sore. Never rely on color alone to communicate status.
+Use semantic colors consistently. Status and recovery ride the yellow ladder plus a word or label, never a competing hue: brightness ramps up as readiness improves — dim for sore, deep for fatigued, base for fresh, bright for recovered. Success wears the bright step, information the deep step, and danger is expressed by inverting the control rather than adding red. On light backgrounds the ramp shifts to deeper steps so yellow stays legible. Never rely on color alone to communicate status.
 
 **Yellow versus amber.** Brand yellow and warning amber sit close together, so they must never compete. Yellow appears as a solid fill on interactive elements and on the hero value of a screen. Amber only ever appears as a small indicator — a dot, a bar segment, an icon, a text colour — and never as a filled button or a large field. If a warning needs emphasis, add an icon and a label rather than more colour.
 
@@ -163,7 +163,7 @@ Assume one hand, in a gym, mid-session.
 
 ### Actions
 
-Use one full-width yellow button with black text for the primary action, docked at the bottom of the screen in thumb reach. Secondary actions use a raised neutral surface with a hairline border. Tertiary actions use yellow text without a container. Destructive confirmation uses red and must be explicit.
+Use one full-width yellow button with black text for the primary action, docked at the bottom of the screen in thumb reach. Secondary actions use a raised neutral surface with a hairline border. Tertiary actions use yellow text without a container. Destructive confirmation inverts the control and must be explicit.
 
 At most one yellow fill is visible at a time. On screens that lead with a full yellow field, the field **is** the yellow — the docked action is neutral glass. On screens with a neutral header, the docked action carries the yellow. Never both.
 
@@ -232,7 +232,7 @@ Design a [screen, flow, campaign, or asset] for BetterFit, a personal strength t
 
 The brand is strong, direct, useful, adaptive, encouraging, and human. It should feel like a knowledgeable training partner, not a drill sergeant, influencer, clinical dashboard, neon fitness game, or soft wellness app. Make the next action obvious and keep information practical enough to use while moving or between sets.
 
-BetterFit is a two-colour brand: electric yellow #FFD60A and black, with white as reversed ink. Do not introduce any additional accent hue. Use heavy geometric typography and compressed forms inspired by weight plates and repetition. For product UI, use a calm dark-first system with #0B0B0D backgrounds, #17171B surfaces, subtle hairline borders, white primary text, and muted gray secondary text, with yellow #FFD60A carrying the single primary action and always paired with black ink. Use green #4ADE80 for success, amber #F5B83D for warning as a small indicator only, red #F04438 for danger, and blue #2E90FA for information or recovered status.
+BetterFit is a two-colour brand: electric yellow #FFD60A and black, with white as reversed ink. Do not introduce any additional accent hue. Use heavy geometric typography and compressed forms inspired by weight plates and repetition. For product UI, use a calm dark-first system with #0B0B0D backgrounds, #17171B surfaces, subtle hairline borders, white primary text, and muted gray secondary text, with yellow #FFD60A carrying the single primary action and always paired with black ink. Use the yellow ladder for status and recovery — bright #FFE860, base #FFD60A, deep #C9A800, dim #7A6600 — where brightness ramps up as readiness improves, always paired with a word or label; express danger by inverting the control rather than adding a red hue. Amber stays a small indicator only — a dot, a bar segment, an icon — and never a fill.
 
 Use bold headings, native system body text, and monospaced digits for weights, reps, timers, percentages, and stats. Build on a 4-point spacing rhythm with 20-point page margins, flat solid cards, continuous 16-point corners, 54-point primary buttons, and 44-point minimum tap targets. Float the navigation and the primary action as translucent blurred chrome over the scrolling page, and keep the primary action in thumb reach at the bottom; keep content surfaces flat and opaque. Put frequent operations in a quick-action strip and row operations on swipe. Prefer native navigation and controls. Use restrained SF Symbols and short, responsive motion. Invent BetterFit's own screen hierarchy rather than restating another fitness app's layout. Avoid glossy gradients, excessive shadows, dashboard clutter, generic AI visuals, motivational cliches, shame, and macho gym imagery.
 

@@ -35,11 +35,6 @@ struct LogView: View {
             let idx = values.count - 1 - daysAgo
             values[idx] = min(4, values[idx] + 1)
         }
-        if history.isEmpty {
-            for index in 0..<values.count where index % 5 == 0 || index % 7 == 2 {
-                values[index] = (index % 4) + 1
-            }
-        }
         return values
     }
 
@@ -62,8 +57,16 @@ struct LogView: View {
                     trailing: "\(monthSessions.count) sessions"
                 )
 
-                ForEach(Array(monthLedger.enumerated()), id: \.offset) { _, entry in
-                    dayRow(entry)
+                if monthLedger.isEmpty {
+                    BFEmptyState(
+                        systemImage: "calendar",
+                        title: "No sessions this month",
+                        message: "Completed workouts show up here."
+                    )
+                } else {
+                    ForEach(Array(monthLedger.enumerated()), id: \.offset) { _, entry in
+                        dayRow(entry)
+                    }
                 }
 
                 BFAddRow(label: "Log a past workout") {
@@ -91,14 +94,6 @@ struct LogView: View {
                 Text("Log")
                     .font(BFTypography.screenTitle)
                     .tracking(BFTypography.displayTracking)
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {} label: {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                }
-                .accessibilityLabel("Jump to date")
             }
         }
         .sheet(isPresented: $showAddPast) {
@@ -128,58 +123,7 @@ struct LogView: View {
 
     private var monthLedger: [DayEntry] {
         let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
         var entries: [DayEntry] = []
-
-        if monthSessions.isEmpty {
-            return [
-                DayEntry(
-                    day: cal.component(.day, from: today),
-                    name: "Pull B",
-                    meta: "Planned · today",
-                    volume: nil,
-                    isRest: false,
-                    isToday: true,
-                    inStreak: true
-                ),
-                DayEntry(
-                    day: max(1, cal.component(.day, from: today) - 1),
-                    name: "Push A",
-                    meta: "48 min · 8 exercises",
-                    volume: "16.2k",
-                    isRest: false,
-                    isToday: false,
-                    inStreak: true
-                ),
-                DayEntry(
-                    day: max(1, cal.component(.day, from: today) - 2),
-                    name: "Legs A",
-                    meta: "52 min · 9 exercises",
-                    volume: "18.4k",
-                    isRest: false,
-                    isToday: false,
-                    inStreak: true
-                ),
-                DayEntry(
-                    day: max(1, cal.component(.day, from: today) - 3),
-                    name: "Rest",
-                    meta: nil,
-                    volume: nil,
-                    isRest: true,
-                    isToday: false,
-                    inStreak: false
-                ),
-                DayEntry(
-                    day: max(1, cal.component(.day, from: today) - 4),
-                    name: "Push A",
-                    meta: "46 min · 7 exercises",
-                    volume: "15.1k",
-                    isRest: false,
-                    isToday: false,
-                    inStreak: false
-                ),
-            ]
-        }
 
         for (idx, workout) in monthSessions.prefix(14).enumerated() {
             let day = cal.component(.day, from: workout.date)

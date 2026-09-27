@@ -121,9 +121,9 @@ Tinted surfaces are the accent or a ladder step at **15%** opacity (recovery bad
 
 ### Type
 
-Display is **BBH Hegarty** at `+0.005em` tracking and `1.05` line-height — the Swift source specifies `-0.02em`, but that assumes the Bold/ExtraBold cut; with only the Regular cut licensed here, negative tracking collides at title sizes. **Restore `-0.02em` once the heavier cuts arrive.** It carries the hero (56px), large title (34), title 1 (28) and title 2 (22). Interface copy is the **native system face**: headline/body 17, callout 16, supporting 15, footnote 13, caption 12. Timers, weights, reps, percentages and any changing statistic use **tabular figures** (`.bf-num`) so they don't jitter; the timer itself (40px) uses the mono stack.
+Display is **BBH Hegarty** at `+0.005em` tracking and `1.05` line-height — the Swift source specifies `-0.02em`, but that assumes the Bold/ExtraBold cut; with only the Regular cut licensed here, negative tracking collides at title sizes. **Restore `-0.02em` once the heavier cuts arrive.** It carries the hero (56px), large title (34), title 1 (28) and title 2 (22). Interface copy is the **native system face**: headline/body 17, callout 16, supporting 15, footnote 13, caption 12. Timers, weights, reps, percentages and any changing statistic use **tabular figures** (`.bf-num`) so they don't jitter; the timer itself (40px) is the system face with monospaced digits, not a separate mono stack.
 
-Section labels are 12px semibold uppercase at `0.1em` tracking in secondary text. Nothing else is uppercase.
+Section labels are 11px bold uppercase at `0.1em` tracking in secondary text. Nothing else is uppercase.
 
 The scale is a point scale carried to px 1:1 from `BFTypography.swift`. Do not invent intermediate sizes.
 

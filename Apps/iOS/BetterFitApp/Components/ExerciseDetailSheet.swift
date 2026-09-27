@@ -367,7 +367,7 @@ struct ExerciseDetailSheet: View {
             targetWeight: "135 lbs",
             muscleGroups: ["Chest", "Triceps"]
         ),
-        theme: .forest,
+        theme: .fitbod,
         onDelete: {},
         onReplace: {},
         onSuperset: {},
