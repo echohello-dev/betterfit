@@ -133,6 +133,16 @@ struct ActiveSessionView: View {
             timer?.invalidate()
             restTimer?.invalidate()
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    commitFocusedField()
+                    focusedField = nil
+                }
+                .fontWeight(.semibold)
+            }
+        }
         .confirmationDialog("Finish workout?", isPresented: $showFinish, titleVisibility: .visible) {
             Button("Finish & save") { finish() }
             Button("Keep training", role: .cancel) {}

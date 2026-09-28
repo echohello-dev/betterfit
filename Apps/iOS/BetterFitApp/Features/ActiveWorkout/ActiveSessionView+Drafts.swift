@@ -116,7 +116,8 @@ extension ActiveSessionView {
         updateSet(we: we, index: index, load: pair.load, reps: value)
     }
 
-    func commitFocusedField(we: WorkoutExercise) {
+    func commitFocusedField() {
+        guard let we = current else { return }
         switch focusedField {
         case .headerLoad: commitHeaderLoad(we: we)
         case .headerReps: commitHeaderReps(we: we)

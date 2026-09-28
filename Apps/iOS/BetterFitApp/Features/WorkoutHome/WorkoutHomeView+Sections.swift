@@ -130,17 +130,6 @@ extension WorkoutHomeView {
                         .offset(x: -BFSpacing.pageHorizontal)
                 }
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        commitWeight(exercise.id)
-                        commitReps(exercise.id)
-                        focusedPlanField = nil
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
             .swipeActions(edge: .leading) {
                 Button {
                     if index + 1 < exercises.count {

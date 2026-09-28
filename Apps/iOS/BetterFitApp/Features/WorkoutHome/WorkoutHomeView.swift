@@ -150,6 +150,16 @@ struct WorkoutHomeView: View {
         .modifier(PlanScrollCollapseModifier(isScrolled: $isScrolled))
         .bfBackground(theme: theme)
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    commitFocusedPlanField()
+                    focusedPlanField = nil
+                }
+                .fontWeight(.semibold)
+            }
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             topBar
         }

@@ -97,6 +97,17 @@ extension WorkoutHomeView {
         )
     }
 
+    func commitFocusedPlanField() {
+        switch focusedPlanField {
+        case .weight(let id):
+            commitWeight(id)
+        case .reps(let id):
+            commitReps(id)
+        case nil:
+            break
+        }
+    }
+
     func commitWeight(_ id: UUID) {
         guard let exerciseIndex = exercises.firstIndex(where: { $0.id == id }) else { return }
         let raw = draftWeight[id] ?? ""

@@ -109,16 +109,6 @@ extension ActiveSessionView {
                 )
             }
             .padding(.top, 10)
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        commitFocusedField(we: we)
-                        focusedField = nil
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
         }
         .padding(.horizontal, BFSpacing.pageHorizontal)
         .padding(.top, 4)
