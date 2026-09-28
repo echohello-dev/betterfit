@@ -81,7 +81,7 @@ struct LogView: View {
                     BFLedgerTrailing(value: totalVolumeLabel, meta: "kg")
                 }
                 BFLedgerRow(systemImage: "clock.fill", title: "Time training") {
-                    BFLedgerTrailing(value: totalHoursLabel, meta: "hours")
+                    BFLedgerTrailing(value: totalHoursLabel, meta: totalHoursUnit)
                 }
             }
             .padding(.horizontal, BFSpacing.pageHorizontal)
@@ -220,6 +220,10 @@ struct LogView: View {
         let secs = history.reduce(0.0) { $0 + ($1.duration ?? 0) }
         let hours = secs / 3600
         return hours > 0 ? String(format: "%.0f", hours) : "—"
+    }
+
+    private var totalHoursUnit: String {
+        totalHoursLabel == "1" ? "hour" : "hours"
     }
 }
 

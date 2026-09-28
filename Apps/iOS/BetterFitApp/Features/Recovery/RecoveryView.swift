@@ -21,8 +21,13 @@ struct RecoveryView: View {
             .sorted { $0.percent > $1.percent }
     }
 
+    /// Aggregate the same readiness values the rows render, so the headline can
+    /// never disagree with the per-muscle percentages beneath it.
     private var overall: Int {
-        Int(betterFit.bodyMapManager.getOverallRecoveryPercentage().rounded())
+        guard !regions.isEmpty else {
+            return Int(betterFit.bodyMapManager.getOverallRecoveryPercentage().rounded())
+        }
+        return regions.reduce(0) { $0 + $1.percent } / regions.count
     }
 
     private var readyNames: [String] {
