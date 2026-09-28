@@ -1,6 +1,9 @@
 import Auth
 import BetterFit
 import SwiftUI
+#if canImport(UIKit)
+    import UIKit
+#endif
 
 enum AppTab: String, CaseIterable {
     case workout
@@ -51,6 +54,7 @@ struct RootTabView: View {
     @State private var planManager = WorkoutPlanManager()
     @State private var summaryData: WorkoutSummaryData?
     @State private var showSummary = false
+    @State private var isKeyboardVisible = false
 
     init(
         betterFit: BetterFit,
@@ -92,8 +96,10 @@ struct RootTabView: View {
             .tint(BFColors.accentText(for: .dark))
             // Full-width Start button matching the floating tab bar width.
             .overlay(alignment: .bottom) {
-                // Hide Plan's Start button while the live workout UI owns the tab.
-                if selectedTab == .workout && !showActiveSession {
+                // Hide Plan's Start button while the live workout UI owns the tab,
+                // and while the keyboard is up — keyboard avoidance would otherwise
+                // drag the floating pill across the content being edited.
+                if selectedTab == .workout && !showActiveSession && !isKeyboardVisible {
                     startWorkoutDock
                         .padding(.horizontal, 16)
                         .padding(.bottom, Self.startPillBottomInset)
@@ -105,6 +111,14 @@ struct RootTabView: View {
                 if healthKitManager == nil {
                     healthKitManager = HealthKitManager(healthKitService: betterFit.healthKitService)
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                guard !isKeyboardVisible else { return }
+                withAnimation(.snappy(duration: 0.22)) { isKeyboardVisible = true }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                guard isKeyboardVisible else { return }
+                withAnimation(.snappy(duration: 0.22)) { isKeyboardVisible = false }
             }
         // Active session is embedded in the Workout tab (Plan → Workout mode).
         .sheet(isPresented: $showSummary) {
