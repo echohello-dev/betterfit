@@ -1,6 +1,6 @@
 import XCTest
 
-/// E2E tests for core tab navigation and Start Workout button behavior
+/// E2E tests for core tab navigation and Start workout button behavior
 final class TabNavigationUITests: XCTestCase {
     var app: XCUIApplication!
 
@@ -36,26 +36,19 @@ final class TabNavigationUITests: XCTestCase {
         XCTAssertTrue(tabBar.waitForExistence(timeout: 5), "Tab bar should appear")
 
         let tabs = tabBar.buttons.allElementsBoundByIndex
-        XCTAssertEqual(tabs.count, 4, "Expected 4 tabs: Workout, Plan, Search, Me")
+        XCTAssertEqual(tabs.count, 4, "Expected 4 tabs: Workout, Body, Targets, Log")
 
-        // Tab through each one
-        for (index, tab) in tabs.enumerated() {
+        // Tab through each one and verify its distinct content
+        for (title, marker) in tabMarkers {
+            let tab = tabBar.buttons[title]
+            XCTAssertTrue(tab.waitForExistence(timeout: 2), "\(title) tab should exist")
             tab.tap()
-            sleep(1)
 
-            // Verify each tab has distinct content
-            switch index {
-            case 0:
-                XCTAssertTrue(app.staticTexts["Up Next"].waitForExistence(timeout: 2))
-            case 1:
-                XCTAssertTrue(app.staticTexts["Plan"].waitForExistence(timeout: 2))
-            case 2:
-                XCTAssertTrue(app.staticTexts["Categories"].waitForExistence(timeout: 2))
-            case 3:
-                XCTAssertTrue(app.staticTexts["Me"].waitForExistence(timeout: 2))
-            default:
-                break
-            }
+            XCTAssertTrue(
+                app.staticTexts.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", marker)
+                ).firstMatch.waitForExistence(timeout: 3),
+                "\(title) tab should show \(marker)")
         }
     }
 
@@ -63,66 +56,85 @@ final class TabNavigationUITests: XCTestCase {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 5))
 
-        let tabs = tabBar.buttons.allElementsBoundByIndex
+        for (title, marker) in tabMarkers {
+            tabBar.buttons[title].tap()
 
-        for (index, tab) in tabs.enumerated() {
-            tab.tap()
-            sleep(1)
+            // Wait for the tab's content so the negative check is meaningful.
+            XCTAssertTrue(
+                app.staticTexts.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", marker)
+                ).firstMatch.waitForExistence(timeout: 3),
+                "\(title) tab content should load")
 
-            let startButton = app.buttons["Start Workout"]
-            if index == 0 {
+            let startButton = app.buttons["Start workout"]
+            if title == "Workout" {
                 XCTAssertTrue(
                     startButton.waitForExistence(timeout: 2),
-                    "Start Workout should be visible on the Workout tab")
+                    "Start workout should be visible on the Workout tab")
             } else {
                 XCTAssertFalse(
                     startButton.exists,
-                    "Start Workout should not cover content on the \(tab.label) tab")
+                    "Start workout should not cover content on the \(title) tab")
             }
         }
     }
 
     func testStartWorkoutButtonDoesNotOverlapContent() throws {
-        // Navigate to Me tab where scrollable content exists
-        let tabs = app.tabBars.buttons.allElementsBoundByIndex
-        tabs[3].tap() // Me tab
+        // Scrollable content lives on the Targets tab (the old Me tab is gone).
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 5))
+        tabBar.buttons["Targets"].tap()
 
-        XCTAssertTrue(app.staticTexts["Me"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Start Workout"].exists)
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] 'Weekly targets'")
+            ).firstMatch.waitForExistence(timeout: 3),
+            "Targets tab should load")
+        XCTAssertFalse(app.buttons["Start workout"].exists)
 
         // Verify key sections exist and are tappable.
-        let weeklyTargets = app.staticTexts["Weekly Targets"]
+        let weeklyTargets = app.staticTexts["Workouts"]
         if weeklyTargets.waitForExistence(timeout: 2) {
             // If visible, it should be hittable (not covered by button)
-            XCTAssertTrue(weeklyTargets.isHittable, "Weekly Targets should be accessible")
+            XCTAssertTrue(weeklyTargets.isHittable, "Weekly target rows should be accessible")
         }
 
         // Scroll down and verify bottom content is accessible
         app.swipeUp()
-        sleep(1)
 
-        let achievements = app.staticTexts["Achievements"]
-        if achievements.exists {
-            XCTAssertTrue(achievements.isHittable, "Achievements should be accessible after scrolling")
+        let records = app.staticTexts["Keep training"]
+        if records.waitForExistence(timeout: 2) {
+            XCTAssertTrue(records.isHittable, "Records row should be accessible after scrolling")
         }
     }
 
     // MARK: - Active Workout State
 
     func testStartWorkoutTransitionsToActiveState() throws {
-        let startButton = app.buttons["Start Workout"]
+        let startButton = app.buttons["Start workout"]
         XCTAssertTrue(startButton.waitForExistence(timeout: 5))
 
         startButton.tap()
-        sleep(2)
 
-        // After starting, should see either active workout controls or the workout sheet
-        let pauseButton = app.buttons["Pause Workout"]
-        let resumeButton = app.buttons["Resume Workout"]
-        let stopButton = app.buttons["Stop Workout"]
-
+        // The active session embeds in the Workout tab (Plan → Workout mode).
+        let firstExercise = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] 'Exercise 01'")
+        ).firstMatch
+        let finishButton = app.buttons["Finish workout"]
         XCTAssertTrue(
-            pauseButton.exists || resumeButton.exists || stopButton.exists || app.sheets.firstMatch.exists,
-            "Should transition to active workout state after tapping Start Workout")
+            firstExercise.waitForExistence(timeout: 5) || finishButton.waitForExistence(timeout: 2),
+            "Should transition to the active session after tapping Start workout")
+    }
+
+    // MARK: - Helper Methods
+
+    /// Distinct content per tab, keyed by the tab title (`AppTab.title`).
+    private var tabMarkers: [(title: String, marker: String)] {
+        [
+            ("Workout", "The work"),
+            ("Body", "Overall recovery"),
+            ("Targets", "Weekly targets"),
+            ("Log", "26 weeks"),
+        ]
     }
 }

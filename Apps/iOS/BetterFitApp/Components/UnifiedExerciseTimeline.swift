@@ -575,7 +575,7 @@ struct SupersetIndicator: View {
                         targetWeight: "30 lbs", muscleGroups: ["Rear Delts"]),
                 ],
                 selectedIndex: 1,
-                theme: .forest,
+                theme: .fitbod,
                 onSelect: { _ in },
                 onDelete: { _ in },
                 onReplace: { _ in },

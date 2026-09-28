@@ -1,0 +1,116 @@
+/* ---- BetterFit color system ----
+   Two colours: electric yellow and black. Everything else is a neutral or
+   a step on the yellow ladder. No orange, no red, no multi-hue status palette.
+   Identity and product share one accent, so the brand is present on every screen.
+   Base greys from Apps/iOS/BetterFitApp/DesignSystem/BFColors.swift */
+:root{
+  /* Identity */
+  --bf-yellow:#FFD60A;
+  --bf-black:#000000;
+  --bf-white:#FFFFFF;
+
+  /* Yellow ladder — the only chromatic range in the system */
+  --yellow-bright:#FFE860;
+  --yellow-deep:#C9A800;
+  --yellow-dim:#7A6600;
+
+  /* Raw neutrals */
+  --grey-950:#0B0B0D;
+  --grey-900:#131316;
+  --grey-880:#17171B;
+  --grey-850:#1F1F25;
+  --grey-500:#9C9CA6;
+  --grey-400:#63636D;
+  --grey-100:#EFEFF3;
+  --grey-050:#F6F6F8;
+  --grey-ink:#131317;
+
+  /* ---- Semantic aliases: dark (default) ---- */
+  --bg-page:var(--grey-950);
+  --bg-elevated:var(--grey-900);
+  --surface:var(--grey-880);
+  --surface-raised:var(--grey-850);
+  --surface-inverse:var(--bf-yellow);
+  --border:rgba(255,255,255,.07);
+  --border-strong:rgba(255,255,255,.14);
+  --separator:rgba(255,255,255,.06);
+  --text-primary:#FFFFFF;
+  --text-secondary:var(--grey-500);
+  --text-tertiary:var(--grey-400);
+  --text-on-accent:var(--bf-black);
+  --text-on-inverse:var(--bf-black);
+
+  /* Action */
+  --accent:var(--bf-yellow);
+  --accent-pressed:var(--yellow-deep);
+  --accent-surface:rgba(255,214,10,.15);
+
+  /* Glass. The one place the system uses translucency: floating chrome that
+     rides over scrolling content (bottom nav, action dock, swipe actions).
+     Never for cards, never for content surfaces. */
+  --glass-fill:rgba(24,24,29,.72);
+  --glass-fill-strong:rgba(18,18,22,.86);
+  --glass-border:rgba(255,255,255,.12);
+  --glass-highlight:rgba(255,255,255,.06);
+  --glass-blur:blur(28px) saturate(180%); /* @kind other */
+  --glass-shadow:0 12px 40px rgba(0,0,0,.55);
+  /* Accent as TEXT — never --accent on a light field, it fails contrast. */
+  --accent-text:var(--bf-yellow);
+  --focus-ring:var(--text-primary);
+
+  /* Status. Hue is not the signal here — brightness is, and the wording always
+     carries the meaning. Danger is expressed by inversion, not by red. */
+  --success:var(--yellow-bright);
+  --warning:var(--bf-yellow);
+  --danger:var(--text-primary);
+  --info:var(--yellow-deep);
+  --success-surface:rgba(255,232,96,.15);
+  --warning-surface:rgba(255,214,10,.15);
+  --danger-surface:rgba(255,255,255,.10);
+  --info-surface:rgba(201,168,0,.18);
+
+  /* Recovery scale: brightest = most recovered, dimmest = sore.
+     Always paired with the written status. */
+  --recovery-recovered:var(--yellow-bright);
+  --recovery-fresh:var(--bf-yellow);
+  --recovery-fatigued:var(--yellow-deep);
+  --recovery-sore:var(--yellow-dim);
+
+  /* Activity heatmap ramp */
+  --heat-0:rgba(255,255,255,.05);
+  --heat-1:rgba(255,214,10,.22);
+  --heat-2:rgba(255,214,10,.45);
+  --heat-3:rgba(255,214,10,.7);
+  --heat-4:var(--bf-yellow);
+}
+
+/* ---- Light scheme ---- */
+[data-scheme="light"]{
+  --bg-page:var(--grey-050);
+  --bg-elevated:#FFFFFF;
+  --surface:#FFFFFF;
+  --surface-raised:var(--grey-100);
+  --border:rgba(0,0,0,.08);
+  --border-strong:rgba(0,0,0,.16);
+  --separator:rgba(0,0,0,.06);
+  --text-primary:var(--grey-ink);
+  --text-secondary:#61616B;
+  --text-tertiary:#94949E;
+  --accent-text:#8A7100;
+  --glass-fill:rgba(255,255,255,.72);
+  --glass-fill-strong:rgba(255,255,255,.88);
+  --glass-border:rgba(0,0,0,.10);
+  --glass-highlight:rgba(255,255,255,.6);
+  --glass-shadow:0 12px 40px rgba(0,0,0,.16);
+  --recovery-recovered:var(--yellow-deep);
+  --recovery-fresh:#A88C00;
+  --recovery-fatigued:var(--yellow-dim);
+  --recovery-sore:#4A3D00;
+  --info:#8A7100;
+  --danger-surface:rgba(0,0,0,.08);
+  --heat-0:rgba(0,0,0,.06);
+  --heat-1:rgba(201,168,0,.3);
+  --heat-2:rgba(201,168,0,.55);
+  --heat-3:rgba(201,168,0,.8);
+  --heat-4:var(--yellow-deep);
+}

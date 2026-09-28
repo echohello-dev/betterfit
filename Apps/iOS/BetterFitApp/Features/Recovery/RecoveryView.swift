@@ -1,121 +1,178 @@
 import BetterFit
 import SwiftUI
 
+// MARK: - Body (recovery) — Ledger layout
+
 struct RecoveryView: View {
-    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.colorScheme) private var colorScheme
     let betterFit: BetterFit
     let theme: AppTheme
 
     @State private var map: BodyMapRecovery = .init()
 
+    private var regions: [(region: BodyRegion, status: RecoveryStatus, percent: Int)] {
+        BodyRegion.allCases
+            .filter { $0 != .other }
+            .map { region in
+                let status = map.regions[region] ?? betterFit.bodyMapManager.getRecoveryStatus(for: region)
+                let percent = Int((status.bfReadiness * 100).rounded())
+                return (region, status, percent)
+            }
+            .sorted { $0.percent > $1.percent }
+    }
+
+    /// Aggregate the same readiness values the rows render, so the headline can
+    /// never disagree with the per-muscle percentages beneath it.
+    private var overall: Int {
+        guard !regions.isEmpty else {
+            return Int(betterFit.bodyMapManager.getOverallRecoveryPercentage().rounded())
+        }
+        return regions.reduce(0) { $0 + $1.percent } / regions.count
+    }
+
+    private var readyNames: [String] {
+        regions.filter { $0.percent >= 75 }.map { regionName($0.region) }
+    }
+
+    private var soreNames: [String] {
+        regions.filter { $0.percent < 50 }.map { regionName($0.region) }
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                overallCard
+            VStack(alignment: .leading, spacing: 0) {
+                BFReadout(
+                    value: "\(overall)",
+                    unit: "%",
+                    label: "Overall recovery",
+                    note: recoveryNote
+                )
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("By region")
-                        .bfHeading(theme: theme, size: 20, relativeTo: .headline)
+                spectrumStrip
+                    .padding(.top, BFSpacing.xl)
 
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12),
-                        ],
-                        spacing: 12
-                    ) {
-                        ForEach(BodyRegion.allCases.filter { $0 != .other }, id: \.self) { region in
-                            regionCard(region)
-                        }
-                    }
+                BFSectionRule(label: "By muscle group", trailing: "\(regions.count) tracked")
+
+                ForEach(regions, id: \.region) { item in
+                    recoveryRow(item)
                 }
 
-                resetCard
+                BFSectionRule(label: "How this is measured")
+                Text(
+                    "Recovery combines the volume you lifted per muscle group, how long ago you trained it, "
+                        + "and the sets you reported as hard. It is an estimate, not a diagnosis — train by how you feel."
+                )
+                    .font(BFTypography.footnote)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    betterFit.bodyMapManager.reset()
+                    refresh()
+                } label: {
+                    Text("Reset recovery map")
+                        .font(BFTypography.subheadlineEmphasis)
+                        .foregroundStyle(BFColors.accentText(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, BFSpacing.xxl)
+                }
+                .buttonStyle(.plain)
             }
-            .padding(16)
+            .padding(.horizontal, BFSpacing.pageHorizontal)
+            .padding(.bottom, 110)
         }
-        .bfPageBackground()
-        .onAppear {
-            refresh()
+        .bfBackground(theme: theme)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Body")
+                    .font(BFTypography.screenTitle)
+                    .tracking(BFTypography.displayTracking)
+            }
+        }
+        .onAppear { refresh() }
+    }
+
+    // MARK: - Spectrum
+
+    private var spectrumStrip: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 4) {
+                ForEach(regions, id: \.region) { item in
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(item.status.bfColor(for: colorScheme))
+                        .frame(height: 6)
+                }
+            }
+            HStack {
+                Text("Most recovered")
+                Spacer()
+                Text("Least")
+            }
+            .font(.system(size: 10, weight: .semibold))
+            .textCase(.uppercase)
+            .tracking(1.0)
+            .foregroundStyle(BFColors.textTertiary(for: colorScheme))
         }
     }
 
-    private var overallCard: some View {
-        let overall = betterFit.bodyMapManager.getOverallRecoveryPercentage()
-        return BFCard(theme: theme) {
-            HStack(spacing: 16) {
-                RecoveryBodyMap(regions: map.regions)
-                    .frame(width: 104, height: 126)
+    // MARK: - Row
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("\(Int(overall))% overall")
-                        .font(.caption.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(theme.accent)
-
-                    Text(overallHeadline(overall))
-                        .bfHeading(theme: theme, size: 20, relativeTo: .headline)
-
-                    Text("Fresh muscle groups are good to push; sore groups need rest.")
-                        .font(.subheadline)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func regionCard(_ region: BodyRegion) -> some View {
-        let status = map.regions[region] ?? betterFit.bodyMapManager.getRecoveryStatus(for: region)
-
+    private func recoveryRow(_ item: (region: BodyRegion, status: RecoveryStatus, percent: Int)) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(regionName(region))
-                .font(.subheadline.weight(.semibold))
+            HStack(spacing: 12) {
+                Image(systemName: regionIcon(item.region))
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(item.status.bfColor(for: colorScheme))
+                    .frame(width: 32, alignment: .leading)
 
-            HStack(spacing: 8) {
-                BFRecoveryDot(status: status)
-
-                Text(status.bfLabel)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(status.bfColor)
+                Text(regionName(item.region))
+                    .font(BFTypography.bodyEmphasis)
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
 
                 Spacer(minLength: 0)
+
+                Text(item.status.bfLabel)
+                    .font(BFTypography.footnote)
+                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+
+                Text("\(item.percent)%")
+                    .font(BFTypography.subheadlineEmphasis)
+                    .monospacedDigit()
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                    .frame(width: 42, alignment: .trailing)
             }
+
+            BFBar(progress: Double(item.percent) / 100.0, color: item.status.bfColor(for: colorScheme))
+                .padding(.leading, 44)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-            shape
-                .fill(BFColors.surface(for: colorScheme))
-                .overlay { shape.stroke(BFColors.border(for: colorScheme), lineWidth: 1) }
+        .padding(.vertical, 13)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(BFColors.separator(for: colorScheme))
+                .frame(height: 1)
         }
     }
 
-    private var resetCard: some View {
-        BFCard(theme: theme) {
-            Button(role: .destructive) {
-                betterFit.bodyMapManager.reset()
-                refresh()
-            } label: {
-                Label("Reset recovery map", systemImage: "arrow.counterclockwise")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .font(.subheadline.weight(.semibold))
-            }
-            .buttonStyle(.plain)
+    // MARK: - Helpers
+
+    private var recoveryNote: String {
+        let ready = list(readyNames)
+        var note = ready.isEmpty
+            ? "Nothing is fully recovered yet."
+            : "\(ready) \(readyNames.count == 1 ? "is" : "are") ready to train."
+        if let first = soreNames.first {
+            note += " \(first) needs another day."
         }
+        return note
     }
 
-    private func overallHeadline(_ overall: Double) -> String {
-        switch overall {
-        case 0..<35:
-            return "Low recovery"
-        case 35..<70:
-            return "Moderate recovery"
-        default:
-            return "High recovery"
+    private func list(_ names: [String]) -> String {
+        switch names.count {
+        case 0: return ""
+        case 1: return names[0]
+        case 2: return "\(names[0]) and \(names[1])"
+        default: return names.dropLast().joined(separator: ", ") + " and \(names.last!)"
         }
     }
 
@@ -134,9 +191,23 @@ struct RecoveryView: View {
         case .other: return "Other"
         }
     }
+
+    private func regionIcon(_ region: BodyRegion) -> String {
+        switch region {
+        case .chest: return "figure.strengthtraining.traditional"
+        case .back: return "figure.climbing"
+        case .shoulders: return "figure.arms.open"
+        case .arms: return "dumbbell.fill"
+        case .core: return "figure.core.training"
+        case .legs: return "figure.run"
+        case .other: return "circle"
+        }
+    }
 }
 
 #Preview {
-    UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
-    return RecoveryView(betterFit: BetterFit(), theme: .forest)
+    NavigationStack {
+        RecoveryView(betterFit: BetterFit(), theme: .defaultTheme)
+    }
+    .preferredColorScheme(.dark)
 }

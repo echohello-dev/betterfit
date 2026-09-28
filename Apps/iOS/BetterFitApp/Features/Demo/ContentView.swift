@@ -256,5 +256,5 @@ struct ContentView: View {
 
 #Preview {
     UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
-    return ContentView(betterFit: BetterFit(), theme: .midnight)
+    return ContentView(betterFit: BetterFit(), theme: .fitbod)
 }

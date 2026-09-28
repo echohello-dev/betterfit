@@ -1,0 +1,32 @@
+<!-- @dsCard group="Components" viewport="700x290" name="Workout" subtitle="Session cards, set logging, unit toggle, superset marker" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{padding:20px;font-family:var(--font-ui)}.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { WorkoutCard, SetLogField, WeightUnitToggle, SupersetIndicator, Button, Card } = window.BetterFitDesignSystem_6a70ea;
+function Demo(){const [w,setW]=React.useState('135');const [r,setR]=React.useState('8');const [u,setU]=React.useState('lb');return (
+  <div className="row" style={{alignItems:'flex-start',gap:16}}>
+    <WorkoutCard tone="identity" focus="Up next" badge="Today" name="Push A" exercises={6} duration="48 min" volume="18.4k lb" muscles={['Chest','Shoulders','Triceps']} style={{flex:1}} />
+    <WorkoutCard focus="Suggested" name="Pull B" exercises={5} duration="42 min" muscles={['Lats','Biceps']} style={{flex:1}} />
+    <div className="col" style={{flex:1,gap:12}}>
+      <div className="row" style={{gap:12}}>
+        <SetLogField label="Weight" unit={u} value={w} onChange={setW} />
+        <SetLogField label="Reps" unit="reps" value={r} onChange={setR} />
+      </div>
+      <div className="row" style={{justifyContent:'space-between'}}>
+        <WeightUnitToggle value={u} onChange={setU} />
+        <Button size="md" fullWidth={false} icon="check-circle">Log set</Button>
+      </div>
+      <SupersetIndicator rounds={3} />
+    </div>
+  </div>
+);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

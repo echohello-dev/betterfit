@@ -1,7 +1,13 @@
 import BetterFit
 import SwiftUI
+#if canImport(UIKit)
+    import UIKit
+#endif
 
 // MARK: - Exercise Detail Sheet
+//
+// Plan-mode editor for a single exercise. Lists each set as its own row with
+// editable kg + reps. Users can add or remove set rows from the bottom.
 
 struct ExerciseDetailSheet: View {
     @Environment(\.colorScheme) var colorScheme
@@ -15,11 +21,18 @@ struct ExerciseDetailSheet: View {
     @AppStorage(WeightUnitSetting.storageKey) private var weightUnit: String = WeightUnitSetting.lbs
         .rawValue
 
-    @State private var sets: Int
-    @State private var reps: String
-    @State private var weight: Double
+    @State private var setRows: [PlannedSet] = []
+    /// Draft text for the in-progress field (so empty reps don't auto-become 0).
+    @State private var rowLoadDraft: [Int: String] = [:]
+    @State private var rowRepsDraft: [Int: String] = [:]
+    @FocusState private var focusedRow: RowField?
 
-    @Environment(\.dismiss) private var dismiss
+    private enum RowField: Hashable {
+        case load(Int)
+        case reps(Int)
+    }
+
+    @Environment(\.dismiss) var dismiss
 
     init(
         exercise: PlannedExercise,
@@ -35,17 +48,7 @@ struct ExerciseDetailSheet: View {
         self.onReplace = onReplace
         self.onSuperset = onSuperset
         self.onUpdate = onUpdate
-
-        // Initialize state from exercise
-        _sets = State(initialValue: exercise.sets)
-        _reps = State(initialValue: exercise.reps)
-
-        // Parse weight from string
-        let weightValue =
-            Double(
-                exercise.targetWeight?.components(separatedBy: CharacterSet.decimalDigits.inverted)
-                    .first ?? "0") ?? 0
-        _weight = State(initialValue: weightValue)
+        _setRows = State(initialValue: exercise.resolvedSets())
     }
 
     private var currentUnit: WeightUnitSetting {
@@ -56,28 +59,25 @@ struct ExerciseDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Video placeholder
-                    videoPlaceholder
+                    DemoVideoPlayer(
+                        url: DemoVideoLibrary.videoURL(for: exercise.displayName),
+                        height: 200,
+                        fallbackGradient: gradientColors
+                    )
+                    .overlay(alignment: .topTrailing) {
+                        Text("AUTO-PLAY")
+                            .font(.caption2.weight(.bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
+                            .padding(12)
+                    }
 
-                    // Exercise title and category
                     exerciseHeader
-
-                    // Quick action buttons
                     quickActionButtons
-
-                    Divider()
-                        .padding(.vertical, 8)
-
-                    // Sets adjustment
-                    setsAdjustmentSection
-
-                    Divider()
-                        .padding(.vertical, 8)
-
-                    // Weight unit toggle
-                    weightUnitSection
-
-                    Spacer(minLength: 40)
+                    Divider().padding(.vertical, 4)
+                    setsEditor
+                    Color.clear.frame(height: 80)
                 }
                 .padding(20)
             }
@@ -86,344 +86,270 @@ struct ExerciseDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    Button("Cancel") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveChanges()
-                    }
-                    .fontWeight(.semibold)
+                ToolbarItem(placement: .principal) {
+                    Text("\(setRows.count) sets")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(BFColors.textPrimary(for: colorScheme))
                 }
-            }
-        }
-    }
-
-    // MARK: - Video Placeholder
-
-    private var videoPlaceholder: some View {
-        DemoVideoPlayer(
-            url: DemoVideoLibrary.videoURL(for: exercise.displayName),
-            height: 200,
-            fallbackGradient: gradientColors
-        )
-        .overlay(alignment: .topTrailing) {
-            Text("AUTO-PLAY")
-                .font(.caption2.weight(.bold))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
-                .padding(12)
-        }
-    }
-
-    // MARK: - Exercise Header
-
-    private var exerciseHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(exercise.displayName)
-                .bfHeading(theme: theme, size: 28, relativeTo: .title)
-
-            HStack(spacing: 12) {
-                Label(exercise.displayCategory.rawValue, systemImage: categoryIcon)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(categoryColor)
-
-                if !exercise.muscleGroups.isEmpty {
-                    Text("•")
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-                    Text(exercise.muscleGroups.joined(separator: ", "))
-                        .font(.subheadline)
-                        .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Save") { saveChanges() }.fontWeight(.semibold)
                 }
             }
-        }
-    }
-
-    // MARK: - Quick Action Buttons
-
-    private var quickActionButtons: some View {
-        HStack(spacing: 12) {
-            quickActionButton(
-                icon: "clock.arrow.circlepath",
-                label: "History",
-                color: .blue
-            ) {
-                // Show history
-            }
-
-            quickActionButton(
-                icon: "arrow.triangle.2.circlepath",
-                label: "Replace",
-                color: .orange
-            ) {
-                dismiss()
-                onReplace()
-            }
-
-            quickActionButton(
-                icon: "link",
-                label: "Superset",
-                color: .purple
-            ) {
-                dismiss()
-                onSuperset()
-            }
-
-            quickActionButton(
-                icon: "trash",
-                label: "Delete",
-                color: .red
-            ) {
-                dismiss()
-                onDelete()
-            }
-        }
-    }
-
-    private func quickActionButton(
-        icon: String,
-        label: String,
-        color: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(color)
-                }
-
-                Text(label)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Sets Adjustment Section
-
-    private var setsAdjustmentSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Adjust Sets")
-                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-            // Sets stepper
-            HStack {
-                Text("Sets")
-                    .font(.subheadline.weight(.medium))
-
-                Spacer()
-
-                HStack(spacing: 12) {
+            .safeAreaInset(edge: .bottom) {
+                HStack(spacing: 10) {
                     Button {
-                        if sets > 1 { sets -= 1 }
+                        removeSet()
                     } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(sets > 1 ? theme.accent : BFColors.textTertiary(for: colorScheme))
-                    }
-                    .disabled(sets <= 1)
-
-                    Text("\(sets)")
-                        .font(.title3.weight(.bold).monospacedDigit())
-                        .frame(minWidth: 30)
-
-                    Button {
-                        if sets < 10 { sets += 1 }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(sets < 10 ? theme.accent : BFColors.textTertiary(for: colorScheme))
-                    }
-                    .disabled(sets >= 10)
-                }
-            }
-            .padding(16)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(BFColors.surface(for: colorScheme))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
-                    }
-            }
-
-            // Reps input
-            HStack {
-                Text("Reps")
-                    .font(.subheadline.weight(.medium))
-
-                Spacer()
-
-                TextField("8-12", text: $reps)
-                    .font(.title3.weight(.bold).monospacedDigit())
-                    .multilineTextAlignment(.center)
-                    .frame(width: 80)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(BFColors.surfaceRaised(for: colorScheme))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
-                            }
-                    }
-            }
-            .padding(16)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(BFColors.surface(for: colorScheme))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
-                    }
-            }
-
-            // Weight input
-            HStack {
-                Text("Weight")
-                    .font(.subheadline.weight(.medium))
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    Button {
-                        let increment: Double = currentUnit == .lbs ? 5 : 2.5
-                        if weight >= increment { weight -= increment }
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(weight > 0 ? theme.accent : BFColors.textTertiary(for: colorScheme))
-                    }
-                    .disabled(weight <= 0)
-
-                    Text(currentUnit.format(weight))
-                        .font(.title3.weight(.bold).monospacedDigit())
-                        .frame(minWidth: 70)
-
-                    Button {
-                        let increment: Double = currentUnit == .lbs ? 5 : 2.5
-                        weight += increment
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(theme.accent)
-                    }
-                }
-            }
-            .padding(16)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(BFColors.surface(for: colorScheme))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
-                    }
-            }
-        }
-    }
-
-    // MARK: - Weight Unit Section
-
-    private var weightUnitSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Weight Unit")
-                .bfHeading(theme: theme, size: 18, relativeTo: .headline)
-
-            Text("This setting applies globally to all exercises")
-                .font(.caption)
-                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-            HStack(spacing: 0) {
-                ForEach(WeightUnitSetting.allCases, id: \.self) { unit in
-                    Button {
-                        withAnimation(.spring(response: 0.2)) {
-                            // Convert weight when switching units
-                            if currentUnit != unit {
-                                weight = unit.convert(weight, from: currentUnit)
-                            }
-                            weightUnit = unit.rawValue
-                        }
-                    } label: {
-                        Text(unit.rawValue.uppercased())
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(currentUnit == unit ? .white : BFColors.textSecondary(for: colorScheme))
+                        Label("Remove set", systemImage: "minus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(setRows.count > 1 ? BFColors.textPrimary(for: colorScheme) : BFColors.textTertiary(for: colorScheme))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background {
-                                if currentUnit == unit {
-                                    Capsule()
-                                        .fill(theme.accent)
-                                }
-                            }
+                            .frame(height: BFControlSize.buttonMedium)
+                            .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
                     }
                     .buttonStyle(.plain)
+                    .disabled(setRows.count <= 1)
+
+                    Button {
+                        addSet()
+                    } label: {
+                        Label("Add set", systemImage: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(BFColors.accentInk)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: BFControlSize.buttonMedium)
+                            .background(Capsule().fill(BFColors.accent))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(setRows.count >= 10)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(BFColors.backgroundElevated(for: colorScheme))
+            }
+        }
+    }
+
+    // MARK: - Weight unit
+    // Moved to global Settings.
+
+    // MARK: - Per-set editor
+
+    private var setsEditor: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Sets")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                Spacer()
+                Text("Tap a value to edit")
+                    .font(.caption)
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+
+            VStack(spacing: 0) {
+                // Header row
+                HStack(spacing: 8) {
+                    Text("#")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+                        .frame(width: 24, alignment: .leading)
+                    Text("KG")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                    Text("REPS")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                    Color.clear.frame(width: 28)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+
+                ForEach(Array(setRows.enumerated()), id: \.offset) { index, row in
+                    setEditorRow(index: index, row: row)
                 }
             }
-            .padding(4)
-            .background(Capsule().fill(BFColors.surfaceRaised(for: colorScheme)))
-            .overlay(Capsule().stroke(BFColors.border(for: colorScheme), lineWidth: 1))
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(BFColors.surface(for: colorScheme))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
+            }
         }
     }
 
-    // MARK: - Helpers
+    private func setEditorRow(index: Int, row: PlannedSet) -> some View {
+        HStack(spacing: 8) {
+            Text(String(format: "%02d", index + 1))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                .frame(width: 24, alignment: .leading)
 
-    private var gradientColors: [Color] {
-        switch exercise.displayCategory {
-        case .push: return [.blue, .cyan]
-        case .pull: return [.purple, .pink]
-        case .legs: return [.orange, .yellow]
-        case .core: return [.yellow, .orange]
-        case .cardio: return [.red, .orange]
-        case .compound: return [.green, .teal]
-        case .all: return [.gray, .secondary]
+            // KG field
+            HStack(spacing: 2) {
+                TextField("0", text: loadDraftBinding(for: index, fallback: row.load))
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 17, weight: .bold).monospacedDigit())
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .focused($focusedRow, equals: .load(index))
+                    .onSubmit { commitLoad(index) }
+                    .onChange(of: focusedRow) { _, new in
+                        if new != .load(index) { commitLoad(index) }
+                    }
+                Text("kg")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(BFColors.surfaceRaised(for: colorScheme))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(
+                        focusedRow == .load(index) ? BFColors.accent : BFColors.border(for: colorScheme),
+                        lineWidth: focusedRow == .load(index) ? 1.5 : 1
+                    )
+            }
+
+            // REPS field
+            HStack(spacing: 2) {
+                TextField("0", text: repsDraftBinding(for: index, fallback: row.reps))
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 17, weight: .bold).monospacedDigit())
+                    .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .focused($focusedRow, equals: .reps(index))
+                    .onSubmit { commitReps(index) }
+                    .onChange(of: focusedRow) { _, new in
+                        if new != .reps(index) { commitReps(index) }
+                    }
+                Text("reps")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(BFColors.surfaceRaised(for: colorScheme))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(
+                        focusedRow == .reps(index) ? BFColors.accent : BFColors.border(for: colorScheme),
+                        lineWidth: focusedRow == .reps(index) ? 1.5 : 1
+                    )
+            }
+
+            // Remove row button
+            Button {
+                setRows.remove(at: index)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(BFColors.textTertiary(for: colorScheme))
+            }
+            .buttonStyle(.plain)
+            .frame(width: 28)
+            .accessibilityLabel("Remove set \(index + 1)")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(BFColors.separator(for: colorScheme))
+                .frame(height: 1)
         }
     }
 
-    private var categoryIcon: String {
-        switch exercise.displayCategory {
-        case .push: return "arrow.up.circle"
-        case .pull: return "arrow.down.circle"
-        case .legs: return "figure.walk"
-        case .core: return "circle.hexagongrid"
-        case .cardio: return "heart"
-        case .compound: return "dumbbell"
-        case .all: return "figure.mixed.cardio"
+    // MARK: - Mutations
+
+    private func addSet() {
+        let last = setRows.last ?? PlannedSet()
+        setRows.append(PlannedSet(load: last.load, reps: last.reps))
+    }
+
+    private func removeSet() {
+        guard setRows.count > 1 else { return }
+        setRows.removeLast()
+    }
+
+    private func convertAllLoads(from: WeightUnitSetting, to: WeightUnitSetting) {
+        for index in setRows.indices {
+            setRows[index].load = to.convert(setRows[index].load, from: from)
         }
     }
 
-    private var categoryColor: Color {
-        switch exercise.displayCategory {
-        case .push: return .blue
-        case .pull: return .purple
-        case .legs: return .orange
-        case .core: return .yellow
-        case .cardio: return .red
-        case .compound: return theme.accent
-        case .all: return .gray
-        }
+    private func loadDraftBinding(for index: Int, fallback: Double) -> Binding<String> {
+        Binding(
+            get: { rowLoadDraft[index] ?? (fallback > 0 ? formatWeight(fallback) : "") },
+            set: { rowLoadDraft[index] = $0 }
+        )
     }
+
+    private func repsDraftBinding(for index: Int, fallback: Int) -> Binding<String> {
+        Binding(
+            get: { rowRepsDraft[index] ?? "\(max(1, fallback))" },
+            set: { rowRepsDraft[index] = $0 }
+        )
+    }
+
+    private func commitLoad(_ index: Int) {
+        guard setRows.indices.contains(index) else { return }
+        let raw = rowLoadDraft[index] ?? ""
+        let cleaned = raw.replacingOccurrences(of: ",", with: ".").filter { $0.isNumber || $0 == "." }
+        guard !cleaned.isEmpty, cleaned != ".", let value = Double(cleaned), value > 0 else {
+            setRows[index].load = 0
+            rowLoadDraft[index] = ""
+            return
+        }
+        setRows[index].load = value
+        rowLoadDraft[index] = formatWeight(value)
+    }
+
+    private func commitReps(_ index: Int) {
+        guard setRows.indices.contains(index) else { return }
+        let raw = rowRepsDraft[index] ?? ""
+        let digits = raw.filter { $0.isNumber }
+        let value = Int(digits.prefix(4)) ?? setRows[index].reps
+        let stored = max(1, value)
+        setRows[index].reps = stored
+        rowRepsDraft[index] = "\(stored)"
+    }
+
+    private func formatWeight(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(value))
+            : String(format: "%.1f", value)
+    }
+
+    // MARK: - Save
 
     private func saveChanges() {
-        let weightString = weight > 0 ? "\(Int(weight)) \(currentUnit.rawValue)" : nil
+        // Flush all in-progress drafts so nothing is lost on dismiss.
+        for index in 0..<setRows.count { commitLoad(index); commitReps(index) }
+        let reps = setRows.first?.reps ?? exercise.repsValue
+        let weight = setRows.first?.load ?? exercise.weightValue
         let updated = PlannedExercise(
             id: exercise.id,
             name: exercise.name,
             category: exercise.category,
-            sets: sets,
-            reps: reps,
-            targetWeight: weightString,
+            sets: setRows.count,
+            reps: "\(max(1, reps))",
+            targetWeight: weight > 0 ? "\(formatWeight(weight)) \(currentUnit.rawValue)" : nil,
+            individualSets: setRows,
             muscleGroups: exercise.muscleGroups
         )
         onUpdate(updated)
@@ -441,7 +367,7 @@ struct ExerciseDetailSheet: View {
             targetWeight: "135 lbs",
             muscleGroups: ["Chest", "Triceps"]
         ),
-        theme: .forest,
+        theme: .fitbod,
         onDelete: {},
         onReplace: {},
         onSuperset: {},

@@ -62,7 +62,7 @@ struct BFStatTile: View {
     let systemImage: String
     let value: String
     let label: String
-    var tint: Color = BFColors.brandAccent
+    var tint: Color = BFColors.accent
 
     @Environment(\.colorScheme) private var scheme
 
@@ -111,14 +111,14 @@ struct BFChip: View {
             .padding(.vertical, 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? BFColors.brandAccent : BFColors.surfaceRaised(for: scheme))
+                    .fill(isSelected ? BFColors.accent : BFColors.surfaceRaised(for: scheme))
             )
             .overlay {
                 if !isSelected {
                     Capsule().stroke(BFColors.border(for: scheme), lineWidth: 1)
                 }
             }
-            .foregroundStyle(isSelected ? .white : BFColors.textPrimary(for: scheme))
+            .foregroundStyle(isSelected ? BFColors.accentInk : BFColors.textPrimary(for: scheme))
         }
         .buttonStyle(.plain)
     }
@@ -131,7 +131,7 @@ struct BFListRow<Trailing: View>: View {
     let systemImage: String
     let title: String
     var subtitle: String? = nil
-    var iconTint: Color = BFColors.brandAccent
+    var iconTint: Color = BFColors.accent
     @ViewBuilder var trailing: Trailing
 
     @Environment(\.colorScheme) private var scheme
@@ -140,7 +140,7 @@ struct BFListRow<Trailing: View>: View {
         systemImage: String,
         title: String,
         subtitle: String? = nil,
-        iconTint: Color = BFColors.brandAccent,
+        iconTint: Color = BFColors.accent,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.systemImage = systemImage
@@ -186,7 +186,7 @@ extension BFListRow where Trailing == EmptyView {
         systemImage: String,
         title: String,
         subtitle: String? = nil,
-        iconTint: Color = BFColors.brandAccent
+        iconTint: Color = BFColors.accent
     ) {
         self.init(systemImage: systemImage, title: title, subtitle: subtitle, iconTint: iconTint) {
             EmptyView()
@@ -201,7 +201,7 @@ struct BFChevronRow: View {
     let systemImage: String
     let title: String
     var subtitle: String? = nil
-    var iconTint: Color = BFColors.brandAccent
+    var iconTint: Color = BFColors.accent
     var action: () -> Void = {}
 
     @Environment(\.colorScheme) private var scheme
@@ -260,7 +260,7 @@ struct BFEmptyState: View {
 struct BFProgressRing: View {
     let progress: Double  // 0...1
     var lineWidth: CGFloat = 10
-    var tint: Color = BFColors.brandAccent
+    var tint: Color = BFColors.accent
     var size: CGFloat? = nil
 
     @Environment(\.colorScheme) private var scheme

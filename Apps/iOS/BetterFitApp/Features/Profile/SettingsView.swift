@@ -73,7 +73,7 @@ struct SettingsView: View {
         SettingsSection(
             title: "Units",
             systemImage: "scalemass",
-            tint: BFColors.brandAccent
+            tint: BFColors.accent
         ) {
             VStack(spacing: 0) {
                 let units: [WeightUnitSetting] = [.lbs, .kg]
@@ -96,7 +96,7 @@ struct SettingsView: View {
         SettingsSection(
             title: "Notifications",
             systemImage: "bell.badge",
-            tint: .blue
+            tint: BFColors.accent
         ) {
             VStack(spacing: 0) {
                 SettingsToggleRow(
@@ -120,7 +120,7 @@ struct SettingsView: View {
             SettingsSection(
                 title: "Account",
                 systemImage: "person.crop.circle",
-                tint: .green
+                tint: BFColors.accent
             ) {
                 VStack(spacing: 0) {
                     if let onSignOut {
@@ -293,7 +293,7 @@ struct SettingsToggleRow: View {
             trailing: AnyView(
                 Toggle("", isOn: $isOn)
                     .labelsHidden()
-                    .tint(BFColors.brandAccent)
+                    .tint(BFColors.accent)
             )
         )
     }
@@ -314,7 +314,7 @@ struct SettingsRadioRow: View {
                 trailing: AnyView(
                     Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isSelected ? BFColors.brandAccent : BFColors.textTertiary(for: colorScheme))
+                        .foregroundStyle(isSelected ? BFColors.accent : BFColors.textTertiary(for: colorScheme))
                         .font(.system(size: 22, weight: .semibold))
                 )
             )

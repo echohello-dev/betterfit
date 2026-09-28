@@ -348,6 +348,6 @@ struct PlanView: View {
 #Preview {
     UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
     return NavigationStack {
-        PlanView(betterFit: BetterFit(), theme: .forest, planManager: WorkoutPlanManager())
+        PlanView(betterFit: BetterFit(), theme: .fitbod, planManager: WorkoutPlanManager())
     }
 }

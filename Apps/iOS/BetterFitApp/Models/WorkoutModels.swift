@@ -72,14 +72,28 @@ struct ExerciseDefinition: Identifiable, Equatable {
 
 // MARK: - Planned Exercise
 
+/// A single planned set (one row in the per-set editor).
+struct PlannedSet: Codable, Equatable, Hashable {
+    var load: Double
+    var reps: Int
+
+    init(load: Double = 0, reps: Int = 8) {
+        self.load = max(0, load)
+        self.reps = max(1, reps)
+    }
+}
+
 /// A planned exercise for a workout day
 struct PlannedExercise: Identifiable, ExerciseDisplayable {
     let id: UUID
     let name: String
     let category: ExerciseCategory
-    let sets: Int
-    let reps: String
-    let targetWeight: String?
+    var sets: Int
+    var reps: String
+    var targetWeight: String?
+    /// Per-set kg/reps. When non-nil, the per-set editor uses these directly
+    /// instead of expanding from `sets × reps` at `targetWeight`.
+    var individualSets: [PlannedSet]?
     let muscleGroups: [String]
 
     init(
@@ -98,6 +112,59 @@ struct PlannedExercise: Identifiable, ExerciseDisplayable {
         self.reps = reps
         self.targetWeight = targetWeight
         self.muscleGroups = muscleGroups
+        self.individualSets = nil
+    }
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        category: ExerciseCategory = .push,
+        sets: Int,
+        reps: String,
+        targetWeight: String? = nil,
+        individualSets: [PlannedSet]?,
+        muscleGroups: [String] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.sets = sets
+        self.reps = reps
+        self.targetWeight = targetWeight
+        self.individualSets = individualSets
+        self.muscleGroups = muscleGroups
+    }
+
+    /// Numeric weight parsed from `targetWeight` (e.g. "185 lbs" → 185).
+    var weightValue: Double {
+        Double(
+            targetWeight?
+                .replacingOccurrences(of: ",", with: ".")
+                .components(separatedBy: CharacterSet(charactersIn: "0123456789.").inverted)
+                .joined() ?? ""
+        ) ?? 0
+    }
+
+    /// Primary reps number from `reps` (e.g. "6-8" → 6, "10" → 10).
+    var repsValue: Int {
+        Int(reps.components(separatedBy: CharacterSet.decimalDigits.inverted).first ?? "") ?? 0
+    }
+
+    /// Effective per-set list — falls back to expanding sets/reps/targetWeight
+    /// when no individual sets have been authored.
+    func resolvedSets() -> [PlannedSet] {
+        if let individual = individualSets, !individual.isEmpty {
+            return individual
+        }
+        let reps = max(1, repsValue == 0 ? 8 : repsValue)
+        let load = weightValue
+        return (0..<max(1, sets)).map { _ in PlannedSet(load: load, reps: reps) }
+    }
+
+    mutating func ensureIndividualSets() {
+        if individualSets == nil {
+            individualSets = resolvedSets()
+        }
     }
 
     // MARK: - ExerciseDisplayable
@@ -111,13 +178,8 @@ struct PlannedExercise: Identifiable, ExerciseDisplayable {
 
     /// Convert to a WorkoutExerciseState for active workout tracking
     func toWorkoutExerciseState() -> WorkoutExerciseState {
-        let repsValue =
-            Int(reps.components(separatedBy: CharacterSet.decimalDigits.inverted).first ?? "10")
-            ?? 10
-        let weightValue =
-            Double(
-                targetWeight?.components(separatedBy: CharacterSet.decimalDigits.inverted).first
-                    ?? "0") ?? 0
+        let repsValue = max(1, repsValue == 0 ? 8 : repsValue)
+        let weightValue = weightValue > 0 ? weightValue : 0
 
         return WorkoutExerciseState(
             id: id,
@@ -139,13 +201,8 @@ struct PlannedExercise: Identifiable, ExerciseDisplayable {
 
     /// Convert to a WorkoutExercise for starting a workout
     func toWorkoutExercise() -> WorkoutExercise {
-        let repsValue =
-            Int(reps.components(separatedBy: CharacterSet.decimalDigits.inverted).first ?? "10")
-            ?? 10
-        let weightValue =
-            Double(
-                targetWeight?.components(separatedBy: CharacterSet.decimalDigits.inverted).first
-                    ?? "0") ?? 0
+        let repsValue = max(1, repsValue == 0 ? 8 : repsValue)
+        let weightValue = weightValue > 0 ? weightValue : 0
 
         // Map ExerciseCategory to MuscleGroup
         let muscleGroupsMapped: [MuscleGroup] = muscleGroups.compactMap { groupName in

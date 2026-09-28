@@ -10,7 +10,7 @@ struct ThemePickerView: View {
         NavigationStack {
             List {
                 Section("Themes") {
-                    ForEach(AppTheme.allCases) { theme in
+                    ForEach(AppTheme.selectableThemes) { theme in
                         Button {
                             withAnimation(.snappy) {
                                 selectedTheme = theme
@@ -140,7 +140,7 @@ private struct ThemeSwatch: View {
 }
 
 #Preview {
-    @Previewable @State var theme: AppTheme = .midnight
+    @Previewable @State var theme: AppTheme = .fitbod
     @Previewable @State var appearance: AppearancePreference = .system
     ThemePickerView(selectedTheme: $theme, appearance: $appearance)
 }

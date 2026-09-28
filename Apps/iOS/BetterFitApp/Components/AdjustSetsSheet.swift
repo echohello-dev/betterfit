@@ -26,35 +26,55 @@ struct AdjustSetsSheet: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .bottom) {
                 BFColors.backgroundElevated(for: colorScheme).ignoresSafeArea()
 
-                VStack(spacing: 24) {
-                    // Exercise name header
-                    Text(exercise.name)
-                        .font(.title2.weight(.bold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Text(exercise.name)
+                            .font(.title2.weight(.bold))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 4)
 
-                    // Sets stepper
-                    setsSection
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Reps")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
-                    // Reps input
-                    repsSection
+                            TextField("e.g., 8-12", text: $reps)
+                                .font(.title3.weight(.semibold))
+                                .padding()
+                                .background(inputBackground)
+                        }
 
-                    // Weight input
-                    weightSection
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Target Weight")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
 
-                    Spacer()
-
-                    // Save button
-                    Button {
-                        save()
-                    } label: {
-                        Text("Save Changes")
+                            TextField("e.g., 135 lbs", text: $targetWeight)
+                                .font(.title3.weight(.semibold))
+                                .padding()
+                                .background(inputBackground)
+                        }
                     }
-                    .buttonStyle(.bfPrimary)
+                    .padding(.horizontal)
+                    .padding(.bottom, 120) // clear save button
                 }
-                .padding()
+
+                Button {
+                    save()
+                } label: {
+                    Text("Save Changes")
+                        .font(BFTypography.headline)
+                        .foregroundStyle(BFColors.accentInk)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: BFControlSize.buttonLarge)
+                        .background(Capsule(style: .continuous).fill(BFColors.accent))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Adjust Sets")
             .navigationBarTitleDisplayMode(.inline)
@@ -62,74 +82,62 @@ struct AdjustSetsSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-            }
-        }
-    }
-
-    // MARK: - Sets Section
-
-    private var setsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Sets")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-            HStack(spacing: 16) {
-                Button {
-                    if sets > 1 { sets -= 1 }
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(sets > 1 ? theme.accent : BFColors.border(for: colorScheme))
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 10) {
+                        Text("\(sets)")
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(BFColors.textPrimary(for: colorScheme))
+                        Text("sets")
+                            .font(.system(size: 13))
+                            .foregroundStyle(BFColors.textSecondary(for: colorScheme))
+                    }
                 }
-                .disabled(sets <= 1)
-
-                Text("\(sets)")
-                    .font(BFTypography.statLarge)
-                    .frame(width: 50)
-
-                Button {
-                    if sets < 10 { sets += 1 }
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(sets < 10 ? theme.accent : BFColors.border(for: colorScheme))
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        save()
+                    } label: {
+                        Text("Save")
+                            .fontWeight(.semibold)
+                    }
                 }
-                .disabled(sets >= 10)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(inputBackground)
-        }
-    }
+            .safeAreaInset(edge: .bottom) {
+                HStack(spacing: 10) {
+                    Button {
+                        if sets > 1 { sets -= 1 }
+                    } label: {
+                        Label("Remove set", systemImage: "minus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(sets > 1 ? BFColors.textPrimary(for: colorScheme) : BFColors.textTertiary(for: colorScheme))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: BFControlSize.buttonMedium)
+                            .background(
+                                Capsule()
+                                    .fill(BFColors.surfaceRaised(for: colorScheme))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sets <= 1)
 
-    // MARK: - Reps Section
-
-    private var repsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Reps")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-            TextField("e.g., 8-12", text: $reps)
-                .font(.title3.weight(.semibold))
-                .padding()
-                .background(inputBackground)
-        }
-    }
-
-    // MARK: - Weight Section
-
-    private var weightSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Target Weight")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(BFColors.textSecondary(for: colorScheme))
-
-            TextField("e.g., 135 lbs", text: $targetWeight)
-                .font(.title3.weight(.semibold))
-                .padding()
-                .background(inputBackground)
+                    Button {
+                        if sets < 10 { sets += 1 }
+                    } label: {
+                        Label("Add set", systemImage: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(BFColors.accentInk)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: BFControlSize.buttonMedium)
+                            .background(Capsule().fill(BFColors.accent))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sets >= 10)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(BFColors.backgroundElevated(for: colorScheme))
+            }
         }
     }
 
@@ -140,8 +148,6 @@ struct AdjustSetsSheet: View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
             .stroke(BFColors.border(for: colorScheme), lineWidth: 1)
     }
-
-    // MARK: - Actions
 
     private func save() {
         let updated = PlannedExercise(
@@ -160,7 +166,7 @@ struct AdjustSetsSheet: View {
 
 #Preview {
     AdjustSetsSheet(
-        theme: .forest,
+        theme: .fitbod,
         exercise: PlannedExercise(
             name: "Bench Press",
             category: .push,

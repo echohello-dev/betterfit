@@ -1,0 +1,32 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Feedback" subtitle="Recovery dots and badges, banners, rest timer, empty state" -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{padding:20px;font-family:var(--font-ui)}.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.col{display:flex;flex-direction:column;gap:12px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { RecoveryDot, RecoveryBadge, Banner, RestTimerBar, EmptyState, Button, Card } = window.BetterFitDesignSystem_6a70ea;
+const S=['recovered','fresh','fatigued','sore'];
+const NAMES={recovered:'Chest',fresh:'Back',fatigued:'Legs',sore:'Shoulders'};
+function Demo(){return (
+  <div className="col" style={{gap:16}}>
+    <div className="row" style={{gap:18}}>
+      {S.map(s=>(<span key={s} className="row" style={{gap:8}}><RecoveryDot status={s} /><span style={{fontSize:'var(--text-subheadline)',color:'var(--text-secondary)'}}>{NAMES[s]}</span><RecoveryBadge status={s} /></span>))}
+    </div>
+    <div className="row" style={{alignItems:'stretch',gap:12}}>
+      <Banner tone="info" icon="heartbeat" title="Connect Apple Health" message="Import your workouts and resting heart rate." action={<Button variant="secondary" size="sm" fullWidth={false}>Connect</Button>} style={{flex:1}} onDismiss={()=>{}} />
+      <Banner tone="warning" title="Chest is still recovering" message="Train back today and come back to push on Thursday." style={{flex:1}} />
+    </div>
+    <div className="row" style={{alignItems:'stretch',gap:12}}>
+      <div style={{flex:1,border:'1px solid var(--border)',borderRadius:'var(--radius-card)',overflow:'hidden'}}><RestTimerBar remaining={64} total={90} /></div>
+      <Card style={{flex:1,padding:0}}><EmptyState icon="list-checks" title="No exercises planned" message="Add a lift, or generate a session from your recovery." action={<Button size="sm" fullWidth={false}>Add exercise</Button>} /></Card>
+    </div>
+  </div>
+);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

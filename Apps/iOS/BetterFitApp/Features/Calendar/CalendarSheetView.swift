@@ -36,5 +36,5 @@ struct CalendarSheetView: View {
 
 #Preview {
     @Previewable @State var date = Date.now
-    CalendarSheetView(selectedDate: $date, theme: .midnight)
+    CalendarSheetView(selectedDate: $date, theme: .fitbod)
 }

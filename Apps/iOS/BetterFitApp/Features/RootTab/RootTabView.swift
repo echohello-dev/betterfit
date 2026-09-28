@@ -1,28 +1,31 @@
 import Auth
 import BetterFit
 import SwiftUI
+#if canImport(UIKit)
+    import UIKit
+#endif
 
 enum AppTab: String, CaseIterable {
     case workout
-    case plan
-    case search
-    case me
+    case body
+    case targets
+    case log
 
     var title: String {
         switch self {
         case .workout: "Workout"
-        case .plan: "Plan"
-        case .search: "Search"
-        case .me: "Me"
+        case .body: "Body"
+        case .targets: "Targets"
+        case .log: "Log"
         }
     }
 
     var icon: String {
         switch self {
-        case .workout: "figure.run"
-        case .plan: "waveform"
-        case .search: "magnifyingglass"
-        case .me: "person.fill"
+        case .workout: "dumbbell.fill"
+        case .body: "figure.run"
+        case .targets: "target"
+        case .log: "calendar"
         }
     }
 }
@@ -35,23 +38,23 @@ struct RootTabView: View {
     let onShowSignIn: () -> Void
     let onLogout: (() -> Void)?
 
-    /// Whether Supabase is configured (passed from parent)
     var isSupabaseConfigured: Bool = true
-    /// Binding to control banner dismissal state
     @Binding var showGuestBanner: Bool
 
     @State private var selectedTab: AppTab = .workout
-    @State private var previousTab: AppTab = .workout
-    @State private var searchQuery = ""
     @State private var showActiveWorkout = false
-    @State private var activeWorkoutId: UUID?  // Track for button state updates
+    @State private var activeWorkoutId: UUID?
     @State private var isWorkoutPaused = false
     @State private var showStopConfirmation = false
     @State private var showActiveSession = false
+    @State private var showSearch = false
+    @State private var showProfile = false
+    @State private var searchQuery = ""
     @State private var healthKitManager: HealthKitManager?
-
-    // Shared workout plan manager across views
     @State private var planManager = WorkoutPlanManager()
+    @State private var summaryData: WorkoutSummaryData?
+    @State private var showSummary = false
+    @State private var isKeyboardVisible = false
 
     init(
         betterFit: BetterFit,
@@ -73,17 +76,84 @@ struct RootTabView: View {
         self._showGuestBanner = showGuestBanner
     }
 
-    /// Returns the tab to navigate back to when dismissing search
-    private var tabToReturnTo: AppTab {
-        selectedTab == .search ? previousTab : selectedTab
-    }
-
-    /// Check if there's an active workout
     private var hasActiveWorkout: Bool {
         activeWorkoutId != nil || betterFit.getActiveWorkout() != nil
     }
 
+    /// Physical bottom inset for the floating Start pill:
+    /// home indicator (~34) + tab bar (~49) + 8pt gap.
+    private static let startPillBottomInset: CGFloat = 78
+
+    /// One-yellow rule (design.md): at most one yellow fill is visible at a time.
+    /// When the screen leads with a full yellow field the field owns the yellow,
+    /// so the docked action renders as neutral glass. `AppTheme.quietPrimaryAction`
+    /// encodes exactly this ("header took the yellow"), so the decision holds for
+    /// any yellow-field screen — not a WorkoutHome special case.
+    private var dockIsQuiet: Bool { theme.quietPrimaryAction }
+
     var body: some View {
+        tabView
+            .tint(BFColors.accentText(for: .dark))
+            // Full-width Start button matching the floating tab bar width.
+            .overlay(alignment: .bottom) {
+                // Hide Plan's Start button while the live workout UI owns the tab,
+                // and while the keyboard is up — keyboard avoidance would otherwise
+                // drag the floating pill across the content being edited.
+                if selectedTab == .workout && !showActiveSession && !isKeyboardVisible {
+                    startWorkoutDock
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, Self.startPillBottomInset)
+                        .ignoresSafeArea(.container, edges: .bottom)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .onAppear {
+                if healthKitManager == nil {
+                    healthKitManager = HealthKitManager(healthKitService: betterFit.healthKitService)
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                guard !isKeyboardVisible else { return }
+                withAnimation(.snappy(duration: 0.22)) { isKeyboardVisible = true }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                guard isKeyboardVisible else { return }
+                withAnimation(.snappy(duration: 0.22)) { isKeyboardVisible = false }
+            }
+        // Active session is embedded in the Workout tab (Plan → Workout mode).
+        .sheet(isPresented: $showSummary) {
+            if let summaryData {
+                WorkoutSummaryView(data: summaryData) {
+                    showSummary = false
+                }
+            }
+        }
+        .sheet(isPresented: $showSearch) {
+            AppSearchView(
+                theme: theme,
+                betterFit: betterFit,
+                query: $searchQuery,
+                previousTabIcon: "xmark",
+                onDismiss: { showSearch = false }
+            )
+        }
+        .sheet(isPresented: $showProfile) {
+            NavigationStack {
+                ProfileView(
+                    betterFit: betterFit,
+                    theme: theme,
+                    isGuest: isGuest,
+                    user: user,
+                    onShowSignIn: onShowSignIn,
+                    onLogout: onLogout
+                )
+            }
+        }
+    }
+
+    // MARK: - Tab view
+
+    private var tabView: some View {
         TabView(selection: $selectedTab) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 tabContent(for: tab)
@@ -93,112 +163,74 @@ struct RootTabView: View {
                     .tag(tab)
             }
         }
-        .tint(theme.accent)
-        .onChange(of: selectedTab) { oldTab, newTab in
-            if newTab == .search && oldTab != .search {
-                previousTab = oldTab
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if selectedTab == .workout {
-                startWorkoutButton
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 60)
-            }
-        }
-        .onAppear {
-            if healthKitManager == nil {
-                healthKitManager = HealthKitManager(healthKitService: betterFit.healthKitService)
-            }
-        }
-        .sheet(isPresented: $showActiveSession) {
-            ActiveSessionView(
-                betterFit: betterFit,
-                onEnd: { completeWorkout() }
-            )
-        }
     }
 
-    // MARK: - Start Workout Button
+    // MARK: - Start workout pill (standalone)
 
     @ViewBuilder
-    private var startWorkoutButton: some View {
+    private var startWorkoutDock: some View {
         if hasActiveWorkout {
             activeWorkoutControls
         } else {
-            Button {
+            BFDockPrimaryButton(
+                title: "Start workout",
+                systemImage: "play.fill",
+                standalone: false,
+                quiet: dockIsQuiet
+            ) {
                 startOrResumeWorkout()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-
-                    Text("Start Workout")
-
-                    Spacer(minLength: 0)
-
-                    Image(systemName: "chevron.right")
-                        .font(.subheadline.weight(.semibold))
-                        .opacity(0.7)
-                }
-                .padding(.horizontal, BFSpacing.xl)
             }
-            .buttonStyle(.bfPrimary)
-            .accessibilityLabel("Start Workout")
+            .accessibilityLabel("Start workout")
         }
     }
 
     @ViewBuilder
     private var activeWorkoutControls: some View {
-        HStack(spacing: BFSpacing.md) {
-            Button {
+        HStack(spacing: 10) {
+            BFDockPrimaryButton(
+                title: isWorkoutPaused ? "Resume" : "Pause",
+                systemImage: isWorkoutPaused ? "play.fill" : "pause.fill",
+                standalone: false,
+                quiet: dockIsQuiet
+            ) {
                 if isWorkoutPaused {
                     togglePause()
                 } else {
-                    // Pause + open the live session sheet so the user can log sets.
                     betterFit.pauseWorkout()
                     isWorkoutPaused = true
                     showActiveSession = true
                 }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: isWorkoutPaused ? "play.fill" : "pause.fill")
-                    Text(isWorkoutPaused ? "Resume" : "Pause")
-                }
             }
-            .buttonStyle(.bfPrimary)
-            .accessibilityLabel(isWorkoutPaused ? "Resume Workout" : "Pause Workout")
+            .accessibilityLabel(isWorkoutPaused ? "Resume workout" : "Pause workout")
 
             Button {
                 showStopConfirmation = true
             } label: {
                 Image(systemName: "stop.fill")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(BFColors.background(for: .dark))
                     .frame(width: BFControlSize.buttonLarge, height: BFControlSize.buttonLarge)
-                    .background(
-                        RoundedRectangle(cornerRadius: BFRadius.button, style: .continuous)
-                            .fill(BFColors.danger)
-                    )
+                    .background(Circle().fill(Color.white))
+                    .shadow(color: Color.black.opacity(0.28), radius: 14, y: 6)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Stop Workout")
+            .accessibilityLabel("Stop workout")
         }
         .confirmationDialog(
-            "End Workout",
+            "End workout",
             isPresented: $showStopConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Complete & Save") {
-                completeWorkout()
-            }
-            Button("Discard Workout", role: .destructive) {
-                cancelWorkout()
-            }
+            Button("Complete & save") { completeWorkout() }
+            Button("Discard workout", role: .destructive) { cancelWorkout() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Would you like to save this workout or discard it?")
         }
     }
+
+    // MARK: - Workout actions
 
     private func togglePause() {
         if isWorkoutPaused {
@@ -234,96 +266,103 @@ struct RootTabView: View {
     }
 
     private func startOrResumeWorkout() {
+        selectedTab = .workout
+
         if hasActiveWorkout {
-            // Navigate to workout tab to show active workout
-            selectedTab = .workout
-        } else {
-            // Start a new workout — prefer today's plan so home/plan stay in sync
-            var workoutToStart: Workout
-            if let todayPlan = planManager.getTodayPlan(), !todayPlan.exercises.isEmpty {
-                workoutToStart = todayPlan.toWorkout()
-            } else if let recommended = betterFit.getRecommendedWorkout() {
-                workoutToStart = recommended
-            } else {
-                // Create a quick workout if no recommendation available
-                workoutToStart = Workout(
-                    name: "Quick Workout",
-                    exercises: [],
-                    date: Date()
-                )
-            }
-            // Mirror the started workout into the plan so the home preview and Plan tab agree
-            planManager.setSelectedWorkoutForToday(workoutToStart)
-            betterFit.startWorkout(workoutToStart)
-
-            // Update local state and post notification
-            activeWorkoutId = workoutToStart.id
-            NotificationCenter.default.post(
-                name: .workoutStarted,
-                object: workoutToStart.id
-            )
-
-            // Navigate to workout tab
-            selectedTab = .workout
+            // Resume — jump straight into the live session.
+            isWorkoutPaused = false
+            betterFit.resumeWorkout()
+            showActiveSession = true
+            return
         }
+
+        // Prefer today's plan (what Plan tab is showing).
+        var workoutToStart: Workout
+        if let todayPlan = planManager.getTodayPlan(), !todayPlan.exercises.isEmpty {
+            workoutToStart = todayPlan.toWorkout()
+        } else if let recommended = betterFit.getRecommendedWorkout() {
+            workoutToStart = recommended
+        } else {
+            workoutToStart = Workout(name: "Quick workout", exercises: [], date: Date())
+        }
+
+        planManager.setSelectedWorkoutForToday(workoutToStart)
+        betterFit.startWorkout(workoutToStart)
+        activeWorkoutId = workoutToStart.id
+        isWorkoutPaused = false
+        NotificationCenter.default.post(name: .workoutStarted, object: workoutToStart.id)
+        showActiveSession = true
     }
+
+    // MARK: - Tabs
 
     @ViewBuilder
     private func tabContent(for tab: AppTab) -> some View {
         switch tab {
         case .workout:
             NavigationStack {
-                WorkoutHomeView(
-                    betterFit: betterFit,
-                    theme: theme,
-                    healthKitManager: healthKitManager,
-                    planManager: planManager,
-                    isGuest: isGuest,
-                    user: user
-                )
-            }
-        case .plan:
-            NavigationStack {
-                PlanView(betterFit: betterFit, theme: theme, planManager: planManager)
-            }
-        case .search:
-            AppSearchView(
-                theme: theme,
-                betterFit: betterFit,
-                query: $searchQuery,
-                previousTabIcon: tabToReturnTo.icon,
-                onDismiss: {
-                    withAnimation { selectedTab = tabToReturnTo }
+                if hasActiveWorkout {
+                    // Active workout takes over the Workout tab.
+                    ActiveSessionView(
+                        betterFit: betterFit,
+                        theme: theme,
+                        onEnd: {
+                            completeWorkout()
+                            showActiveSession = false
+                        },
+                        onClose: {
+                            // Minimize back to Plan without ending the session.
+                            showActiveSession = false
+                            isWorkoutPaused = true
+                            betterFit.pauseWorkout()
+                        },
+                        onFinishedSummary: { data in
+                            summaryData = data
+                            showActiveSession = false
+                            showSummary = true
+                        },
+                        embeddedInTab: true
+                    )
+                    .navigationBarHidden(true)
+                } else {
+                    WorkoutHomeView(
+                        betterFit: betterFit,
+                        theme: theme,
+                        healthKitManager: healthKitManager,
+                        planManager: planManager,
+                        isGuest: isGuest,
+                        user: user,
+                        onSearch: { showSearch = true },
+                        onProfile: { showProfile = true }
+                    )
                 }
-            )
-        case .me:
+            }
+        case .body:
             NavigationStack {
-                ProfileView(
-                    betterFit: betterFit,
-                    theme: theme,
-                    isGuest: isGuest,
-                    user: user,
-                    onShowSignIn: onShowSignIn,
-                    onLogout: onLogout
-                )
+                RecoveryView(betterFit: betterFit, theme: theme)
+            }
+        case .targets:
+            NavigationStack {
+                TargetsView(betterFit: betterFit, theme: theme, planManager: planManager)
+            }
+        case .log:
+            NavigationStack {
+                LogView(betterFit: betterFit, theme: theme)
             }
         }
     }
 }
 
-
 #Preview {
     UserDefaults.standard.set(true, forKey: "betterfit.workoutHome.demoMode")
     let theme: AppTheme = .defaultTheme
     return RootTabView(
-        betterFit: BetterFit(), theme: theme, isGuest: false,
+        betterFit: BetterFit(),
+        theme: theme,
+        isGuest: false,
         user: nil,
-        onShowSignIn: {
-            print("Show sign in")
-        },
-        onLogout: {
-            print("Logout")
-        }
+        onShowSignIn: {},
+        onLogout: {}
     )
     .preferredColorScheme(.dark)
 }
