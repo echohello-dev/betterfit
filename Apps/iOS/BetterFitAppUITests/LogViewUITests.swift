@@ -59,11 +59,17 @@ final class LogViewUITests: XCTestCase {
         XCTAssertTrue(addRow.isHittable, "Log a past workout row should be tappable")
         addRow.tap()
 
-        let sheet = app.sheets.firstMatch
-        XCTAssertTrue(sheet.waitForExistence(timeout: 3), "Log a past workout sheet should present")
-        XCTAssertTrue(
-            sheet.staticTexts["Log a past workout"].waitForExistence(timeout: 2),
-            "Sheet should show the log-a-past-workout form")
+        // The sheet's content is a bare Text and iOS 26 does not expose it as a
+        // Sheet element (app.sheets stays empty), so assert the label appears a
+        // second time: once for the add-row button, once for the sheet content.
+        let sheetContent = app.staticTexts.matching(
+            NSPredicate(format: "label == %@", "Log a past workout")
+        )
+        let sheetPresented = expectation(
+            for: NSPredicate(format: "count == 2"),
+            evaluatedWith: sheetContent
+        )
+        wait(for: [sheetPresented], timeout: 3)
 
         app.swipeDown(velocity: .fast)
         sleep(1)
