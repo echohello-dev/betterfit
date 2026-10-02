@@ -45,3 +45,63 @@ jobs:
 
       - name: Build iOS
         run: mise run ios:build:ci
+
+  coverage:
+    name: iOS UI tests + coverage
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup mise
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      # Runs the XCUITest suite with -enableCodeCoverage and prints an xccov
+      # report for the app target (fails the job when tests fail; the report
+      # still prints). See mise.toml -> ios:coverage.
+      - name: UI tests with coverage
+        run: mise run ios:coverage
+
+      # Keep the result bundle for debugging failures and coverage details.
+      - name: Upload UI test result bundle
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-tests-xcresult
+          path: Apps/iOS/build/ui-tests.xcresult
+          if-no-files-found: ignore
+
+  e2e:
+    name: Mobile e2e (mobilewright)
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup mise
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      # Builds the app, boots a simulator, installs the mobilewright agent and
+      # runs the e2e suite (see e2e/README.md; mise.toml -> ios:e2e).
+      - name: Run e2e
+        run: mise run ios:e2e
+
+      # Test results + HTML report for debugging failures.
+      - name: Upload e2e reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-reports
+          path: |
+            e2e/test-results
+            e2e/mobilewright-report
+            e2e/playwright-report
+          if-no-files-found: ignore
