@@ -1,0 +1,20 @@
+{
+  "name": "betterfit-e2e",
+  "version": "1.0.0",
+  "description": "Mobilewright E2E tests for BetterFit iOS",
+  "main": "index.js",
+  "scripts": {
+    "test": "mobilewright test",
+    "test:headed-report": "mobilewright show-report",
+    "doctor": "mobilewright doctor"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@mobilewright/test": "^0.0.62",
+    "mobilewright": "^0.0.62"
+  },
+  "private": true
+}

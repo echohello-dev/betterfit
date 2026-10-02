@@ -244,6 +244,114 @@ xcrun simctl bootstatus "$WATCH_UDID" -b
 open -a Simulator --args -CurrentDeviceUDID "$WATCH_UDID"
 """
 
+[tasks."test:coverage"]
+run = "bash scripts/swift_coverage.sh"
+description = "SwiftPM unit tests with coverage; prints an llvm-cov report for Sources/ (set LCOV_OUT=coverage/lcov.info to also export lcov)."
+
+[tasks."ios:coverage"]
+run = """
+set -euo pipefail
+cd Apps/iOS
+xcodegen generate
+
+UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --prefer "iPhone 16 Plus" \
+  --prefer "iPhone 16 Pro Max" \
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
+
+if [ -z "$UDID" ]; then
+  # CI images may not ship the iOS 26.2 runtime — fall back to any iPhone.
+  UDID=$(xcrun simctl list devices available -j | python3 -c "
+import json, sys
+for devs in json.load(sys.stdin).get('devices', {}).values():
+    for d in devs:
+        if 'iPhone' in d.get('name', '') and d.get('isAvailable', True):
+            print(d['udid']); sys.exit(0)
+")
+fi
+if [ -z "$UDID" ]; then
+  echo "No iPhone simulator available. Try: mise run ios:sim:reset" >&2
+  exit 1
+fi
+
+rm -rf build/ui-tests.xcresult
+TEST_STATUS=0
+xcodebuild test -project BetterFit.xcodeproj -scheme BetterFit \
+  -destination "id=$UDID" \
+  -only-testing:BetterFitAppUITests \
+  -enableCodeCoverage YES \
+  -resultBundlePath "$PWD/build/ui-tests.xcresult" || TEST_STATUS=$?
+
+# Report coverage even when tests fail, then propagate the test status.
+if [ -d "$PWD/build/ui-tests.xcresult" ]; then
+  echo ""
+  echo "==> UI test coverage (app target)"
+  xcrun xccov view --report "$PWD/build/ui-tests.xcresult" || true
+fi
+exit "$TEST_STATUS"
+"""
+description = "Run XCUITest suite with code coverage; prints an xccov report (result bundle: Apps/iOS/build/ui-tests.xcresult)."
+
+[tasks."ios:e2e"]
+run = """
+set -euo pipefail
+
+# 0. Ensure e2e dependencies (fresh CI checkouts have no node_modules)
+if [ ! -d e2e/node_modules ]; then
+  (cd e2e && npm ci --no-audit --no-fund)
+fi
+
+# 1. Build the current app (xcodegen + env injection + xcodebuild)
+mise run ios:build:dev
+
+# 2. Boot a simulator silently (no Simulator.app window)
+UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
+  --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
+  --prefer "iPhone 16" \
+  --prefer "iPhone 16 Pro" \
+  --contains "iPhone" \
+  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
+
+if [ -z "$UDID" ]; then
+  # CI images may not ship the iOS 26.2 runtime — fall back to any iPhone.
+  UDID=$(xcrun simctl list devices available -j | python3 -c "
+import json, sys
+for devs in json.load(sys.stdin).get('devices', {}).values():
+    for d in devs:
+        if 'iPhone' in d.get('name', '') and d.get('isAvailable', True):
+            print(d['udid']); sys.exit(0)
+")
+fi
+if [ -z "$UDID" ]; then
+  echo "No iPhone simulator available. Try: mise run ios:sim:reset" >&2
+  exit 1
+fi
+
+xcrun simctl boot "$UDID" 2>/dev/null || true
+xcrun simctl bootstatus "$UDID" -b
+
+# 3. One-time mobilewright agent install on this simulator
+MW_MOBILECLI=$(find e2e/node_modules/@mobilenext -type f -name 'mobilecli-*' ! -name '*.map' 2>/dev/null | head -1)
+if [ -n "$MW_MOBILECLI" ]; then
+  "$MW_MOBILECLI" agent status --device "$UDID" >/dev/null 2>&1 \
+    || "$MW_MOBILECLI" agent install --device "$UDID"
+else
+  echo "mobilecli not found — run 'npm ci' in e2e/ first." >&2
+  exit 1
+fi
+
+# 4. Run the mobilewright suite
+cd e2e
+npx mobilewright test "$@"
+"""
+description = "Build the iOS app, boot a simulator, ensure the mobilewright agent, and run the e2e suite in e2e/."
+
 [tools]
 supabase = "latest"
 swiftlint = "latest"
+# e2e/ (mobilewright) needs Node with require(esm) — i.e. >= 22.12.
+node = "24"

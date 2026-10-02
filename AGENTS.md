@@ -75,6 +75,9 @@ When using UIViewRepresentable:
 - After making changes, run lint first: `mise run lint` (quicker feedback before building)
 - Build SwiftPM package: `mise run build` (runs `swift build`)
 - Run unit tests: `mise run test` (runs `swift test`)
+- Unit tests with coverage: `mise run test:coverage` (llvm-cov report; `LCOV_OUT=coverage/lcov.info` exports lcov)
+- UI tests with coverage: `mise run ios:coverage` (xccov report; bundle in `Apps/iOS/build/ui-tests.xcresult`)
+- Mobile e2e (mobilewright): `mise run ios:e2e` (build → boot sim → `e2e/` suite; see `e2e/README.md`)
 - iOS host app (XcodeGen): `mise run ios:open` (generates then opens `Apps/iOS/BetterFit.xcodeproj`)
 - CLI iOS build: `mise run ios:build:prod` / `mise run ios:build:dev`
 - watchOS app (XcodeGen): `mise run watch:open` (generates then opens project with watch target)
