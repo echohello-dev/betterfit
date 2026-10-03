@@ -254,6 +254,11 @@ set -euo pipefail
 cd Apps/iOS
 xcodegen generate
 
+# CoreSimulator cold start on fresh CI runners can exceed the pick script's
+# timeout — warm the daemon first. Never let the 26.2 pick hard-fail: an empty
+# or timed-out result falls through to any available iPhone below.
+xcrun simctl list runtimes >/dev/null 2>&1 || true
+
 UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
   --runtime "com.apple.CoreSimulator.SimRuntime.iOS-26-2" \
   --prefer "iPhone 16" \
@@ -261,7 +266,7 @@ UDID=$(python3 "$PWD/../../scripts/simctl_pick_udid.py" \
   --prefer "iPhone 16 Plus" \
   --prefer "iPhone 16 Pro Max" \
   --contains "iPhone" \
-  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
+  --timeout-seconds 60) || true
 
 if [ -z "$UDID" ]; then
   # CI images may not ship the iOS 26.2 runtime — fall back to any iPhone.
@@ -305,7 +310,10 @@ if [ ! -d e2e/node_modules ]; then
   (cd e2e && npm ci --no-audit --no-fund)
 fi
 
-# 1. Build the current app (xcodegen + env injection + xcodebuild)
+# 1. Warm CoreSimulator (cold CI runners: first simctl call is slow enough to
+#    trip simctl_pick_udid.py's timeout inside ios:build:dev) and build the
+#    current app (xcodegen + env injection + xcodebuild).
+xcrun simctl list runtimes >/dev/null 2>&1 || true
 mise run ios:build:dev
 
 # 2. Boot a simulator silently (no Simulator.app window)
@@ -314,7 +322,7 @@ UDID=$(python3 "$PWD/scripts/simctl_pick_udid.py" \
   --prefer "iPhone 16" \
   --prefer "iPhone 16 Pro" \
   --contains "iPhone" \
-  --timeout-seconds 15) || { echo "Failed to query simulators. Try: mise run ios:sim:reset" >&2; exit 1; }
+  --timeout-seconds 60) || true
 
 if [ -z "$UDID" ]; then
   # CI images may not ship the iOS 26.2 runtime — fall back to any iPhone.

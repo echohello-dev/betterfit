@@ -52,7 +52,8 @@ export async function resetAndLaunch(device: Device): Promise<void> {
   });
 
   // expect.poll() is not available in @mobilewright/test's expect — poll manually.
-  const deadline = Date.now() + 20_000;
+  // First launch after a fresh install can be slow on a loaded simulator.
+  const deadline = Date.now() + 60_000;
   for (;;) {
     if (foregroundApp(udid) === BUNDLE_ID) return;
     if (Date.now() > deadline) {
