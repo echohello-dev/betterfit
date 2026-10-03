@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.0](https://github.com/echohello-dev/betterfit/compare/v1.0.0...v1.0.0) (2026-10-03)
+
+
+### Features
+
+* **ios:** sync design system and app screens to code ([793e6d6](https://github.com/echohello-dev/betterfit/commit/793e6d69a2297563afacf930ad6f4d3dc85512b0))
+* **ios:** sync design system and app screens to code ([793e6d6](https://github.com/echohello-dev/betterfit/commit/793e6d69a2297563afacf930ad6f4d3dc85512b0))
+* mobilewright e2e suite, coverage automation, and CI gating ([#25](https://github.com/echohello-dev/betterfit/issues/25)) ([a0d0007](https://github.com/echohello-dev/betterfit/commit/a0d00071d72d6ea15213af3f34178ff804d1afce))
+
+
+### Bug Fixes
+
+* **ci:** survive cold CoreSimulator on fresh CI runners ([#26](https://github.com/echohello-dev/betterfit/issues/26)) ([068497e](https://github.com/echohello-dev/betterfit/commit/068497e820eab2656a098a988deb547c0a23ac4e))
+
 ## [1.0.0](https://github.com/echohello-dev/betterfit/compare/v0.1.0...v1.0.0) (2026-08-09)
 
 
