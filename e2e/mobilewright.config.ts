@@ -9,7 +9,9 @@ export default defineConfig({
   // simctl — mobilewright's LaunchOptions only supports locales.
   autoAppLaunch: false,
   viewTree: 'on-failure',
-  timeout: 60_000,
+  // Per-test budget: resetAndLaunch (uninstall -> install -> launch) counts
+  // against the test, and CI runners are 2-3x slower than local.
+  timeout: 120_000,
   expect: { timeout: 8_000 },
   retries: 1,
   workers: 1,
