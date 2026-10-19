@@ -5,8 +5,8 @@ struct ContentView: View {
     @EnvironmentObject var appState: WatchAppState
 
     var body: some View {
-        if let activeWorkout = appState.activeWorkout {
-            ActiveWorkoutView(workout: activeWorkout)
+        if appState.session != nil {
+            ActiveWorkoutView()
         } else {
             NavigationStack {
                 TabView {

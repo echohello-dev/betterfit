@@ -7,51 +7,13 @@ struct NotificationsView: View {
     @State private var isReminderEnabled = false
     @State private var selectedDays: Set<Int> = []
 
-    private var isGuest: Bool {
-        // Check if Supabase is configured and user is not authenticated
-        let config = AppConfiguration()
-        return config.isSupabaseConfigured && !appState.betterFit.authService.isAuthenticated
-    }
-
     var body: some View {
         List {
-            // Guest Sign In Prompt
-            if isGuest {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "person.badge.plus")
-                                .font(.title3)
-                                .foregroundStyle(WatchTheme.accent)
-
-                            Text("Sign In")
-                                .font(.headline)
-                                .foregroundStyle(WatchTheme.textPrimary)
-                        }
-
-                        Text("Sign in on your iPhone to sync reminders across devices.")
-                            .font(.caption)
-                            .foregroundStyle(WatchTheme.textSecondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listRowSeparator(.hidden)
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(WatchTheme.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(WatchTheme.border, lineWidth: 1)
-                        )
-                )
-            }
-
             Section {
                 Toggle("Workout Reminders", isOn: $isReminderEnabled)
                     .font(.headline)
                     .foregroundStyle(WatchTheme.textPrimary)
                     .tint(WatchTheme.accent)
-                    .listRowSeparator(.hidden)
                     .listRowBackground(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(WatchTheme.surface)
@@ -70,7 +32,6 @@ struct NotificationsView: View {
                         displayedComponents: .hourAndMinute
                     )
                     .tint(WatchTheme.accent)
-                    .listRowSeparator(.hidden)
                     .listRowBackground(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(WatchTheme.surface)
@@ -172,7 +133,6 @@ struct DayToggleRow: View {
             }
         }
         .buttonStyle(.plain)
-        .listRowSeparator(.hidden)
         .listRowBackground(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(WatchTheme.surface)

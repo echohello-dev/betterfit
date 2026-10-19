@@ -113,6 +113,13 @@ else
 fi
 """
 
+[tasks."watch:test:ui"]
+description = "Test watch workout quick actions, Crown editing, and large-text reachability"
+run = """
+mise run ios:gen
+xcodebuild -project Apps/iOS/BetterFit.xcodeproj -scheme BetterFitWatch -destination "${WATCH_DESTINATION:-platform=watchOS Simulator,name=Apple Watch SE 3 (40mm)}" -derivedDataPath "${WATCH_DERIVED_DATA_PATH:-.build/watch-ui-tests}" CODE_SIGNING_ALLOWED=NO test
+"""
+
 [tasks."ios:build:prod"]
 run = """
 cd Apps/iOS

@@ -1,47 +1,87 @@
 import BetterFit
 import SwiftUI
+import WatchKit
 
 @main
 struct BetterFitWatchApp: App {
     @StateObject private var appState = WatchAppState()
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                #if DEBUG
+                .environment(
+                    \.dynamicTypeSize,
+                    ProcessInfo.processInfo.arguments.contains("UI_TESTING_LARGE_TEXT")
+                        ? .accessibility5 : dynamicTypeSize
+                )
+                #endif
         }
     }
 }
 
 @MainActor
-class WatchAppState: ObservableObject {
+final class WatchAppState: ObservableObject {
     let betterFit = BetterFit()
 
-    @Published var activeWorkout: Workout?
-    @Published var currentExerciseIndex: Int = 0
+    @Published var session: WorkoutTrackingSession?
     @Published private(set) var isSeeded = false
 
     init() {
         seedDemoData()
     }
 
+    // MARK: - Workout Tracking
+
     func startWorkout(_ workout: Workout) {
-        activeWorkout = workout
-        currentExerciseIndex = 0
-        betterFit.startWorkout(workout)
+        guard session == nil else { return }
+        let restDuration = UserDefaults.standard.object(forKey: "watch.restDuration") as? Double ?? 60
+        let trackingSession = WorkoutTrackingSession(workout: workout, restDuration: restDuration)
+        session = trackingSession
+        betterFit.startWorkout(trackingSession.workout)
+    }
+
+    func logSet(id: UUID) {
+        guard session?.currentSet?.id == id, session?.isPaused == false else { return }
+        session?.completeSet(id: id)
+        WKInterfaceDevice.current().play(.success)
+    }
+
+    func undoLastSet() {
+        let wasFinished = session?.isFinished == true
+        session?.undoLastSet()
+        if wasFinished { betterFit.resumeWorkout() }
+        WKInterfaceDevice.current().play(.click)
+    }
+
+    func setRestDuration(_ duration: TimeInterval) {
+        session?.setRestDuration(duration)
+        UserDefaults.standard.set(duration, forKey: "watch.restDuration")
+    }
+
+    func togglePause() {
+        guard let session else { return }
+        if session.isPaused {
+            self.session?.resume()
+            betterFit.resumeWorkout()
+        } else {
+            self.session?.pause()
+            betterFit.pauseWorkout()
+        }
     }
 
     func completeWorkout() {
-        guard var workout = activeWorkout else { return }
-        workout.isCompleted = true
-        workout.duration = Date().timeIntervalSince(workout.date)
-        betterFit.completeWorkout(workout)
-        activeWorkout = nil
-        currentExerciseIndex = 0
+        guard let workout = session?.completedWorkout() else { return }
+        // This standalone MVP has no HealthKit authorization flow yet.
+        betterFit.completeWorkout(workout, saveToHealthKit: false)
+        session = nil
     }
 
-    func updateActiveWorkout(_ workout: Workout) {
-        activeWorkout = workout
+    func discardWorkout() {
+        betterFit.cancelWorkout()
+        session = nil
     }
 
     // MARK: - Seed Data
@@ -54,7 +94,20 @@ class WatchAppState: ObservableObject {
         profile.username = "Watch User"
         betterFit.socialManager.updateUserProfile(profile)
 
-        // Exercises
+        let templates = demoTemplates()
+        templates.forEach { betterFit.templateManager.addTemplate($0) }
+        let plan = TrainingPlan(
+            name: "Watch Plan",
+            description: "A simple 3-day split.",
+            weeks: [TrainingWeek(weekNumber: 1, workouts: templates.map(\.id))],
+            goal: .hypertrophy
+        )
+        betterFit.planManager.addPlan(plan)
+        betterFit.planManager.setActivePlan(plan.id)
+        isSeeded = true
+    }
+
+    private func demoTemplates() -> [WorkoutTemplate] {
         let bench = Exercise(
             name: "Bench Press",
             equipmentRequired: .barbell,
@@ -91,8 +144,15 @@ class WatchAppState: ObservableObject {
             muscleGroups: [.abs]
         )
 
-        // Templates
-        let pushDay = WorkoutTemplate(
+        return [
+            pushTemplate(bench: bench, press: press),
+            pullTemplate(row: row, curl: curl),
+            legsTemplate(squat: squat, hinge: hinge, core: core)
+        ]
+    }
+
+    private func pushTemplate(bench: Exercise, press: Exercise) -> WorkoutTemplate {
+        WorkoutTemplate(
             name: "Push Day",
             description: "Chest + shoulders + triceps",
             exercises: [
@@ -101,18 +161,20 @@ class WatchAppState: ObservableObject {
                     targetSets: [
                         TargetSet(reps: 8, weight: 60),
                         TargetSet(reps: 8, weight: 60),
-                        TargetSet(reps: 6, weight: 65),
+                        TargetSet(reps: 6, weight: 65)
                     ]
                 ),
                 TemplateExercise(
                     exercise: press,
                     targetSets: [TargetSet(reps: 10, weight: 18), TargetSet(reps: 10, weight: 18)]
-                ),
+                )
             ],
             tags: ["strength", "upper"]
         )
+    }
 
-        let pullDay = WorkoutTemplate(
+    private func pullTemplate(row: Exercise, curl: Exercise) -> WorkoutTemplate {
+        WorkoutTemplate(
             name: "Pull Day",
             description: "Back + biceps",
             exercises: [
@@ -123,12 +185,14 @@ class WatchAppState: ObservableObject {
                 TemplateExercise(
                     exercise: curl,
                     targetSets: [TargetSet(reps: 12, weight: 12), TargetSet(reps: 10, weight: 12)]
-                ),
+                )
             ],
             tags: ["strength", "upper"]
         )
+    }
 
-        let legsDay = WorkoutTemplate(
+    private func legsTemplate(squat: Exercise, hinge: Exercise, core: Exercise) -> WorkoutTemplate {
+        WorkoutTemplate(
             name: "Leg Day",
             description: "Quads + hamstrings + glutes",
             exercises: [
@@ -143,25 +207,9 @@ class WatchAppState: ObservableObject {
                 TemplateExercise(
                     exercise: core,
                     targetSets: [TargetSet(reps: 60, weight: nil)]
-                ),
+                )
             ],
             tags: ["strength", "lower"]
         )
-
-        [pushDay, pullDay, legsDay].forEach { betterFit.templateManager.addTemplate($0) }
-
-        // Training plan
-        let plan = TrainingPlan(
-            name: "Watch Plan",
-            description: "A simple 3-day split.",
-            weeks: [
-                TrainingWeek(weekNumber: 1, workouts: [pushDay.id, pullDay.id, legsDay.id])
-            ],
-            goal: .hypertrophy
-        )
-        betterFit.planManager.addPlan(plan)
-        betterFit.planManager.setActivePlan(plan.id)
-
-        isSeeded = true
     }
 }
