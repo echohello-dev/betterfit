@@ -100,6 +100,22 @@ targets:
     dependencies:
       - package: BetterFit
 
+  BetterFitWatchUITests:
+    type: bundle.ui-testing
+    platform: watchOS
+    sources:
+      - path: BetterFitWatchAppUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.echohello.BetterFitWatchUITests
+        SWIFT_VERSION: "5.0"
+        TEST_TARGET_NAME: BetterFitWatch
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+    dependencies:
+      - target: BetterFitWatch
+
 schemes:
   BetterFit:
     build:
@@ -118,5 +134,10 @@ schemes:
     build:
       targets:
         BetterFitWatch: all
+        BetterFitWatchUITests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - BetterFitWatchUITests

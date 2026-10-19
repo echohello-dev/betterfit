@@ -86,8 +86,8 @@ struct WorkoutRowButton: View {
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("start-workout-\(workout.name)")
         .contentShape(Rectangle())
-        .listRowSeparator(.hidden)
         .listRowBackground(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(WatchTheme.surface)

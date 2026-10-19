@@ -1,327 +1,230 @@
 import BetterFit
 import SwiftUI
+import WatchKit
 
 struct ActiveWorkoutView: View {
     @EnvironmentObject var appState: WatchAppState
-    let workout: Workout
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var presentedSheet: WorkoutSheet?
+    @FocusState private var crownValue: WorkoutValue?
+    @State private var crownSelection: WorkoutValue?
 
-    @State private var currentWorkout: Workout
-    @State private var elapsedTime: TimeInterval = 0
-    @State private var timer: Timer?
-    @State private var isPaused: Bool = false
-
-    init(workout: Workout) {
-        self.workout = workout
-        _currentWorkout = State(initialValue: workout)
-    }
-
-    var currentExercise: WorkoutExercise? {
-        guard appState.currentExerciseIndex < currentWorkout.exercises.count else {
-            return nil
-        }
-        return currentWorkout.exercises[appState.currentExerciseIndex]
-    }
+    // MARK: - View
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Header
-                VStack(spacing: 4) {
-                    Text(currentWorkout.name)
-                        .font(.headline)
-                        .foregroundStyle(WatchTheme.textPrimary)
-
-                    HStack(spacing: 8) {
-                        Text(timeString(from: elapsedTime))
-                            .font(.title2)
-                            .foregroundStyle(isPaused ? WatchTheme.accent : WatchTheme.success)
-                            .monospacedDigit()
-
-                        Button {
-                            isPaused.toggle()
-                        } label: {
-                            Image(systemName: isPaused ? "play.circle.fill" : "pause.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(isPaused ? WatchTheme.success : WatchTheme.accent)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if isPaused {
-                        Text("Paused")
-                            .font(.caption2)
-                            .foregroundStyle(WatchTheme.accent)
-                    }
-                }
-                .padding(.top)
-
-                if let exercise = currentExercise {
-                    ExerciseTracker(
-                        exercise: exercise,
-                        onUpdate: { updatedExercise in
-                            currentWorkout.exercises[appState.currentExerciseIndex] =
-                                updatedExercise
-                            appState.updateActiveWorkout(currentWorkout)
-                        }
-                    )
-                } else {
-                    // Workout complete
-                    CompleteWorkoutView()
-                }
-
-                // Navigation buttons
-                HStack(spacing: 12) {
-                    if appState.currentExerciseIndex > 0 {
-                        Button {
-                            appState.currentExerciseIndex -= 1
-                        } label: {
-                            Label("Previous", systemImage: "chevron.left")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-                    }
-
-                    if appState.currentExerciseIndex < currentWorkout.exercises.count - 1 {
-                        Button {
-                            appState.currentExerciseIndex += 1
-                        } label: {
-                            Label("Next", systemImage: "chevron.right")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(WatchTheme.accent)
-                        .frame(maxWidth: .infinity)
-                    } else {
-                        Button {
-                            appState.completeWorkout()
-                        } label: {
-                            Label("Finish", systemImage: "checkmark")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(WatchTheme.success)
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.horizontal)
-
-                // End workout button
-                Button(role: .destructive) {
-                    appState.completeWorkout()
-                } label: {
-                    Text("End Workout")
-                        .font(.caption)
-                        .foregroundStyle(WatchTheme.danger)
-                }
-                .padding(.bottom)
+        VStack(spacing: 4) {
+            ViewThatFits(in: .vertical) {
+                workoutContent
+                ScrollView { workoutContent }
+                    .contentMargins(.vertical, 0, for: .scrollContent)
             }
+            HStack(spacing: 8) {
+                primaryAction
+                actionsButton
+            }
+            .padding(.horizontal, 4)
+            .fixedSize(horizontal: false, vertical: true)
         }
         .background(WatchTheme.background.ignoresSafeArea())
-        .onAppear {
-            startTimer()
-        }
-        .onDisappear {
-            timer?.invalidate()
-        }
-    }
-
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
-            if !isPaused {
-                elapsedTime += 0.01
+        .tint(WatchTheme.accent)
+        .foregroundStyle(WatchTheme.textPrimary)
+        .sheet(item: $presentedSheet) { sheet in
+            if let value = WorkoutValue(rawValue: sheet.rawValue) {
+                WorkoutValueEditor(value: value)
+                    .environmentObject(appState)
+            } else {
+                WorkoutActionsView(editValue: showValueEditor)
+                    .environmentObject(appState)
             }
         }
+        .onChange(of: appState.session?.currentSet?.id) { _, _ in releaseCrown() }
+        .onChange(of: appState.session?.isPaused) { _, paused in
+            if paused == true { releaseCrown() }
+        }
+        .task(id: crownSelection) {
+            // Make the field eligible for editing before requesting native focus.
+            let selection = crownSelection
+            await Task.yield()
+            guard crownSelection == selection else { return }
+            crownValue = selection
+        }
+        .task(id: restCueID) { await playRestCue() }
     }
 
-    private func timeString(from timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval) % 60
-        let milliseconds = Int((timeInterval.truncatingRemainder(dividingBy: 1)) * 100)
-        return String(format: "%02d:%02d.%02d", minutes, seconds, milliseconds)
-    }
-}
-
-struct ExerciseTracker: View {
-    let exercise: WorkoutExercise
-    let onUpdate: (WorkoutExercise) -> Void
-
-    @State private var currentExercise: WorkoutExercise
-    @State private var currentSetIndex: Int = 0
-
-    init(exercise: WorkoutExercise, onUpdate: @escaping (WorkoutExercise) -> Void) {
-        self.exercise = exercise
-        self.onUpdate = onUpdate
-        _currentExercise = State(initialValue: exercise)
-    }
-
-    var currentSet: ExerciseSet? {
-        guard currentSetIndex < currentExercise.sets.count else { return nil }
-        return currentExercise.sets[currentSetIndex]
-    }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            // Exercise name
-            Text(currentExercise.exercise.name)
-                .font(.title3)
-                .bold()
-                .foregroundStyle(WatchTheme.textPrimary)
-
-            // Set progress
-            Text("Set \(currentSetIndex + 1) of \(currentExercise.sets.count)")
-                .font(.caption)
-                .foregroundStyle(WatchTheme.textSecondary)
-
-            if let set = currentSet {
-                VStack(spacing: 16) {
-                    // Reps display
-                    VStack(spacing: 4) {
-                        Text("Reps")
-                            .font(.caption)
-                            .foregroundStyle(WatchTheme.textSecondary)
-
-                        HStack(spacing: 16) {
-                            Button {
-                                updateReps(by: -1)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.title)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(WatchTheme.accent)
-
-                            Text("\(set.reps)")
-                                .font(.system(size: 48, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(WatchTheme.textPrimary)
-                                .frame(minWidth: 60)
-
-                            Button {
-                                updateReps(by: 1)
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(WatchTheme.accent)
-                        }
-                    }
-
-                    // Weight display (if applicable)
-                    if let weight = set.weight {
-                        VStack(spacing: 4) {
-                            Text("Weight (lbs)")
-                                .font(.caption)
-                                .foregroundStyle(WatchTheme.textSecondary)
-
-                            HStack(spacing: 16) {
-                                Button {
-                                    updateWeight(by: -5)
-                                } label: {
-                                    Image(systemName: "minus.circle.fill")
-                                        .font(.title2)
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(WatchTheme.accent)
-
-                                Text("\(Int(weight))")
-                                    .font(.system(size: 32, weight: .bold))
-                                    .monospacedDigit()
-                                    .foregroundStyle(WatchTheme.textPrimary)
-                                    .frame(minWidth: 60)
-
-                                Button {
-                                    updateWeight(by: 5)
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.title2)
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(WatchTheme.accent)
-                            }
-                        }
-                    }
-
-                    // Complete set button
-                    Button {
-                        completeCurrentSet()
-                    } label: {
-                        Label(
-                            set.isCompleted ? "Completed" : "Complete Set",
-                            systemImage: set.isCompleted
-                                ? "checkmark.circle.fill" : "checkmark.circle"
-                        )
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(set.isCompleted ? WatchTheme.success : WatchTheme.accent)
+    private var workoutContent: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let session = appState.session {
+                if let exercise = session.currentExerciseIndex,
+                    let setIndex = session.currentSetIndex, let set = session.currentSet {
+                    exerciseHeader(session: session, exercise: exercise, set: setIndex)
+                    values(for: set)
+                        .id(set.id)
+                        .disabled(session.isPaused)
+                } else {
+                    summary(session)
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(WatchTheme.surface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(WatchTheme.border, lineWidth: 1)
-                        )
+            }
+        }
+        .padding(.horizontal, 4)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // MARK: - Current Set
+
+    private func exerciseHeader(session: WorkoutTrackingSession, exercise: Int, set: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(session.workout.exercises[exercise].exercise.name)
+                .font(.subheadline.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("current-exercise")
+            WorkoutSetContext(
+                session: session, setNumber: set + 1,
+                setCount: session.workout.exercises[exercise].sets.count
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func values(for set: ExerciseSet) -> some View {
+        if dynamicTypeSize >= .xxLarge {
+            VStack(spacing: 8) { valueButtons(for: set) }
+        } else {
+            HStack(spacing: 8) { valueButtons(for: set) }
+        }
+    }
+
+    @ViewBuilder
+    private func valueButtons(for set: ExerciseSet) -> some View {
+        WorkoutValueButton(
+            metric: .reps, amount: WorkoutValue.reps.binding(to: appState), crownFocus: $crownValue,
+            editingEnabled: crownSelection == .reps, select: { selectCrown(.reps) },
+            useButtons: { showValueEditor(.reps) }
+        )
+        if set.weight != nil {
+            WorkoutValueButton(
+                metric: .weight, amount: WorkoutValue.weight.binding(to: appState), crownFocus: $crownValue,
+                editingEnabled: crownSelection == .weight, select: { selectCrown(.weight) },
+                useButtons: { showValueEditor(.weight) }
+            )
+        }
+    }
+
+    private func selectCrown(_ value: WorkoutValue) {
+        if crownSelection == value {
+            crownValue = value
+        } else {
+            crownSelection = value
+        }
+    }
+
+    private func releaseCrown() {
+        crownSelection = nil
+        crownValue = nil
+    }
+
+    private func showValueEditor(_ value: WorkoutValue) {
+        releaseCrown()
+        presentedSheet = value == .reps ? .reps : .weight
+    }
+
+    private var actionsButton: some View {
+        Button {
+            releaseCrown()
+            presentedSheet = .actions
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.body.bold())
+                .frame(width: 44, height: 44)
+                .background(WatchTheme.surfaceRaised, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Workout actions")
+        .accessibilityIdentifier("workout-actions")
+    }
+
+    // MARK: - Primary Action
+
+    @ViewBuilder
+    private var primaryAction: some View {
+        if let session = appState.session {
+            if session.isPaused && !session.isFinished {
+                actionButton("Resume", symbol: "play.fill", identifier: "toggle-pause") {
+                    appState.togglePause()
+                }
+            } else if let set = session.currentSet {
+                actionButton("Log Set", symbol: "checkmark", identifier: "complete-set") {
+                    appState.logSet(id: set.id)
+                }
+                .accessibilityValue(
+                    set.weight.map { "\(set.reps) reps, \($0.formatted()) pounds" } ?? "\(set.reps) reps"
                 )
-            }
-        }
-        .padding(.horizontal)
-    }
-
-    private func updateReps(by delta: Int) {
-        guard currentSetIndex < currentExercise.sets.count else { return }
-        let newReps = max(0, currentExercise.sets[currentSetIndex].reps + delta)
-        currentExercise.sets[currentSetIndex].reps = newReps
-        onUpdate(currentExercise)
-    }
-
-    private func updateWeight(by delta: Double) {
-        guard currentSetIndex < currentExercise.sets.count else { return }
-        if let currentWeight = currentExercise.sets[currentSetIndex].weight {
-            let newWeight = max(0, currentWeight + delta)
-            currentExercise.sets[currentSetIndex].weight = newWeight
-            onUpdate(currentExercise)
-        }
-    }
-
-    private func completeCurrentSet() {
-        guard currentSetIndex < currentExercise.sets.count else { return }
-
-        currentExercise.sets[currentSetIndex].isCompleted = true
-        currentExercise.sets[currentSetIndex].timestamp = Date()
-        onUpdate(currentExercise)
-
-        // Auto-advance to next set
-        if currentSetIndex < currentExercise.sets.count - 1 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                currentSetIndex += 1
+                .accessibilityHint("Logs this set and advances to the next one.")
+            } else if session.totalSetCount > 0 {
+                actionButton("Save Workout", symbol: "checkmark", identifier: "save-workout") {
+                    appState.completeWorkout()
+                }
             }
         }
     }
-}
 
-struct CompleteWorkoutView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(WatchTheme.success)
+    private func actionButton(
+        _ title: String, symbol: String, identifier: String, action: @escaping () -> Void
+    ) -> some View {
+        WatchPrimaryAction(
+            title: title, symbol: symbol, gestureEnabled: presentedSheet == nil, action: action
+        )
+            .accessibilityIdentifier(identifier)
+    }
 
-            Text("All Done!")
-                .font(.title2)
-                .bold()
-                .foregroundStyle(WatchTheme.textPrimary)
-
-            Text("Great work on completing your workout!")
+    private func summary(_ session: WorkoutTrackingSession) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(session.totalSetCount > 0 ? "Workout complete" : "No sets to log", systemImage: "checkmark.circle")
+                .font(.headline)
+                .accessibilityIdentifier("workout-summary")
+            Text(session.workout.name).font(.body)
+            Text("\(session.completedSetCount) sets logged")
                 .font(.caption)
                 .foregroundStyle(WatchTheme.textSecondary)
-                .multilineTextAlignment(.center)
+            WorkoutElapsedTime(session: session)
+            if session.canUndoLastSet {
+                Button("Undo Last Set", systemImage: "arrow.uturn.backward") { appState.undoLastSet() }
+                    .frame(minHeight: 44)
+                    .accessibilityIdentifier("undo-last-set")
+            }
         }
-        .padding()
+    }
+
+    // MARK: - Rest Feedback
+
+    private var restCueID: RestCueID {
+        RestCueID(
+            rest: appState.session?.restID, paused: appState.session?.isPaused ?? false,
+            duration: appState.session?.restDuration ?? 0, active: scenePhase == .active
+        )
+    }
+
+    private func playRestCue() async {
+        guard scenePhase == .active, let session = appState.session, !session.isPaused else { return }
+        let remaining = session.remainingRest()
+        guard remaining > 0 else { return }
+        do {
+            try await Task.sleep(for: .seconds(remaining))
+            WKInterfaceDevice.current().play(.notification)
+        } catch { /* Pausing, skipping, or leaving the screen cancels the cue. */ }
+    }
+
+    private enum WorkoutSheet: String, Identifiable {
+        case actions, reps, weight
+        var id: String { rawValue }
+    }
+
+    private struct RestCueID: Equatable {
+        let rest: UUID?
+        let paused: Bool
+        let duration: TimeInterval
+        let active: Bool
     }
 }
