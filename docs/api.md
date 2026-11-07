@@ -523,3 +523,28 @@ public enum ImageStyle: String, CaseIterable
 
 #### Cases
 - `realistic3D`, `cartoon`, `schematic`, `photographic`
+
+### `HealthExportParser`
+
+Parses an Apple Health export (`export.xml`). Foundation only, so it runs off device and in tests.
+
+```swift
+public enum HealthExportParser
+```
+
+#### Methods
+- `parseWorkouts(data:)` / `parseWorkouts(xml:)` - workouts with child statistics
+- `parseRecords(data:)` / `parseRecords(xml:)` - top-level records (steps, heart rate, energy, distance, body mass, sleep)
+- `parseExport(data:)` / `parseExport(xml:)` - both of the above as one `HealthExport`
+
+Throws `HealthExportParser.ParseError.malformedXML` on malformed XML.
+
+### `ParsedWorkout` and `WorkoutStatistics`
+
+A workout from the export, with one `WorkoutStatistics` per quantity type nested under it. `ParsedWorkout` exposes per-workout summaries: `activeEnergyKilocalories`, `basalEnergyKilocalories`, `distanceMetres`, `averageHeartRate`, `minimumHeartRate`, `maximumHeartRate`, and `stepCount`. Statistics win over the totals written on the workout element, and unknown statistic types are kept as `.other(type)`.
+
+### `HealthRecord` and `HealthExport`
+
+A top-level record from the export. Quantity records carry a numeric `value`. Category records, such as sleep analysis, carry `categoryValue` as a string instead. Normalised helpers: `valueKilocalories`, `valueMetres`, `valueKilograms`, and `duration` from the start and end dates. Unknown record types are kept as `.other(type)`.
+
+`HealthExport` holds `workouts` and `records` together, with `records(of:)` to filter records by kind.

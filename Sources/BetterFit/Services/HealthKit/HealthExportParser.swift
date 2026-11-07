@@ -5,13 +5,14 @@ import FoundationXML
 
 // MARK: - HealthExportParser
 
-/// Parses workouts and their child `WorkoutStatistics` from an Apple Health
-/// export (`export.xml`).
+/// Parses workouts and top-level records from an Apple Health export
+/// (`export.xml`).
 ///
 /// The parser is Foundation only and runs on any platform, so export files
 /// can be processed off device and in unit tests. It reads `Workout`
-/// elements and the `WorkoutStatistics` nested inside them. Top-level
-/// `Record` elements are out of scope for this slice and are skipped.
+/// elements and the `WorkoutStatistics` nested inside them, plus the
+/// top-level `Record` elements for steps, heart rate, energy, distance,
+/// body mass, and sleep.
 ///
 /// Example shape:
 ///
@@ -35,6 +36,38 @@ public enum HealthExportParser {
 
     /// Parse workouts from export XML data.
     public static func parseWorkouts(data: Data) throws -> [ParsedWorkout] {
+        try parse(data: data).workouts
+    }
+
+    /// Parse workouts from an export XML string.
+    public static func parseWorkouts(xml: String) throws -> [ParsedWorkout] {
+        try parseExport(xml: xml).workouts
+    }
+
+    /// Parse top-level records from export XML data.
+    public static func parseRecords(data: Data) throws -> [HealthRecord] {
+        try parse(data: data).records
+    }
+
+    /// Parse top-level records from an export XML string.
+    public static func parseRecords(xml: String) throws -> [HealthRecord] {
+        try parseExport(xml: xml).records
+    }
+
+    /// Parse a full export, with workouts and top-level records, from XML data.
+    public static func parseExport(data: Data) throws -> HealthExport {
+        try parse(data: data)
+    }
+
+    /// Parse a full export, with workouts and top-level records, from an XML string.
+    public static func parseExport(xml: String) throws -> HealthExport {
+        guard let data = xml.data(using: .utf8) else {
+            throw ParseError.malformedXML("input is not valid UTF-8")
+        }
+        return try parse(data: data)
+    }
+
+    private static func parse(data: Data) throws -> HealthExport {
         let delegate = Delegate()
         let parser = XMLParser(data: data)
         parser.delegate = delegate
@@ -47,15 +80,7 @@ public enum HealthExportParser {
         if let error = delegate.parseError {
             throw error
         }
-        return delegate.workouts
-    }
-
-    /// Parse workouts from an export XML string.
-    public static func parseWorkouts(xml: String) throws -> [ParsedWorkout] {
-        guard let data = xml.data(using: .utf8) else {
-            throw ParseError.malformedXML("input is not valid UTF-8")
-        }
-        return try parseWorkouts(data: data)
+        return HealthExport(workouts: delegate.workouts, records: delegate.records)
     }
 
     // MARK: - Date Parsing
@@ -130,6 +155,7 @@ public enum HealthExportParser {
 
 private final class Delegate: NSObject, XMLParserDelegate {
     private(set) var workouts: [ParsedWorkout] = []
+    private(set) var records: [HealthRecord] = []
     private(set) var parseError: HealthExportParser.ParseError?
     private var current: ParsedWorkout?
 
@@ -147,6 +173,8 @@ private final class Delegate: NSObject, XMLParserDelegate {
             guard current != nil else { return }
             let stat = Self.makeStatistic(attributes: attributeDict)
             current?.statistics.append(stat)
+        case "Record":
+            records.append(Self.makeRecord(attributes: attributeDict))
         default:
             break
         }
@@ -193,6 +221,22 @@ private final class Delegate: NSObject, XMLParserDelegate {
             duration: duration,
             totalEnergyBurned: totalEnergy,
             totalDistance: totalDistance
+        )
+    }
+
+    private static func makeRecord(attributes: [String: String]) -> HealthRecord {
+        let rawValue = attributes["value"]
+        let numericValue = rawValue.flatMap(Double.init)
+        return HealthRecord(
+            type: attributes["type"] ?? "",
+            sourceName: attributes["sourceName"],
+            sourceVersion: attributes["sourceVersion"],
+            unit: attributes["unit"],
+            creationDate: HealthExportParser.parseHealthDate(attributes["creationDate"]),
+            startDate: HealthExportParser.parseHealthDate(attributes["startDate"]),
+            endDate: HealthExportParser.parseHealthDate(attributes["endDate"]),
+            value: numericValue,
+            categoryValue: numericValue == nil ? rawValue : nil
         )
     }
 
