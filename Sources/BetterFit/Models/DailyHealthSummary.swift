@@ -21,7 +21,10 @@ public struct DailyHealthSummary: Codable, Equatable, Sendable {
     public var restingHeartRate: Double?
     /// Most recent body mass sample of the day, in kilograms.
     public var bodyMassKilograms: Double?
-    /// Total time covered by sleep analysis records starting that day.
+    /// Time asleep in recognised sleep-analysis records starting that day.
+    /// Overlapping intervals count once. Awake, in-bed, unknown categories,
+    /// and intervals without a positive duration are excluded.
+    /// Nil when no valid asleep interval is present.
     public var sleepDuration: TimeInterval?
 
     public init(
@@ -83,7 +86,7 @@ private struct DayAccumulator {
     private var heartRateCount: Int = 0
     private var resting: (date: Date, value: Double)?
     private var bodyMass: (date: Date, value: Double)?
-    private var sleep: TimeInterval?
+    private var sleepIntervals: [DateInterval] = []
 
     mutating func add(_ record: HealthRecord) {
         addTotal(record)
@@ -121,7 +124,9 @@ private struct DayAccumulator {
         case .bodyMass:
             bodyMass = latest(bodyMass, record: record, value: record.valueKilograms)
         case .sleepAnalysis:
-            if let duration = record.duration { sleep = (sleep ?? 0) + duration }
+            if record.isAsleep, let start = record.startDate, let end = record.endDate, end > start {
+                sleepIntervals.append(DateInterval(start: start, end: end))
+            }
         default:
             break
         }
@@ -147,7 +152,44 @@ private struct DayAccumulator {
             averageHeartRate: heartRateCount > 0 ? heartRateSum / Double(heartRateCount) : nil,
             restingHeartRate: resting?.value,
             bodyMassKilograms: bodyMass?.value,
-            sleepDuration: sleep
+            sleepDuration: sleepDuration
         )
+    }
+
+    // MARK: - Sleep
+
+    private var sleepDuration: TimeInterval? {
+        let intervals = sleepIntervals.sorted { $0.start < $1.start }
+        guard var current = intervals.first else { return nil }
+        var total: TimeInterval = 0
+        for interval in intervals.dropFirst() {
+            if interval.start <= current.end {
+                current.end = max(current.end, interval.end)
+            } else {
+                total += current.duration
+                current = interval
+            }
+        }
+        return total + current.duration
+    }
+}
+
+// MARK: - Sleep Categories
+
+private extension HealthRecord {
+    var isAsleep: Bool {
+        switch categoryValue {
+        case "HKCategoryValueSleepAnalysisAsleep",
+             "HKCategoryValueSleepAnalysisAsleepUnspecified",
+             "HKCategoryValueSleepAnalysisAsleepCore",
+             "HKCategoryValueSleepAnalysisAsleepDeep",
+             "HKCategoryValueSleepAnalysisAsleepREM":
+            return true
+        case nil:
+            // HealthKit raw values for unspecified, core, deep, and REM sleep.
+            return value == 1 || value == 3 || value == 4 || value == 5
+        default:
+            return false
+        }
     }
 }
