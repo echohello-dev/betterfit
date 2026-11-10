@@ -385,6 +385,25 @@ public class SmartNotificationManager
 
 ## Services
 
+### Health export sleep summaries
+
+`HealthExportParser.parseExport(xml:)` reads Apple Health export XML without
+requiring HealthKit. Call `dailySummaries(calendar:)` on the result to aggregate
+records by their start date in the supplied calendar.
+
+`DailyHealthSummary.sleepDuration` reports seconds asleep for legacy asleep,
+unspecified, core, deep and REM categories, including their numeric HealthKit
+values. Overlapping asleep intervals count once, including duplicates from
+different sources. Awake, in-bed, unknown categories and incomplete or
+non-positive intervals are excluded. A day without valid asleep intervals has
+`nil` sleep duration, which remains an empty field in CSV and is omitted in JSON.
+Apple documents the sleep categories and overlapping samples in
+[HKCategoryValueSleepAnalysis](https://developer.apple.com/documentation/healthkit/hkcategoryvaluesleepanalysis).
+
+Intervals crossing midnight remain entirely on their start day. The summary does
+not prioritise sources or subtract awake samples that conflict with asleep
+samples. CSV and JSON exports use the same corrected duration.
+
 ### `AutoTrackingService`
 
 Auto-tracking service for Watch sensors.
