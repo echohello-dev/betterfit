@@ -58,6 +58,8 @@ final class IntegrationTests: XCTestCase {
 
         let streak = betterFit.socialManager.getCurrentStreak()
         XCTAssertEqual(streak, 1)
+
+        XCTAssertEqual(betterFit.bodyMapManager.getRecoveryStatus(for: .legs), .fatigued)
     }
 
     func testTemplateToWorkoutIntegration() {

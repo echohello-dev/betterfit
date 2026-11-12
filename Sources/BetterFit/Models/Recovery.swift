@@ -13,15 +13,16 @@ public struct BodyMapRecovery: Codable, Equatable {
         self.lastUpdated = lastUpdated
     }
 
-    /// Update recovery status after a workout
+    /// Update each targeted body region once per recorded workout.
     public mutating func recordWorkout(_ workout: Workout) {
-        let muscleGroups = workout.exercises.flatMap { $0.exercise.muscleGroups }
+        let workedRegions = Set(workout.exercises.flatMap { workoutExercise in
+            workoutExercise.exercise.muscleGroups.map { group in
+                BodyRegion(rawValue: group.bodyMapRegion) ?? .other
+            }
+        })
 
-        for group in muscleGroups {
-            let region = BodyRegion(rawValue: group.bodyMapRegion) ?? .other
+        for region in workedRegions {
             let currentStatus = regions[region] ?? .recovered
-
-            // Mark as worked
             regions[region] = currentStatus.afterWorkout()
         }
 
