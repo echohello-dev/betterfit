@@ -160,8 +160,8 @@ struct StreakSummarySheetView: View {
         lines.append("Workouts done (BetterFit): \(betterFitWorkouts.count)")
 
         if !betterFitWorkouts.isEmpty {
-            for w in betterFitWorkouts.prefix(8) {
-                lines.append("• \(w.name) — \(betterFitWorkoutSubtitle(w))")
+            for workout in betterFitWorkouts.prefix(8) {
+                lines.append("• \(workout.name) — \(betterFitWorkoutSubtitle(workout))")
             }
             if betterFitWorkouts.count > 8 {
                 lines.append("• …and \(betterFitWorkouts.count - 8) more")
@@ -180,8 +180,8 @@ struct StreakSummarySheetView: View {
         case .authorized:
             lines.append("Apple Health workouts: \(viewModel.workouts.count)")
             if !viewModel.workouts.isEmpty {
-                for w in viewModel.workouts.prefix(8) {
-                    lines.append("• \(w.activityName) — \(w.timeRangeText)")
+                for workout in viewModel.workouts.prefix(8) {
+                    lines.append("• \(workout.activityName) — \(workout.timeRangeText)")
                 }
                 if viewModel.workouts.count > 8 {
                     lines.append("• …and \(viewModel.workouts.count - 8) more")

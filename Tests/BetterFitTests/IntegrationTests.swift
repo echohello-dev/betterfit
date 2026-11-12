@@ -294,12 +294,12 @@ final class IntegrationTests: XCTestCase {
         let persistence = LocalPersistenceService()
 
         // Save multiple workouts
-        for i in 1...3 {
+        for index in 1...3 {
             let exercise = Exercise(
-                name: "Exercise \(i)", equipmentRequired: .bodyweight, muscleGroups: [.chest])
-            let set = ExerciseSet(reps: 10, weight: Double(i * 100), isCompleted: true)
+                name: "Exercise \(index)", equipmentRequired: .bodyweight, muscleGroups: [.chest])
+            let set = ExerciseSet(reps: 10, weight: Double(index * 100), isCompleted: true)
             let workoutExercise = WorkoutExercise(exercise: exercise, sets: [set])
-            let workout = Workout(name: "Workout \(i)", exercises: [workoutExercise])
+            let workout = Workout(name: "Workout \(index)", exercises: [workoutExercise])
 
             try await persistence.saveWorkout(workout)
         }

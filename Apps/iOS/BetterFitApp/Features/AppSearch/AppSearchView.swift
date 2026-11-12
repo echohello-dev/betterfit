@@ -207,7 +207,11 @@ struct AppSearchView: View {
         }
     }
 
-    // MARK: - Data
+}
+
+// MARK: - Search Data
+
+extension AppSearchView {
 
     private var categories: [SearchCategory] {
         var result: [SearchCategory] = []

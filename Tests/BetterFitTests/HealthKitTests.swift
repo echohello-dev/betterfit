@@ -219,12 +219,12 @@ final class HealthKitTests: XCTestCase {
         async let energy = service.fetchActiveEnergy(from: startOfDay, to: now)
         async let heartRate = service.fetchAverageHeartRate(from: startOfDay, to: now)
 
-        let (s, e, hr) = await (steps, energy, heartRate)
+        let (stepCount, activeEnergy, averageHeartRate) = await (steps, energy, heartRate)
 
-        XCTAssertGreaterThanOrEqual(s, 0)
-        XCTAssertGreaterThanOrEqual(e, 0)
-        if let hr = hr {
-            XCTAssertGreaterThan(hr, 0)
+        XCTAssertGreaterThanOrEqual(stepCount, 0)
+        XCTAssertGreaterThanOrEqual(activeEnergy, 0)
+        if let averageHeartRate {
+            XCTAssertGreaterThan(averageHeartRate, 0)
         }
     }
 

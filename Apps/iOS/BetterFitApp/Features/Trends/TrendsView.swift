@@ -34,10 +34,10 @@ struct TrendsView: View {
     private var recoveryTrend: [RecoveryData] {
         let calendar = Calendar.current
         let today = Date()
-        return (0..<7).map { i in
-            let date = calendar.date(byAdding: .day, value: -i, to: today)!
+        return (0..<7).map { daysAgo in
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
             // Mock a recovery trend that fluctuates
-            let percentage = 60.0 + sin(Double(i)) * 20.0 + Double.random(in: -5...5)
+            let percentage = 60.0 + sin(Double(daysAgo)) * 20.0 + Double.random(in: -5...5)
             return RecoveryData(date: date, percentage: max(0, min(100, percentage)))
         }.reversed()
     }

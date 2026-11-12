@@ -367,6 +367,6 @@ description = "Build the iOS app, boot a simulator, ensure the mobilewright agen
 
 [tools]
 supabase = "latest"
-swiftlint = "latest"
+swiftlint = "0.62.2"
 # e2e/ (mobilewright) needs Node with require(esm) — i.e. >= 22.12.
 node = "24"

@@ -43,6 +43,9 @@ jobs:
       - name: Install xcodegen
         run: brew install xcodegen
 
+      - name: Lint
+        run: mise run lint
+
       - name: Build iOS
         run: mise run ios:build:ci
 
