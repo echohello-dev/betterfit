@@ -211,7 +211,7 @@ public struct BodyMapRecovery: Codable, Equatable
 - `lastUpdated: Date`
 
 #### Methods
-- `recordWorkout(_:)` - Update recovery after workout
+- `recordWorkout(_:)` - Update each targeted body region once per recorded workout. Multiple muscles or exercises in the same region share one fatigue transition; separate recorded workouts can increase fatigue further.
 - `updateRecovery()` - Update based on time elapsed
 
 ### `RecoveryStatus`

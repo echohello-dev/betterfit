@@ -49,8 +49,7 @@ final class RecoveryTests: XCTestCase {
         manager.recordWorkout(workout)
         
         let status = manager.getRecoveryStatus(for: .legs)
-        // Squat works both quads and glutes, which both map to legs region
-        // So it gets hit twice: recovered -> fatigued -> sore
-        XCTAssertEqual(status, .sore)
+        // A compound exercise updates its body region once per workout.
+        XCTAssertEqual(status, .fatigued)
     }
 }
