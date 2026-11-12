@@ -359,7 +359,11 @@ public final class SupabasePersistenceService: PersistenceProtocol {
         return response.first
     }
 
-    // MARK: - Streaks
+}
+
+// MARK: - Streaks
+
+extension SupabasePersistenceService {
 
     public func saveStreakData(currentStreak: Int, longestStreak: Int, lastWorkoutDate: Date?)
         async throws

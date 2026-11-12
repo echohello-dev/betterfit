@@ -418,12 +418,12 @@ struct HealthStatsFromAppleHealth: View {
     }
 
     private func formatSleep(_ hours: Double) -> String {
-        let h = Int(hours)
-        let m = Int((hours - Double(h)) * 60)
-        if m > 0 {
-            return "\(h)h \(m)m"
+        let wholeHours = Int(hours)
+        let minutes = Int((hours - Double(wholeHours)) * 60)
+        if minutes > 0 {
+            return "\(wholeHours)h \(minutes)m"
         }
-        return "\(h)h"
+        return "\(wholeHours)h"
     }
 
     private func bmiCategory(_ bmi: Double) -> String {

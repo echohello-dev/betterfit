@@ -154,7 +154,10 @@ struct SettingDetailView: View {
                 .font(.subheadline)
 
             Text(
-                "We collect only the data necessary to provide you with a personalized fitness experience. Your workout data is stored securely and never shared with third parties without your consent."
+                """
+                We collect only the data necessary to provide you with a personalized fitness experience. \
+                Your workout data is stored securely and never shared with third parties without your consent.
+                """
             )
             .font(.caption)
             .foregroundStyle(BFColors.textSecondary(for: colorScheme))
