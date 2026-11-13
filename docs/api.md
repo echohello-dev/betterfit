@@ -82,6 +82,31 @@ aggregates records. Adding the two energy totals would count the same
 activity twice. Older encoded exports without `activitySummaries` decode
 with an empty collection.
 
+`[HealthActivitySummary]` supports `csvString()`, `jsonData()`, `writeCSV(to:)`
+and `writeJSON(to:)`. Exports preserve array order and duplicate days. CSV
+columns are `date`, `active_energy_kcal`, `active_energy_goal_kcal`,
+`exercise_minutes`, `exercise_goal_minutes`, `stand_hours` and `stand_goal_hours`.
+The date stays as the exported calendar day, without time zone conversion.
+Missing values and energy with unsupported units are empty CSV fields;
+measured zero remains zero. Text containing commas, quotes or line breaks is
+quoted, with embedded quotes doubled. Empty CSV exports contain the header
+and a newline.
+
+JSON retains the original energy values and unit, uses sorted keys and
+omits missing fields. Decode it with a standard `JSONDecoder` to restore the
+same summaries. Empty JSON exports contain an empty array. `jsonData()` throws
+on encoding errors, including non-finite numbers. File writers atomically
+create or replace their destination and propagate encoding or file errors;
+the parent directory must already exist.
+
+```swift
+let export = try HealthExportParser.parseExport(data: xmlData)
+try export.activitySummaries.writeCSV(to: csvURL)
+try export.activitySummaries.writeJSON(to: jsonURL)
+let restored = try JSONDecoder().decode(
+    [HealthActivitySummary].self, from: export.activitySummaries.jsonData())
+```
+
 ### `Exercise`
 
 Represents a single exercise.
