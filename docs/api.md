@@ -585,3 +585,35 @@ A workout from the export, with one `WorkoutStatistics` per quantity type nested
 A top-level record from the export. Quantity records carry a numeric `value`. Category records, such as sleep analysis, carry `categoryValue` as a string instead. Normalised helpers: `valueKilocalories`, `valueMetres`, `valueKilograms`, and `duration` from the start and end dates. Unknown record types are kept as `.other(type)`.
 
 `HealthExport` holds `workouts` and `records` together, with `records(of:)` to filter records by kind.
+
+### Weekly training summary export
+
+`HealthExport.weeklyTrainingSummaries(calendar:)` groups workouts by their start
+date into calendar weeks and returns summaries in date order. Workouts without
+a start date are skipped. Pass an explicit calendar to control the time zone
+and first day of the week.
+
+`[WeeklyTrainingSummary]` supports `csvString()`, `jsonData()`, `writeCSV(to:)`
+and `writeJSON(to:)`. All four methods throw on encoding or file errors. Exports
+preserve array order and use ISO8601 dates. File writes atomically create or
+replace the destination, whose parent directory must already exist.
+
+CSV columns are `week_start`, `workout_count`, `duration_seconds`,
+`active_energy_kcal`, `distance_metres`, `average_heart_rate`,
+`maximum_heart_rate` and `activity_counts`. Heart rates are in beats per minute;
+the average is the unweighted mean of per-workout averages. Missing metrics
+are empty CSV fields and omitted JSON properties; measured zero stays zero.
+Activity counts use a JSON object with sorted keys inside a quoted CSV field,
+so activity names containing commas or quotes are preserved. Empty CSV exports
+contain only the header and a newline; empty JSON exports contain an empty array.
+
+```swift
+let export = try HealthExportParser.parseExport(data: xmlData)
+let weeks = export.weeklyTrainingSummaries(calendar: calendar)
+try weeks.writeCSV(to: csvURL)
+try weeks.writeJSON(to: jsonURL)
+
+let decoder = JSONDecoder()
+decoder.dateDecodingStrategy = .iso8601
+let restored = try decoder.decode([WeeklyTrainingSummary].self, from: weeks.jsonData())
+```
