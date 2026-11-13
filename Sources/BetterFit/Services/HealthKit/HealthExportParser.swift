@@ -5,14 +5,15 @@ import FoundationXML
 
 // MARK: - HealthExportParser
 
-/// Parses workouts and top-level records from an Apple Health export
+/// Parses workouts, records, and activity summaries from an Apple Health export
 /// (`export.xml`).
 ///
 /// The parser is Foundation only and runs on any platform, so export files
 /// can be processed off device and in unit tests. It reads `Workout`
 /// elements and the `WorkoutStatistics` nested inside them, plus the
 /// top-level `Record` elements for steps, heart rate, energy, distance,
-/// body mass, and sleep.
+/// body mass, and sleep. `ActivitySummary` elements retain daily activity ring
+/// totals and goals separately from the individual records.
 ///
 /// Example shape:
 ///
@@ -54,12 +55,12 @@ public enum HealthExportParser {
         try parseExport(xml: xml).records
     }
 
-    /// Parse a full export, with workouts and top-level records, from XML data.
+    /// Parse workouts, records, and activity summaries from XML data.
     public static func parseExport(data: Data) throws -> HealthExport {
         try parse(data: data)
     }
 
-    /// Parse a full export, with workouts and top-level records, from an XML string.
+    /// Parse workouts, records, and activity summaries from an XML string.
     public static func parseExport(xml: String) throws -> HealthExport {
         guard let data = xml.data(using: .utf8) else {
             throw ParseError.malformedXML("input is not valid UTF-8")
@@ -80,7 +81,11 @@ public enum HealthExportParser {
         if let error = delegate.parseError {
             throw error
         }
-        return HealthExport(workouts: delegate.workouts, records: delegate.records)
+        return HealthExport(
+            workouts: delegate.workouts,
+            records: delegate.records,
+            activitySummaries: delegate.activitySummaries
+        )
     }
 
     // MARK: - Date Parsing
@@ -156,6 +161,7 @@ public enum HealthExportParser {
 private final class Delegate: NSObject, XMLParserDelegate {
     private(set) var workouts: [ParsedWorkout] = []
     private(set) var records: [HealthRecord] = []
+    private(set) var activitySummaries: [HealthActivitySummary] = []
     private(set) var parseError: HealthExportParser.ParseError?
     private var current: ParsedWorkout?
 
@@ -175,6 +181,8 @@ private final class Delegate: NSObject, XMLParserDelegate {
             current?.statistics.append(stat)
         case "Record":
             records.append(Self.makeRecord(attributes: attributeDict))
+        case "ActivitySummary":
+            activitySummaries.append(Self.makeActivitySummary(attributes: attributeDict))
         default:
             break
         }
@@ -197,6 +205,26 @@ private final class Delegate: NSObject, XMLParserDelegate {
     }
 
     // MARK: - Element Builders
+
+    private static func makeActivitySummary(attributes: [String: String]) -> HealthActivitySummary {
+        func number(_ key: String) -> Double? {
+            guard let value = attributes[key].flatMap(Double.init), value.isFinite, value >= 0 else {
+                return nil
+            }
+            return value
+        }
+
+        return HealthActivitySummary(
+            dateComponents: attributes["dateComponents"],
+            activeEnergyBurned: number("activeEnergyBurned"),
+            activeEnergyBurnedGoal: number("activeEnergyBurnedGoal"),
+            activeEnergyBurnedUnit: attributes["activeEnergyBurnedUnit"],
+            appleExerciseTime: number("appleExerciseTime"),
+            appleExerciseTimeGoal: number("appleExerciseTimeGoal"),
+            appleStandHours: number("appleStandHours"),
+            appleStandHoursGoal: number("appleStandHoursGoal")
+        )
+    }
 
     private static func makeWorkout(attributes: [String: String]) -> ParsedWorkout {
         let duration = HealthExportParser.normaliseDuration(

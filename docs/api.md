@@ -64,6 +64,24 @@ Returns the current auto-tracking status.
 
 ## Models
 
+### Apple Health exports
+
+`HealthExportParser.parseExport(data:)` and `parseExport(xml:)` return a
+`HealthExport` containing `workouts`, `records`, and `activitySummaries`.
+The parser uses Foundation and does not require HealthKit or UI frameworks.
+
+Each `HealthActivitySummary` preserves the exported `dateComponents` day
+string (`yyyy-MM-dd`), active energy and goal with their original unit,
+exercise time and goal in minutes, and stand hours and goal. Missing or
+invalid numeric attributes are nil; measured zero remains zero.
+`activeEnergyKilocalories` and `activeEnergyGoalKilocalories` convert kcal,
+kJ, and J to kilocalories, returning nil for missing or unsupported units.
+
+Activity summaries remain separate from `dailySummaries(calendar:)`, which
+aggregates records. Adding the two energy totals would count the same
+activity twice. Older encoded exports without `activitySummaries` decode
+with an empty collection.
+
 ### `Exercise`
 
 Represents a single exercise.

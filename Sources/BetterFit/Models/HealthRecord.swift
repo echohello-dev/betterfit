@@ -144,14 +144,34 @@ public struct HealthRecord: Codable, Equatable, Sendable {
 
 // MARK: - HealthExport
 
-/// A parsed Apple Health export, with workouts and top-level records.
+/// A parsed Apple Health export, with workouts, records, and activity summaries.
 public struct HealthExport: Codable, Equatable, Sendable {
     public var workouts: [ParsedWorkout]
     public var records: [HealthRecord]
+    public var activitySummaries: [HealthActivitySummary]
 
-    public init(workouts: [ParsedWorkout] = [], records: [HealthRecord] = []) {
+    public init(
+        workouts: [ParsedWorkout] = [],
+        records: [HealthRecord] = [],
+        activitySummaries: [HealthActivitySummary] = []
+    ) {
         self.workouts = workouts
         self.records = records
+        self.activitySummaries = activitySummaries
+    }
+
+    // MARK: - Codable Compatibility
+
+    private enum CodingKeys: String, CodingKey {
+        case workouts, records, activitySummaries
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        workouts = try container.decode([ParsedWorkout].self, forKey: .workouts)
+        records = try container.decode([HealthRecord].self, forKey: .records)
+        activitySummaries = try container.decodeIfPresent(
+            [HealthActivitySummary].self, forKey: .activitySummaries) ?? []
     }
 
     // MARK: - Record Lookup
