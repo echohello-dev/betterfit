@@ -137,7 +137,7 @@ public enum HealthExportParser {
         case "m", nil:
             return value
         default:
-            return value
+            return nil
         }
     }
 
@@ -151,7 +151,7 @@ public enum HealthExportParser {
         case "kcal", "cal", nil:
             return value
         default:
-            return value
+            return nil
         }
     }
 }

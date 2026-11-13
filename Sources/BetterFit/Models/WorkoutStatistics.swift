@@ -87,11 +87,12 @@ public struct WorkoutStatistics: Codable, Equatable, Sendable {
         case "j":
             return sum / 4184
         default:
-            return sum
+            return nil
         }
     }
 
-    /// Sum expressed in metres, or nil when this is not a distance statistic.
+    /// Sum expressed in metres, or nil when this is not a distance statistic
+    /// or the unit cannot be normalised.
     public var sumMetres: Double? {
         guard kind == .distanceWalkingRunning || kind == .distanceCycling, let sum else {
             return nil
@@ -104,7 +105,7 @@ public struct WorkoutStatistics: Codable, Equatable, Sendable {
         case "m", nil:
             return sum
         default:
-            return sum
+            return nil
         }
     }
 }
