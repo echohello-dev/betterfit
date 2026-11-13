@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.1.0](https://github.com/echohello-dev/betterfit/compare/v1.0.0...v1.1.0) (2026-11-13)
+
+
+### Features
+
+* **health:** add CSV and JSON export for daily health summaries ([#35](https://github.com/echohello-dev/betterfit/issues/35)) ([7b65a40](https://github.com/echohello-dev/betterfit/commit/7b65a4045104d3bbbf41123eca1e5f9ed7ec8c6f))
+* **health:** add daily health summaries aggregated from records ([#33](https://github.com/echohello-dev/betterfit/issues/33)) ([ee0f381](https://github.com/echohello-dev/betterfit/commit/ee0f381ab653833777a6fc288a61c78df5d83e6b))
+* **health:** add weekly training summaries from parsed workouts ([#37](https://github.com/echohello-dev/betterfit/issues/37)) ([1203e4e](https://github.com/echohello-dev/betterfit/commit/1203e4e24d1b9e5f4cc836d0e608ecbce2d9a4a0))
+* **health:** export activity ring summaries as CSV and JSON ([#53](https://github.com/echohello-dev/betterfit/issues/53)) ([c550e6f](https://github.com/echohello-dev/betterfit/commit/c550e6f1c2256a86a84049d9f5dced35cf722d66))
+* **health:** export weekly training summaries as CSV and JSON ([#50](https://github.com/echohello-dev/betterfit/issues/50)) ([12ba26a](https://github.com/echohello-dev/betterfit/commit/12ba26a77380d7bb1c5306ec48fbbfc941910285))
+* **health:** parse activity summaries from Apple Health exports ([#47](https://github.com/echohello-dev/betterfit/issues/47)) ([984f325](https://github.com/echohello-dev/betterfit/commit/984f3256e6c055e66661353833075deab1fab84a))
+* **health:** parse top-level Records from Apple Health export ([#31](https://github.com/echohello-dev/betterfit/issues/31)) ([f74c050](https://github.com/echohello-dev/betterfit/commit/f74c05013bfbe47879407f91333b15e3cf4c85f5))
+* **health:** parse WorkoutStatistics from Apple Health export ([#29](https://github.com/echohello-dev/betterfit/issues/29)) ([59eb95b](https://github.com/echohello-dev/betterfit/commit/59eb95b68a7c95b5c74588319c942a7074bcca48))
+* **ios:** sync design system and app screens to code ([793e6d6](https://github.com/echohello-dev/betterfit/commit/793e6d69a2297563afacf930ad6f4d3dc85512b0))
+* **ios:** sync design system and app screens to code ([793e6d6](https://github.com/echohello-dev/betterfit/commit/793e6d69a2297563afacf930ad6f4d3dc85512b0))
+* mobilewright e2e suite, coverage automation, and CI gating ([#25](https://github.com/echohello-dev/betterfit/issues/25)) ([a0d0007](https://github.com/echohello-dev/betterfit/commit/a0d00071d72d6ea15213af3f34178ff804d1afce))
+* **watch:** deliver accessible workout tracking MVP ([#27](https://github.com/echohello-dev/betterfit/issues/27)) ([bba4d6c](https://github.com/echohello-dev/betterfit/commit/bba4d6c6eb570dc260dc7568fde63925fb0ee99f))
+
+
+### Bug Fixes
+
+* **ci:** survive cold CoreSimulator on fresh CI runners ([#26](https://github.com/echohello-dev/betterfit/issues/26)) ([068497e](https://github.com/echohello-dev/betterfit/commit/068497e820eab2656a098a988deb547c0a23ac4e))
+* count each body region once per workout ([#44](https://github.com/echohello-dev/betterfit/issues/44)) ([88d3de0](https://github.com/echohello-dev/betterfit/commit/88d3de0da38edfccba7557681e7057d45f145e3d))
+* **health:** count only unique asleep intervals in daily summaries ([#40](https://github.com/echohello-dev/betterfit/issues/40)) ([479d230](https://github.com/echohello-dev/betterfit/commit/479d230397e24c2f06ef7864ae1182a1ff0558b0))
+* **health:** reject unsupported workout metric units ([#57](https://github.com/echohello-dev/betterfit/issues/57)) ([2d7e079](https://github.com/echohello-dev/betterfit/commit/2d7e079ebe05c7e136f62b6d4cb36d3543535b41))
+* **release:** restore automatic version increments ([#60](https://github.com/echohello-dev/betterfit/issues/60)) ([828b8b3](https://github.com/echohello-dev/betterfit/commit/828b8b33f775155486b1f36c5f018ded5620c6c3))
+* restore the repository-wide SwiftLint gate ([#42](https://github.com/echohello-dev/betterfit/issues/42)) ([ed29b18](https://github.com/echohello-dev/betterfit/commit/ed29b18b0713f26ffa63d84927015c4c61694f78))
+
 ## [1.0.0](https://github.com/echohello-dev/betterfit/compare/v1.0.0...v1.0.0) (2026-11-13)
 
 
