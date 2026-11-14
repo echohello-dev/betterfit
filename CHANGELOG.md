@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/echohello-dev/betterfit/compare/v1.1.1...v1.1.2) (2026-11-14)
+
+
+### Bug Fixes
+
+* **health:** reject invalid workout numeric measurements ([#67](https://github.com/echohello-dev/betterfit/issues/67)) ([af77d20](https://github.com/echohello-dev/betterfit/commit/af77d2069b3bc59723cb5afc26c74e40c959a999))
+
 ## [1.1.1](https://github.com/echohello-dev/betterfit/compare/v1.1.0...v1.1.1) (2026-11-14)
 
 
