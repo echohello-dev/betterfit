@@ -605,6 +605,14 @@ Throws `HealthExportParser.ParseError.malformedXML` on malformed XML.
 
 A workout from the export, with one `WorkoutStatistics` per quantity type nested under it. `ParsedWorkout` exposes per-workout summaries: `activeEnergyKilocalories`, `basalEnergyKilocalories`, `distanceMetres`, `averageHeartRate`, `minimumHeartRate`, `maximumHeartRate`, and `stepCount`. Statistics win over the totals written on the workout element, and unknown statistic types are kept as `.other(type)`.
 
+The XML parser treats negative, non-finite (NaN or infinity), empty and malformed
+numeric workout measurements as missing. This applies to workout duration,
+energy and distance totals, and each statistic's sum, average, minimum and
+maximum independently. The workout and statistic metadata remain available.
+Valid zero values are retained, and missing child measurements still fall back
+to valid workout totals. This validation applies when parsing XML; models
+constructed or mutated directly do not validate their numeric properties.
+
 ### `HealthRecord` and `HealthExport`
 
 A top-level record from the export. Quantity records carry a numeric `value`. Category records, such as sleep analysis, carry `categoryValue` as a string instead. Normalised helpers: `valueKilocalories`, `valueMetres`, `valueKilograms`, and `duration` from the start and end dates. Unknown record types are kept as `.other(type)`.
