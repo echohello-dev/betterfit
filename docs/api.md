@@ -107,6 +107,46 @@ let restored = try JSONDecoder().decode(
     [HealthActivitySummary].self, from: export.activitySummaries.jsonData())
 ```
 
+### Apple Health workout summary exports
+
+`HealthExportParser.parseWorkouts(xml:)` and `parseWorkouts(data:)` return
+`[ParsedWorkout]`. This array supports `csvString()`, `jsonData()`,
+`writeCSV(to:)` and `writeJSON(to:)` for per-workout summaries.
+
+Both formats keep input order and include undated workouts. They use the existing
+summary properties, which prefer supported child statistics and fall back to
+workout totals for active energy and distance. Missing metrics become CSV blanks
+or omitted JSON fields, while measured zero remains zero. Dates use UTC ISO 8601.
+CSV text containing commas, quotes or line breaks is quoted and escaped.
+
+| CSV column | JSON key | Unit or meaning |
+| --- | --- | --- |
+| `activity_type` | `activityType` | Raw workout activity type |
+| `source_name` | `sourceName` | Exported source name |
+| `start_date` | `startDate` | Workout start |
+| `end_date` | `endDate` | Workout end |
+| `duration_seconds` | `durationSeconds` | Seconds |
+| `active_energy_kcal` | `activeEnergyKilocalories` | Kilocalories |
+| `basal_energy_kcal` | `basalEnergyKilocalories` | Kilocalories |
+| `distance_metres` | `distanceMetres` | Metres |
+| `average_heart_rate_bpm` | `averageHeartRateBPM` | Beats per minute |
+| `minimum_heart_rate_bpm` | `minimumHeartRateBPM` | Beats per minute |
+| `maximum_heart_rate_bpm` | `maximumHeartRateBPM` | Beats per minute |
+| `step_count` | `stepCount` | Steps |
+
+JSON is a pretty printed array with sorted keys. These exports contain normalised
+summaries; use `JSONEncoder` on `[ParsedWorkout]` directly to retain raw child
+statistics and full source metadata. File writers replace files atomically and
+propagate encoding and file-system errors. Parent directories must already exist.
+
+```swift
+let workouts = try HealthExportParser.parseWorkouts(data: exportData)
+let csv = workouts.csvString()
+let json = try workouts.jsonData()
+try workouts.writeCSV(to: directory.appendingPathComponent("workouts.csv"))
+try workouts.writeJSON(to: directory.appendingPathComponent("workouts.json"))
+```
+
 ### `Exercise`
 
 Represents a single exercise.
