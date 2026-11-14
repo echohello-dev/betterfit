@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/echohello-dev/betterfit/compare/v1.1.0...v1.1.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **health:** reject unsupported daily record units ([#64](https://github.com/echohello-dev/betterfit/issues/64)) ([7e1a9ed](https://github.com/echohello-dev/betterfit/commit/7e1a9ed897e62eeeb453e44cb833e5a2740bcfae))
+
 ## [1.1.0](https://github.com/echohello-dev/betterfit/compare/v1.0.0...v1.1.0) (2026-11-13)
 
 
