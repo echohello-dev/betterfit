@@ -87,7 +87,7 @@ public struct HealthRecord: Codable, Equatable, Sendable {
 
     // MARK: - Normalised Values
 
-    /// Value expressed in kilocalories, or nil when this is not an energy record.
+    /// Value in kilocalories, or nil for other kinds or unsupported units.
     public var valueKilocalories: Double? {
         guard kind == .activeEnergy || kind == .basalEnergy, let value else { return nil }
         switch unit?.lowercased() {
@@ -98,11 +98,11 @@ public struct HealthRecord: Codable, Equatable, Sendable {
         case "kcal", "cal", nil:
             return value
         default:
-            return value
+            return nil
         }
     }
 
-    /// Value expressed in metres, or nil when this is not a distance record.
+    /// Value in metres, or nil for other kinds or unsupported units.
     public var valueMetres: Double? {
         guard kind == .distanceWalkingRunning || kind == .distanceCycling, let value else {
             return nil
@@ -115,11 +115,11 @@ public struct HealthRecord: Codable, Equatable, Sendable {
         case "m", nil:
             return value
         default:
-            return value
+            return nil
         }
     }
 
-    /// Value expressed in kilograms, or nil when this is not a body mass record.
+    /// Value in kilograms, or nil for other kinds or unsupported units.
     public var valueKilograms: Double? {
         guard kind == .bodyMass, let value else { return nil }
         switch unit?.lowercased() {
@@ -130,7 +130,7 @@ public struct HealthRecord: Codable, Equatable, Sendable {
         case "kg", nil:
             return value
         default:
-            return value
+            return nil
         }
     }
 
