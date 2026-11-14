@@ -411,6 +411,7 @@ public class EquipmentSwapManager
 - `findAlternatives(for:) -> [Exercise]`
 - `findAlternatives(for:from:) -> [Exercise]` - Select real alternatives from a supplied exercise catalogue
 - `suggestSwaps(for:) -> [(original: Exercise, alternatives: [Exercise])]`
+- `suggestSwaps(for:from:) -> [(original: Exercise, alternatives: [Exercise])]` - Select catalogue alternatives for a workout
 - `applySwap(workout:originalExerciseId:newExercise:) -> Bool`
 
 `findAlternatives(for:from:)` returns catalogue exercises only when the original
@@ -423,7 +424,14 @@ returned in catalogue order with its name, ID and image unchanged.
 ```swift
 let swaps = EquipmentSwapManager(availableEquipment: [.dumbbell, .machine])
 let alternatives = swaps.findAlternatives(for: barbellPress, from: exerciseCatalogue)
+let suggestions = swaps.suggestSwaps(for: workout, from: exerciseCatalogue)
 ```
+
+`suggestSwaps(for:from:)` applies those matching rules to every workout entry.
+Suggestions follow workout order, and alternatives retain catalogue order and
+metadata. Entries with available equipment or no eligible alternative are omitted.
+Repeated workout entries remain separate suggestions. Neither the workout nor
+its sets are changed until the caller applies a selected swap with `applySwap`.
 
 Muscle matching does not establish movement equivalence. Supply a catalogue
 appropriate for the workout. This opt-in lookup does not change the generated
