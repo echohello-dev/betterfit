@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/echohello-dev/betterfit/compare/v1.1.2...v1.2.0) (2026-11-14)
+
+
+### Features
+
+* **health:** export per-workout summaries as CSV and JSON ([#70](https://github.com/echohello-dev/betterfit/issues/70)) ([5cb3c87](https://github.com/echohello-dev/betterfit/commit/5cb3c8735f6fb7f795d30a9b63fbdaa897c024ad))
+
 ## [1.1.2](https://github.com/echohello-dev/betterfit/compare/v1.1.1...v1.1.2) (2026-11-14)
 
 
