@@ -41,6 +41,30 @@ public class EquipmentSwapManager {
             )
         }
     }
+
+    // MARK: - Catalogue Alternatives
+
+    /// Find real exercises using available alternative equipment and exactly the
+    /// same non-empty set of muscle groups. Results preserve catalogue order,
+    /// identity and metadata, returning the first eligible entry per exercise ID.
+    /// Returns no suggestions when the original equipment is available.
+    /// Muscle matching alone does not establish movement equivalence; callers
+    /// should supply a catalogue appropriate for the workout.
+    public func findAlternatives(for exercise: Exercise, from catalogue: [Exercise]) -> [Exercise] {
+        let muscles = Set(exercise.muscleGroups)
+        guard !isAvailable(exercise.equipmentRequired), !muscles.isEmpty else { return [] }
+
+        let equipment = Set(exercise.equipmentRequired.alternatives()).intersection(availableEquipment)
+        var seen: Set<UUID> = []
+        return catalogue.filter { candidate in
+            candidate.id != exercise.id
+                && equipment.contains(candidate.equipmentRequired)
+                && Set(candidate.muscleGroups) == muscles
+                && seen.insert(candidate.id).inserted
+        }
+    }
+
+    // MARK: - Workout Swaps
     
     /// Suggest equipment swap for a workout
     public func suggestSwaps(for workout: Workout) -> [(original: Exercise, alternatives: [Exercise])] {

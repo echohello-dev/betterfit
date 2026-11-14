@@ -409,8 +409,25 @@ public class EquipmentSwapManager
 - `setAvailableEquipment(_:)`
 - `isAvailable(_:) -> Bool`
 - `findAlternatives(for:) -> [Exercise]`
+- `findAlternatives(for:from:) -> [Exercise]` - Select real alternatives from a supplied exercise catalogue
 - `suggestSwaps(for:) -> [(original: Exercise, alternatives: [Exercise])]`
 - `applySwap(workout:originalExerciseId:newExercise:) -> Bool`
+
+`findAlternatives(for:from:)` returns catalogue exercises only when the original
+equipment is unavailable. Candidates must use available equipment listed by
+`Equipment.alternatives()` and have exactly the same non-empty set of muscle
+groups. Muscle ordering and repeated groups do not affect matching. The original
+exercise ID is excluded, and the first eligible entry for each candidate ID is
+returned in catalogue order with its name, ID and image unchanged.
+
+```swift
+let swaps = EquipmentSwapManager(availableEquipment: [.dumbbell, .machine])
+let alternatives = swaps.findAlternatives(for: barbellPress, from: exerciseCatalogue)
+```
+
+Muscle matching does not establish movement equivalence. Supply a catalogue
+appropriate for the workout. This opt-in lookup does not change the generated
+alternatives returned by `findAlternatives(for:)` or `suggestSwaps(for:)`.
 
 ### `BodyMapManager`
 
