@@ -14,6 +14,8 @@ import FoundationXML
 /// top-level `Record` elements for steps, heart rate, energy, distance,
 /// body mass, and sleep. `ActivitySummary` elements retain daily activity ring
 /// totals and goals separately from the individual records.
+/// Workout measurements that are negative, non-finite, or not numeric are
+/// treated as missing without discarding the workout or statistic.
 ///
 /// Example shape:
 ///
@@ -206,37 +208,37 @@ private final class Delegate: NSObject, XMLParserDelegate {
 
     // MARK: - Element Builders
 
-    private static func makeActivitySummary(attributes: [String: String]) -> HealthActivitySummary {
-        func number(_ key: String) -> Double? {
-            guard let value = attributes[key].flatMap(Double.init), value.isFinite, value >= 0 else {
-                return nil
-            }
-            return value
+    private static func nonnegativeNumber(_ value: String?) -> Double? {
+        guard let number = value.flatMap(Double.init), number.isFinite, number >= 0 else {
+            return nil
         }
+        return number
+    }
 
+    private static func makeActivitySummary(attributes: [String: String]) -> HealthActivitySummary {
         return HealthActivitySummary(
             dateComponents: attributes["dateComponents"],
-            activeEnergyBurned: number("activeEnergyBurned"),
-            activeEnergyBurnedGoal: number("activeEnergyBurnedGoal"),
+            activeEnergyBurned: nonnegativeNumber(attributes["activeEnergyBurned"]),
+            activeEnergyBurnedGoal: nonnegativeNumber(attributes["activeEnergyBurnedGoal"]),
             activeEnergyBurnedUnit: attributes["activeEnergyBurnedUnit"],
-            appleExerciseTime: number("appleExerciseTime"),
-            appleExerciseTimeGoal: number("appleExerciseTimeGoal"),
-            appleStandHours: number("appleStandHours"),
-            appleStandHoursGoal: number("appleStandHoursGoal")
+            appleExerciseTime: nonnegativeNumber(attributes["appleExerciseTime"]),
+            appleExerciseTimeGoal: nonnegativeNumber(attributes["appleExerciseTimeGoal"]),
+            appleStandHours: nonnegativeNumber(attributes["appleStandHours"]),
+            appleStandHoursGoal: nonnegativeNumber(attributes["appleStandHoursGoal"])
         )
     }
 
     private static func makeWorkout(attributes: [String: String]) -> ParsedWorkout {
         let duration = HealthExportParser.normaliseDuration(
-            value: attributes["duration"].flatMap(Double.init),
+            value: nonnegativeNumber(attributes["duration"]),
             unit: attributes["durationUnit"]
         )
         let totalDistance = HealthExportParser.normaliseDistanceToMetres(
-            value: attributes["totalDistance"].flatMap(Double.init),
+            value: nonnegativeNumber(attributes["totalDistance"]),
             unit: attributes["totalDistanceUnit"]
         )
         let totalEnergy = HealthExportParser.normaliseEnergyToKilocalories(
-            value: attributes["totalEnergyBurned"].flatMap(Double.init),
+            value: nonnegativeNumber(attributes["totalEnergyBurned"]),
             unit: attributes["totalEnergyBurnedUnit"]
         )
         return ParsedWorkout(
@@ -273,10 +275,10 @@ private final class Delegate: NSObject, XMLParserDelegate {
             type: attributes["type"] ?? "",
             startDate: HealthExportParser.parseHealthDate(attributes["startDate"]),
             endDate: HealthExportParser.parseHealthDate(attributes["endDate"]),
-            sum: attributes["sum"].flatMap(Double.init),
-            average: attributes["average"].flatMap(Double.init),
-            minimum: attributes["minimum"].flatMap(Double.init),
-            maximum: attributes["maximum"].flatMap(Double.init),
+            sum: nonnegativeNumber(attributes["sum"]),
+            average: nonnegativeNumber(attributes["average"]),
+            minimum: nonnegativeNumber(attributes["minimum"]),
+            maximum: nonnegativeNumber(attributes["maximum"]),
             unit: attributes["unit"]
         )
     }
