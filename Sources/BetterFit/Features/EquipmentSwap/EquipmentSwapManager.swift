@@ -65,6 +65,20 @@ public class EquipmentSwapManager {
     }
 
     // MARK: - Workout Swaps
+
+    /// Suggest real catalogue alternatives for each workout entry, in workout order.
+    /// Entries with available equipment or no eligible alternatives are omitted.
+    /// Repeated workout entries remain separate suggestions. The workout is unchanged.
+    /// Uses the same matching rules as `findAlternatives(for:from:)`.
+    public func suggestSwaps(
+        for workout: Workout,
+        from catalogue: [Exercise]
+    ) -> [(original: Exercise, alternatives: [Exercise])] {
+        workout.exercises.compactMap { entry in
+            let alternatives = findAlternatives(for: entry.exercise, from: catalogue)
+            return alternatives.isEmpty ? nil : (original: entry.exercise, alternatives: alternatives)
+        }
+    }
     
     /// Suggest equipment swap for a workout
     public func suggestSwaps(for workout: Workout) -> [(original: Exercise, alternatives: [Exercise])] {
