@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/echohello-dev/betterfit/compare/v1.2.0...v1.3.0) (2026-11-14)
+
+
+### Features
+
+* add catalogue-backed equipment swap alternatives ([#73](https://github.com/echohello-dev/betterfit/issues/73)) ([94eba66](https://github.com/echohello-dev/betterfit/commit/94eba6663ef19b94aa31fa1a74b5eb0d4baf5a87))
+
 ## [1.2.0](https://github.com/echohello-dev/betterfit/compare/v1.1.2...v1.2.0) (2026-11-14)
 
 
