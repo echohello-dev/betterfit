@@ -94,7 +94,25 @@ public class EquipmentSwapManager {
         return suggestions
     }
     
-    /// Apply equipment swap to workout
+    /// Replace only the exercise in the entry identified by `WorkoutExercise.id`.
+    /// Preserves the entry's ID, sets and notes and all other workout data.
+    /// Returns false without changing the workout when the entry is missing.
+    /// The caller selects the replacement; equipment and muscle matching are not validated here.
+    public func applySwap(
+        workout: inout Workout,
+        workoutExerciseId: UUID,
+        newExercise: Exercise
+    ) -> Bool {
+        guard let index = workout.exercises.firstIndex(where: { $0.id == workoutExerciseId }) else {
+            return false
+        }
+
+        workout.exercises[index].exercise = newExercise
+        return true
+    }
+
+    /// Replace the exercise in the first entry matching `Exercise.id`.
+    /// Use `applySwap(workout:workoutExerciseId:newExercise:)` to target a specific repeated entry.
     public func applySwap(
         workout: inout Workout,
         originalExerciseId: UUID,

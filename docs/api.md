@@ -413,6 +413,7 @@ public class EquipmentSwapManager
 - `suggestSwaps(for:) -> [(original: Exercise, alternatives: [Exercise])]`
 - `suggestSwaps(for:from:) -> [(original: Exercise, alternatives: [Exercise])]` - Select catalogue alternatives for a workout
 - `applySwap(workout:originalExerciseId:newExercise:) -> Bool`
+- `applySwap(workout:workoutExerciseId:newExercise:) -> Bool` - Replace a specific workout entry
 
 `findAlternatives(for:from:)` returns catalogue exercises only when the original
 equipment is unavailable. Candidates must use available equipment listed by
@@ -432,6 +433,23 @@ Suggestions follow workout order, and alternatives retain catalogue order and
 metadata. Entries with available equipment or no eligible alternative are omitted.
 Repeated workout entries remain separate suggestions. Neither the workout nor
 its sets are changed until the caller applies a selected swap with `applySwap`.
+
+Use `applySwap(workout:workoutExerciseId:newExercise:)` with a `WorkoutExercise.id`
+to replace one occurrence of a repeated exercise. It changes only that entry's
+exercise, preserving its ID, sets and notes and all other workout data. It returns
+false without mutation if the entry is missing. The existing `originalExerciseId`
+overload continues to replace the first entry matching an `Exercise.id`.
+
+```swift
+if let entry = workout.exercises.last,
+   let replacement = swaps.findAlternatives(for: entry.exercise, from: exerciseCatalogue).first {
+    swaps.applySwap(workout: &workout, workoutExerciseId: entry.id, newExercise: replacement)
+}
+```
+
+Both application methods use the caller's selected exercise without validating
+equipment availability or muscle matching. Choose an eligible replacement before
+applying it; sets and loads are preserved without adjustment.
 
 Muscle matching does not establish movement equivalence. Supply a catalogue
 appropriate for the workout. This opt-in lookup does not change the generated
