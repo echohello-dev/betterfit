@@ -611,6 +611,15 @@ A top-level record from the export. Quantity records carry a numeric `value`. Ca
 
 `HealthExport` holds `workouts` and `records` together, with `records(of:)` to filter records by kind.
 
+Record conversion helpers accept energy in kcal, cal, kJ or J, distance in m,
+km or mi, and body mass in kg, g or lb, without regard to case. Omitted units
+retain the defaults of kcal, metres and kilograms. Empty or unsupported units
+return nil from the conversion helpers while preserving the raw value and unit.
+Daily summaries skip those unsupported measurements, including a later body
+mass sample with an unsupported unit. Days containing only unsupported
+measurements retain missing metrics, exported as empty CSV fields and omitted
+JSON properties. Measured zero remains zero.
+
 ### Weekly training summary export
 
 `HealthExport.weeklyTrainingSummaries(calendar:)` groups workouts by their start
