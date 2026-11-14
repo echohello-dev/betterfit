@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/echohello-dev/betterfit/compare/v1.3.0...v1.4.0) (2026-11-14)
+
+
+### Features
+
+* add catalogue-backed workout swap suggestions ([#76](https://github.com/echohello-dev/betterfit/issues/76)) ([c52d188](https://github.com/echohello-dev/betterfit/commit/c52d1883e3b8f28f080839ca37bcdc6bfd79d3ae))
+
 ## [1.3.0](https://github.com/echohello-dev/betterfit/compare/v1.2.0...v1.3.0) (2026-11-14)
 
 
