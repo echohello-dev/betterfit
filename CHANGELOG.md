@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/echohello-dev/betterfit/compare/v1.4.0...v1.5.0) (2026-11-14)
+
+
+### Features
+
+* apply equipment swaps to a specific workout entry ([#79](https://github.com/echohello-dev/betterfit/issues/79)) ([ab44f69](https://github.com/echohello-dev/betterfit/commit/ab44f69d4d965f80feee408c20ccde87fd4ea0ad))
+
 ## [1.4.0](https://github.com/echohello-dev/betterfit/compare/v1.3.0...v1.4.0) (2026-11-14)
 
 
