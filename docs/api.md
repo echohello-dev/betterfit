@@ -412,6 +412,7 @@ public class EquipmentSwapManager
 - `findAlternatives(for:from:) -> [Exercise]` - Select real alternatives from a supplied exercise catalogue
 - `suggestSwaps(for:) -> [(original: Exercise, alternatives: [Exercise])]`
 - `suggestSwaps(for:from:) -> [(original: Exercise, alternatives: [Exercise])]` - Select catalogue alternatives for a workout
+- `suggestEntrySwaps(for:from:) -> [WorkoutSwapSuggestion]` - Select catalogue alternatives with workout entry IDs
 - `applySwap(workout:originalExerciseId:newExercise:) -> Bool`
 - `applySwap(workout:workoutExerciseId:newExercise:) -> Bool` - Replace a specific workout entry
 
@@ -433,6 +434,26 @@ Suggestions follow workout order, and alternatives retain catalogue order and
 metadata. Entries with available equipment or no eligible alternative are omitted.
 Repeated workout entries remain separate suggestions. Neither the workout nor
 its sets are changed until the caller applies a selected swap with `applySwap`.
+
+`suggestEntrySwaps(for:from:)` returns a `WorkoutSwapSuggestion` for each eligible
+entry, with `workoutExerciseId`, `original` and `alternatives`. It uses the same
+catalogue matching rules and preserves workout order, including separate results
+for repeated exercise definitions. Available equipment and entries without an
+eligible alternative are omitted. The workout is unchanged.
+
+Pass the suggestion's entry ID to apply a selected alternative to that occurrence.
+The ID continues to target the same entry if the workout is reordered.
+
+```swift
+if let suggestion = swaps.suggestEntrySwaps(for: workout, from: exerciseCatalogue).last,
+   let replacement = suggestion.alternatives.first {
+    swaps.applySwap(
+        workout: &workout, workoutExerciseId: suggestion.workoutExerciseId, newExercise: replacement)
+}
+```
+
+Suggestions are snapshots. Regenerate them after editing a workout or changing
+available equipment; applying a swap does not revalidate a suggestion.
 
 Use `applySwap(workout:workoutExerciseId:newExercise:)` with a `WorkoutExercise.id`
 to replace one occurrence of a repeated exercise. It changes only that entry's
