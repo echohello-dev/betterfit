@@ -184,23 +184,31 @@ public struct ParsedWorkout: Codable, Equatable, Sendable {
         distanceMetres.map { $0 / 1000 }
     }
 
-    /// Average heart rate in beats per minute, when present.
+    /// Average heart rate in beats per minute. Requires count/min or an omitted unit.
     public var averageHeartRate: Double? {
-        statistic(for: .heartRate)?.average
+        statistic(for: .heartRate, unit: "count/min")?.average
     }
 
-    /// Minimum heart rate in beats per minute, when present.
+    /// Minimum heart rate in beats per minute. Requires count/min or an omitted unit.
     public var minimumHeartRate: Double? {
-        statistic(for: .heartRate)?.minimum
+        statistic(for: .heartRate, unit: "count/min")?.minimum
     }
 
-    /// Maximum heart rate in beats per minute, when present.
+    /// Maximum heart rate in beats per minute. Requires count/min or an omitted unit.
     public var maximumHeartRate: Double? {
-        statistic(for: .heartRate)?.maximum
+        statistic(for: .heartRate, unit: "count/min")?.maximum
     }
 
-    /// Step count summed over the workout, when present.
+    /// Step count summed over the workout. Requires count or an omitted unit.
     public var stepCount: Double? {
-        statistic(for: .stepCount)?.sum
+        statistic(for: .stepCount, unit: "count")?.sum
+    }
+
+    // MARK: - Unit Validation
+
+    private func statistic(for kind: WorkoutStatistics.Kind, unit: String) -> WorkoutStatistics? {
+        guard let statistic = statistic(for: kind) else { return nil }
+        guard statistic.unit == nil || statistic.unit?.lowercased() == unit else { return nil }
+        return statistic
     }
 }
