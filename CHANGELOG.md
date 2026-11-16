@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/echohello-dev/betterfit/compare/v1.5.0...v1.6.0) (2026-11-15)
+
+
+### Features
+
+* add entry-aware catalogue swap suggestions ([#82](https://github.com/echohello-dev/betterfit/issues/82)) ([5baceb3](https://github.com/echohello-dev/betterfit/commit/5baceb393079f47e5228ebef51776e9a4b25869d))
+
 ## [1.5.0](https://github.com/echohello-dev/betterfit/compare/v1.4.0...v1.5.0) (2026-11-14)
 
 
