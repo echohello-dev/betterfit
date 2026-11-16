@@ -48,7 +48,24 @@ Returns all completed workouts.
 ```swift
 public func getRecommendedWorkout() -> Workout?
 ```
-Gets a recommended workout based on current plan and recovery status.
+Creates the first planned workout using generated equipment alternatives.
+
+##### `getRecommendedWorkout(from:) -> Workout?`
+```swift
+public func getRecommendedWorkout(from catalogue: [Exercise]) -> Workout?
+```
+Creates the first scheduled template in the active plan's current week. For each
+entry requiring unavailable equipment, uses the first eligible catalogue exercise
+with available alternative equipment and the same non-empty set of muscle groups.
+Repeated entries are swapped individually. Catalogue order determines preference;
+recovery does not rank the results. Supply exercises appropriate for the workout,
+as matching muscles alone does not establish movement equivalence.
+
+The result preserves catalogue exercise IDs and metadata, template identity,
+workout order and target sets. Stored plans and templates stay unchanged. Entries
+without an eligible alternative retain their original exercise, which may still
+require unavailable equipment. Returns nil if the first scheduled template cannot
+be resolved. The no-argument overload continues to use generated alternatives.
 
 ##### `processMotionData(_:) -> TrackingEvent?`
 ```swift

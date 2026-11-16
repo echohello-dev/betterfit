@@ -248,22 +248,9 @@ public class BetterFit {
     // MARK: - Smart Features
 
     // MARK: - Suggested Workouts Section
-    /// Get recommended workout based on recovery and plan
+    /// Create the first planned workout using generated equipment alternatives.
     public func getRecommendedWorkout() -> Workout? {
-        // Get current plan week
-        guard let activePlan = planManager.getActivePlan(),
-            let currentWeek = activePlan.getCurrentWeek(),
-            let firstWorkoutId = currentWeek.workouts.first
-        else {
-            return nil
-        }
-
-        // Get template for workout
-        guard let template = templateManager.getTemplate(id: firstWorkoutId) else {
-            return nil
-        }
-
-        var workout = template.createWorkout()
+        guard var workout = nextPlannedWorkout() else { return nil }
 
         // Check for equipment swaps needed
         let swaps = equipmentSwapManager.suggestSwaps(for: workout)
@@ -281,6 +268,39 @@ public class BetterFit {
         }
 
         return workout
+    }
+
+    /// Create the first planned workout, swapping unavailable equipment using
+    /// the first eligible catalogue alternative for each workout entry.
+    /// Entries without a match stay unchanged and may still require unavailable
+    /// equipment. The stored plan and template are not changed.
+    /// Supply a catalogue appropriate for the workout: muscle matching alone
+    /// does not establish movement equivalence. Recovery does not rank results.
+    public func getRecommendedWorkout(from catalogue: [Exercise]) -> Workout? {
+        guard var workout = nextPlannedWorkout() else { return nil }
+
+        for suggestion in equipmentSwapManager.suggestEntrySwaps(for: workout, from: catalogue) {
+            if let alternative = suggestion.alternatives.first {
+                _ = equipmentSwapManager.applySwap(
+                    workout: &workout,
+                    workoutExerciseId: suggestion.workoutExerciseId,
+                    newExercise: alternative
+                )
+            }
+        }
+
+        return workout
+    }
+
+    private func nextPlannedWorkout() -> Workout? {
+        guard let activePlan = planManager.getActivePlan(),
+            let currentWeek = activePlan.getCurrentWeek(),
+            let firstWorkoutId = currentWeek.workouts.first,
+            let template = templateManager.getTemplate(id: firstWorkoutId)
+        else {
+            return nil
+        }
+        return template.createWorkout()
     }
 
     /// Schedule smart notifications
