@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1](https://github.com/echohello-dev/betterfit/compare/v1.6.0...v1.6.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **health:** reject unsupported workout duration units ([#89](https://github.com/echohello-dev/betterfit/issues/89)) ([32b583d](https://github.com/echohello-dev/betterfit/commit/32b583de31c05684538b5f40e15d3b4e2429cb46))
+* **health:** reject unsupported workout heart-rate and step units ([#86](https://github.com/echohello-dev/betterfit/issues/86)) ([29b3400](https://github.com/echohello-dev/betterfit/commit/29b340001a6d9ac9c2d985957f6f2b1db6751b59))
+
 ## [1.6.0](https://github.com/echohello-dev/betterfit/compare/v1.5.0...v1.6.0) (2026-11-15)
 
 
