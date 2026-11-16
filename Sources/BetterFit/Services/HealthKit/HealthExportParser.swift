@@ -125,7 +125,7 @@ public enum HealthExportParser {
         case "s", "sec", nil:
             return value
         default:
-            return value
+            return nil
         }
     }
 
