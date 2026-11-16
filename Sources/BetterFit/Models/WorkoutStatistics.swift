@@ -121,6 +121,7 @@ public struct ParsedWorkout: Codable, Equatable, Sendable {
     public var startDate: Date?
     public var endDate: Date?
     /// Duration in seconds, normalised from the export duration and unit.
+    /// Nil when the export has an explicitly unsupported duration unit.
     public var duration: TimeInterval?
     /// Total energy burned in kilocalories as written on the workout element.
     public var totalEnergyBurned: Double?
