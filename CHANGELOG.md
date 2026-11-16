@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/echohello-dev/betterfit/compare/v1.6.1...v1.7.0) (2026-11-16)
+
+
+### Features
+
+* recommend workouts using catalogue equipment alternatives ([#91](https://github.com/echohello-dev/betterfit/issues/91)) ([c4090af](https://github.com/echohello-dev/betterfit/commit/c4090afac06048393ff103d107bc8bed0ef4ffaa))
+
 ## [1.6.1](https://github.com/echohello-dev/betterfit/compare/v1.6.0...v1.6.1) (2026-11-16)
 
 
