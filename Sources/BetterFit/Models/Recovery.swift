@@ -14,7 +14,7 @@ public struct BodyMapRecovery: Codable, Equatable {
     }
 
     /// Update each targeted body region once per recorded workout.
-    public mutating func recordWorkout(_ workout: Workout) {
+    public mutating func recordWorkout(_ workout: Workout, at date: Date = Date()) {
         let workedRegions = Set(workout.exercises.flatMap { workoutExercise in
             workoutExercise.exercise.muscleGroups.map { group in
                 BodyRegion(rawValue: group.bodyMapRegion) ?? .other
@@ -26,13 +26,11 @@ public struct BodyMapRecovery: Codable, Equatable {
             regions[region] = currentStatus.afterWorkout()
         }
 
-        lastUpdated = Date()
+        lastUpdated = date
     }
 
     /// Update recovery status based on time elapsed
-    public mutating func updateRecovery() {
-        let now = Date()
-
+    public mutating func updateRecovery(asOf now: Date = Date()) {
         for (region, status) in regions {
             let hoursSince = now.timeIntervalSince(lastUpdated) / 3600
             regions[region] = status.afterRecovery(hours: hoursSince)

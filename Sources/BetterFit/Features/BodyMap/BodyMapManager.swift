@@ -3,32 +3,33 @@ import Foundation
 /// Manages body map recovery view
 public class BodyMapManager {
     private var recoveryMap: BodyMapRecovery
+    private let now: () -> Date
     
-    public init(recoveryMap: BodyMapRecovery = BodyMapRecovery()) {
+    public init(
+        recoveryMap: BodyMapRecovery = BodyMapRecovery(),
+        now: @escaping () -> Date = Date.init
+    ) {
         self.recoveryMap = recoveryMap
+        self.now = now
     }
     
-    /// Get current recovery map
+    /// Get a current snapshot without changing the stored recovery baseline.
     public func getRecoveryMap() -> BodyMapRecovery {
-        // Update recovery before returning
         var updatedMap = recoveryMap
-        updatedMap.updateRecovery()
-        recoveryMap = updatedMap
-        return recoveryMap
+        updatedMap.updateRecovery(asOf: now())
+        return updatedMap
     }
     
     /// Record workout to update recovery map
     public func recordWorkout(_ workout: Workout) {
-        recoveryMap.recordWorkout(workout)
+        let date = now()
+        recoveryMap.updateRecovery(asOf: date)
+        recoveryMap.recordWorkout(workout, at: date)
     }
     
     /// Get recovery status for a specific region
     public func getRecoveryStatus(for region: BodyRegion) -> RecoveryStatus {
-        var updatedMap = recoveryMap
-        updatedMap.updateRecovery()
-        recoveryMap = updatedMap
-        
-        return recoveryMap.regions[region] ?? .recovered
+        getRecoveryMap().regions[region] ?? .recovered
     }
     
     /// Check if region is ready for training
@@ -42,8 +43,7 @@ public class BodyMapManager {
         available: [Exercise],
         avoidSoreRegions: Bool = true
     ) -> [Exercise] {
-        var updatedMap = recoveryMap
-        updatedMap.updateRecovery()
+        let updatedMap = getRecoveryMap()
         
         return available.filter { exercise in
             let muscleGroups = exercise.muscleGroups
@@ -61,8 +61,7 @@ public class BodyMapManager {
     
     /// Get overall recovery percentage
     public func getOverallRecoveryPercentage() -> Double {
-        var updatedMap = recoveryMap
-        updatedMap.updateRecovery()
+        let updatedMap = getRecoveryMap()
         
         guard !updatedMap.regions.isEmpty else { return 100.0 }
         
@@ -75,7 +74,7 @@ public class BodyMapManager {
     
     /// Reset recovery map
     public func reset() {
-        recoveryMap = BodyMapRecovery()
+        recoveryMap = BodyMapRecovery(lastUpdated: now())
     }
 }
 
