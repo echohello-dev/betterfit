@@ -311,8 +311,8 @@ public struct BodyMapRecovery: Codable, Equatable
 - `lastUpdated: Date`
 
 #### Methods
-- `recordWorkout(_:)` - Update each targeted body region once per recorded workout. Multiple muscles or exercises in the same region share one fatigue transition; separate recorded workouts can increase fatigue further.
-- `updateRecovery()` - Update based on time elapsed
+- `recordWorkout(_:at:)` - Update each targeted body region once per recorded workout. Multiple muscles or exercises in the same region share one fatigue transition; separate recorded workouts can increase fatigue further. The date defaults to now.
+- `updateRecovery(asOf:)` - Update based on time elapsed, using the supplied date or now
 
 ### `RecoveryStatus`
 
@@ -509,6 +509,22 @@ public class BodyMapManager
 - `getRecommendedExercises(available:avoidSoreRegions:) -> [Exercise]`
 - `getOverallRecoveryPercentage() -> Double`
 - `reset()`
+
+Read methods derive a current snapshot from the stored recovery baseline. Reading
+the map, a region status, training readiness, recommendations or overall recovery
+does not restart the recovery clock. Hourly polling produces the same status as
+one read at the end of the same elapsed period, using the existing fatigue
+thresholds. Returned maps are independent value snapshots.
+
+`recordWorkout(_:)` refreshes elapsed recovery before applying fatigue and starts
+a new baseline at the recording time. `reset()` discards the baseline. The
+initializer accepts `now: () -> Date` for deterministic reads, recording and reset;
+it defaults to the system clock.
+
+Recovery still uses one shared timestamp for all regions. This API does not add
+per-region workout timestamps or restore recovery through the facade's startup
+loading. Direct `BodyMapRecovery.updateRecovery(asOf:)` calls mutate that value;
+use manager reads when polling without consuming the baseline.
 
 ### `SocialManager`
 
