@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/echohello-dev/betterfit/compare/v1.7.0...v1.8.0) (2026-11-22)
+
+
+### Features
+
+* prepare signed TestFlight beta archives ([#96](https://github.com/echohello-dev/betterfit/issues/96)) ([416330a](https://github.com/echohello-dev/betterfit/commit/416330af03056d02baa74993e39ea10d41c87a11))
+
+
+### Bug Fixes
+
+* preserve recovery time across body map reads ([#94](https://github.com/echohello-dev/betterfit/issues/94)) ([11a0742](https://github.com/echohello-dev/betterfit/commit/11a0742851d528229547ca146a48d35bf46b83d2))
+
 ## [1.7.0](https://github.com/echohello-dev/betterfit/compare/v1.6.1...v1.7.0) (2026-11-16)
 
 
