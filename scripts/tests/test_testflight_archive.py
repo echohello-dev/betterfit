@@ -3,8 +3,10 @@ import importlib.util
 import json
 from pathlib import Path
 import plistlib
+import struct
 import tempfile
 import unittest
+import zlib
 
 SPEC = importlib.util.spec_from_file_location(
     "testflight_archive", Path(__file__).resolve().parents[1] / "testflight_archive.py"
@@ -14,6 +16,23 @@ SPEC.loader.exec_module(release)
 
 
 class TestFlightArchiveTests(unittest.TestCase):
+    def test_checked_in_ios_icon_catalog_is_opaque(self):
+        root = Path(__file__).resolve().parents[2]
+        release.validate_icon_catalog(root / "Apps/iOS/BetterFitApp/Assets.xcassets/AppIcon.appiconset")
+
+    def test_icon_preflight_rejects_alpha_and_transparency(self):
+        self.assertEqual(release.validate_icon_png(self.png(2)), (1024, 1024))
+        for data in [self.png(6), self.png(2, transparency=True), b"invalid"]:
+            with self.assertRaises(ValueError):
+                release.validate_icon_png(data)
+
+    def test_compiled_marketing_icon_must_be_present_and_opaque(self):
+        icon = {"Name": "AppIcon", "PixelWidth": 1024, "PixelHeight": 1024, "Opaque": True}
+        release.validate_compiled_icons([icon])
+        for metadata in [[], [{**icon, "Opaque": False}], [{**icon, "PixelWidth": 180}]]:
+            with self.assertRaises(ValueError):
+                release.validate_compiled_icons(metadata)
+
     def configuration(self, data):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "public.json"
@@ -99,3 +118,12 @@ class TestFlightArchiveTests(unittest.TestCase):
     def jwt(role):
         payload = base64.urlsafe_b64encode(json.dumps({"role": role}).encode()).decode().rstrip("=")
         return f"header.{payload}.signature"
+
+    @staticmethod
+    def png(colour_type, transparency=False):
+        def chunk(kind, content):
+            return (struct.pack(">I", len(content)) + kind + content
+                    + struct.pack(">I", zlib.crc32(kind + content)))
+        header = struct.pack(">IIBBBBB", 1024, 1024, 8, colour_type, 0, 0, 0)
+        extra = chunk(b"tRNS", b"\x00\x00\x00\x00\x00\x00") if transparency else b""
+        return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + extra + chunk(b"IEND", b"")

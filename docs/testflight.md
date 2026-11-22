@@ -45,7 +45,9 @@ the app or changes tester access.
 
 The command runs `mise run ios:gen`, archives the iOS device Release scheme with
 automatic provisioning, and checks the resulting app identity, version/build,
-backend values and app privacy manifest. It writes a redacted archive log and
+backend values and app privacy manifest. It rejects source PNGs with alpha or
+transparency and verifies the archived 1024px AppIcon rendition is opaque.
+It writes a redacted archive log and
 local configuration/export options beside `BetterFit.xcarchive`. Keep those
 working files private and outside version control. The generated Info.plist binds
 the version fields to Xcode's version build settings.
@@ -57,6 +59,24 @@ alone does not prove distribution or App Store Connect access. An Apple agreemen
 update must be reviewed by the account holder; the tool does not accept agreements.
 
 ## Export, validate and upload
+
+The iOS PNG icons use the existing artwork from
+`design-system/assets/app-icon-1024.png`. That reference is byte-identical to the
+original marketing icon, including its rounded transparent corners. The opaque
+exports extend its existing `#FFD500` background to the full image. Samples at
+the four side centres and an interior background point all had RGB `255,213,0`.
+The mark and every previously opaque pixel are preserved exactly; the design
+reference is unchanged. This is a packaging export, not a palette update.
+
+The reproducible native export verifies encoded RGB pixels before writing:
+
+```bash
+swift scripts/opaque_app_icons.swift \
+  Apps/iOS/BetterFitApp/Assets.xcassets/AppIcon.appiconset FFD500
+```
+
+The background argument belongs to that existing source; establish it again if
+the source artwork changes. iOS applies the app-icon mask to the full-bleed image.
 
 ```bash
 xcodebuild -exportArchive \

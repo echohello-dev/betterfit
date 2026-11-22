@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import plistlib
 import re
+import struct
 import subprocess
 from urllib.parse import urlsplit
 
@@ -18,6 +19,49 @@ def validate_versions(version, build):
         raise ValueError("Version must contain three period-separated integers.")
     if not re.fullmatch(r"[1-9][0-9]{0,3}(?:\.(?:0|[1-9][0-9]?)){0,2}", build):
         raise ValueError("Build must use up to three integers, limited to 4, 2 and 2 digits.")
+
+
+def validate_icon_png(data):
+    if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
+        raise ValueError("App icons must be valid opaque PNG files.")
+    width, height = struct.unpack(">II", data[16:24])
+    if data[25] not in (0, 2, 3):
+        raise ValueError("App icons must not contain an alpha channel; use an opaque source export.")
+    offset = 8
+    while offset + 12 <= len(data):
+        length = struct.unpack(">I", data[offset:offset + 4])[0]
+        kind = data[offset + 4:offset + 8]
+        if offset + 12 + length > len(data):
+            break
+        if kind == b"tRNS":
+            raise ValueError("App icons must not contain transparency.")
+        if kind == b"IEND" and width > 0 and height > 0:
+            return width, height
+        offset += length + 12
+    raise ValueError("App icon PNG structure is incomplete.")
+
+
+def validate_icon_catalog(catalog):
+    manifest = json.loads((catalog / "Contents.json").read_text())
+    marketing_found = False
+    for image in manifest["images"]:
+        filename = image.get("filename")
+        if not filename:
+            continue
+        dimensions = validate_icon_png((catalog / filename).read_bytes())
+        if image.get("idiom") == "ios-marketing":
+            marketing_found = True
+            if dimensions != (1024, 1024):
+                raise ValueError("The marketing icon must be an opaque 1024 x 1024 PNG.")
+    if not marketing_found:
+        raise ValueError("The iOS marketing icon is missing.")
+
+
+def validate_compiled_icons(metadata):
+    icons = [entry for entry in metadata if entry.get("Name") == "AppIcon"
+             and entry.get("PixelWidth") == 1024 and entry.get("PixelHeight") == 1024]
+    if not icons or any(entry.get("Opaque") is not True for entry in icons):
+        raise ValueError("The compiled 1024px AppIcon must be present and opaque.")
 
 
 def public_configuration(backend, config_path):
@@ -106,6 +150,7 @@ def validate_archive(archive, version, build, backend, configuration):
         raise ValueError("The app privacy manifest is missing from the archive.")
     if any(p.suffix in {".p8", ".p12"} or p.name.startswith(".env") for p in app.rglob("*")):
         raise ValueError("The archive contains a credential file.")
+    return app
 
 
 def redact(log, configuration):
@@ -127,13 +172,14 @@ def main():
     parser.add_argument("--prepare-only", action="store_true")
     args = parser.parse_args()
     try:
+        root = Path(__file__).resolve().parent.parent
         configuration = public_configuration(args.backend, args.public_config)
+        validate_icon_catalog(root / "Apps/iOS/BetterFitApp/Assets.xcassets/AppIcon.appiconset")
         output = args.output.resolve()
         config = prepare(output, args.version, args.build, args.team, args.backend, configuration)
         if args.prepare_only:
             print("Prepared validated configuration and internal-only export options. Nothing built or uploaded.")
             return
-        root = Path(__file__).resolve().parent.parent
         environment = {**os.environ, "DEVELOPMENT_TEAM": args.team}
         generation = subprocess.run(
             ["mise", "run", "ios:gen"], cwd=root, env=environment, capture_output=True
@@ -153,7 +199,13 @@ def main():
         (output / "archive.log").write_text(log)
         if result.returncode:
             raise ValueError("Archive failed; inspect archive.log in the output directory.")
-        validate_archive(archive, args.version, args.build, args.backend, configuration)
+        app = validate_archive(archive, args.version, args.build, args.backend, configuration)
+        assets = subprocess.run(
+            ["xcrun", "assetutil", "--info", str(app / "Assets.car")], capture_output=True, text=True
+        )
+        if assets.returncode:
+            raise ValueError("Unable to inspect the archived app icon metadata.")
+        validate_compiled_icons(json.loads(assets.stdout))
         print(f"Validated dev.echohello.BetterFit {args.version} ({args.build}), backend {args.backend}.")
         print("Archive and internal-only export options are ready. Nothing has been exported or uploaded.")
     except (ValueError, OSError, plistlib.InvalidFileException) as error:
