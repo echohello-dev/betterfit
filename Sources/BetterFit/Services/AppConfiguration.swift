@@ -1,6 +1,6 @@
 import Foundation
 
-/// App configuration loaded from environment variables
+/// App configuration from development environment variables or bundled release values.
 public struct AppConfiguration {
     // MARK: - Supabase Configuration
 
@@ -15,15 +15,33 @@ public struct AppConfiguration {
 
     // MARK: - Initialization
 
-    public init() {
-        // Load environment variables
-        let rawSupabaseURL = EnvironmentLoader.get("SUPABASE_URL")
-        let supabaseAnonKey = EnvironmentLoader.get("SUPABASE_ANON_KEY")
+    public init(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        bundleInfo: [String: Any] = Bundle.main.infoDictionary ?? [:]
+    ) {
+        let backend = bundleInfo["BetterFitBackend"] as? String ?? ""
+        if backend == "guest" {
+            self.supabaseURL = nil
+            self.supabaseAnonKey = nil
+            self.isSupabaseConfigured = false
+            self.warnings = []
+            return
+        }
+
+        // Explicit release configuration must not inherit a developer's environment.
+        let rawSupabaseURL = backend == "supabase"
+            ? bundleInfo["SUPABASE_URL"] as? String : environment["SUPABASE_URL"]
+        let supabaseAnonKey = backend == "supabase"
+            ? bundleInfo["SUPABASE_ANON_KEY"] as? String : environment["SUPABASE_ANON_KEY"]
 
         self.supabaseAnonKey = supabaseAnonKey
 
         // Validate Supabase configuration
         var warnings: [String] = []
+        let hasKnownBackend = backend.isEmpty || backend == "supabase"
+        if !hasKnownBackend {
+            warnings.append("The app's bundled backend configuration is invalid.")
+        }
 
         let hasSupabaseURL =
             rawSupabaseURL != nil && !rawSupabaseURL!.isEmpty
@@ -48,7 +66,7 @@ public struct AppConfiguration {
             self.supabaseURL = nil
         }
 
-        self.isSupabaseConfigured = hasSupabaseURL && hasAnonKey && self.supabaseURL != nil
+        self.isSupabaseConfigured = hasKnownBackend && hasSupabaseURL && hasAnonKey && self.supabaseURL != nil
         self.warnings = warnings
     }
 

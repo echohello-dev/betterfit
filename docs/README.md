@@ -4,6 +4,7 @@
 
 - **[Local Development Guide](local-development.md)** - Set up Supabase, .env, and iOS simulator (start here!)
 - [Authentication Setup](auth.md) - Configure Apple Sign In, Google OAuth, email auth
+- [TestFlight beta builds](testflight.md) - Configure, archive and validate an internal beta
 
 ## Run the app (iOS Simulator)
 
